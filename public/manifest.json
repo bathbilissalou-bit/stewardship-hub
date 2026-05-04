@@ -1,0 +1,38 @@
+{
+  "name": "Stewardship Hub",
+  "short_name": "Stewardship",
+  "description": "Faith-based financial freedom",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1D9E75",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "lang": "en",
+  "shortcuts": [
+    {
+      "name": "Budget",
+      "url": "/budget",
+      "description": "Track your budget"
+    },
+    {
+      "name": "AI Coach",
+      "url": "/coach",
+      "description": "Get financial advice"
+    }
+  ]
+}
