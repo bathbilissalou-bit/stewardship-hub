@@ -128,7 +128,7 @@ function App() {
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
         <Route path="/signup" element={!session ? <Signup /> : <Navigate to="/" />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/onboarding" element={session ? <Onboarding session={session} /> : <Navigate to="/login" />} />
+        <Route path="/onboarding" element={session ? <Onboarding session={session} onComplete={() => setOnboardingDone(true)} /> : <Navigate to="/login" />} />
         <Route path="/" element={
           !session
             ? <Navigate to="/login" />

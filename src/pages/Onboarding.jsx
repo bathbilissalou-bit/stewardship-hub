@@ -53,7 +53,7 @@ const GOALS = [
   { icon:'✈️', title:'Save for a goal', desc:'Vacation, car, education, etc.' },
 ]
 
-export default function Onboarding({ session }) {
+export default function Onboarding({ session, onComplete }) {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [income, setIncome] = useState('')
@@ -101,6 +101,7 @@ export default function Onboarding({ session }) {
       // Even if something fails, let the user through
     }
     setSaving(false)
+    onComplete?.() // tell App.jsx onboarding is done so it doesn't redirect back
     navigate('/')
   }
 
