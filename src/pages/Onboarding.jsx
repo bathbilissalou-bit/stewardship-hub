@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const STEPS = [
@@ -54,32 +52,31 @@ const GOALS = [
   { icon:'✈️', title:'Save for a goal', desc:'Vacation, car, education, etc.' },
 ]
 
-export default function Onboarding({ session, onComplete }) {
-  const navigate = useNavigate()
+export default function Onboarding({ session }) {
   const [step, setStep] = useState(0)
   const [income, setIncome] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [goal, setGoal] = useState('')
-  // no saving state needed — finish() is synchronous (fire-and-forget saves)
+  const [saving, setSaving] = useState(false)
 
-  function finish() {
-    // flushSync forces React to commit setOnboardingDone(true) in App.jsx
-    // BEFORE navigate('/') fires — without this, navigate fires while
-    // onboardingDone is still false, so App.jsx redirects straight back to /onboarding
-    flushSync(() => {
-      onComplete?.()
-    })
-
-    // Fire-and-forget DB saves in background
+  async function finish() {
+    setSaving(true)
     const userId = session?.user?.id
     if (userId) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
 
-      supabase.from('users')
-        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
-        .catch(() => {})
+      // CRITICAL: await onboarding_done=true so the DB has it before page reloads.
+      // We race with a 5s timeout so the button can never stay stuck forever.
+      await Promise.race([
+        supabase.from('users').upsert(
+          { id: userId, currency, onboarding_done: true },
+          { onConflict: 'id' }
+        ),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]).catch(() => {})
 
+      // Non-critical saves — fire and forget
       if (income && parseFloat(income) > 0) {
         supabase.from('budget_entries').insert({
           user_id: userId,
@@ -103,8 +100,9 @@ export default function Onboarding({ session, onComplete }) {
       }
     }
 
-    // Navigate immediately — no waiting, no spinner
-    navigate('/')
+    // Hard page reload — bypasses all React state / auth timing issues.
+    // App.jsx reads onboarding_done=true fresh from DB and shows the Dashboard.
+    window.location.replace('/')
   }
 
   const progress = ((step) / (STEPS.length - 1)) * 100
@@ -222,8 +220,9 @@ export default function Onboarding({ session, onComplete }) {
               if (step < STEPS.length - 1) setStep(s => s+1)
               else finish()
             }}
-            style={{ flex:2, padding:'14px', background:'white', color:'#0F6E56', border:'none', borderRadius:12, fontSize:16, fontWeight:800, cursor:'pointer' }}>
-            {step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
+            disabled={saving}
+            style={{ flex:2, padding:'14px', background:'white', color:'#0F6E56', border:'none', borderRadius:12, fontSize:16, fontWeight:800, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.85 : 1 }}>
+            {saving ? '⏳ Setting up...' : step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
           </button>
         </div>
 
