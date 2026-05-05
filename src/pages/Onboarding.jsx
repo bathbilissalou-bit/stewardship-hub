@@ -59,49 +59,46 @@ export default function Onboarding({ session, onComplete }) {
   const [income, setIncome] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [goal, setGoal] = useState('')
-  const [saving, setSaving] = useState(false)
+  // no saving state needed — finish() is synchronous (fire-and-forget saves)
 
-  async function finish() {
-    setSaving(true)
-    try {
-      const userId = session.user.id
+  function finish() {
+    // Mark done in memory immediately — never block the user
+    onComplete?.()
+
+    // Fire-and-forget DB saves in background
+    const userId = session?.user?.id
+    if (userId) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
 
-      // Save currency to profile
-      await supabase.from('users').upsert({ id: userId, currency }, { onConflict: 'id' })
+      supabase.from('users')
+        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
+        .catch(() => {})
 
-      // Save income to budget if provided
       if (income && parseFloat(income) > 0) {
-        await supabase.from('budget_entries').insert({
+        supabase.from('budget_entries').insert({
           user_id: userId,
           month_year: monthYear,
           type: 'income',
           label: 'Monthly Income',
           amount: parseFloat(income),
           category: null
-        })
+        }).catch(() => {})
       }
 
-      // Save goal to savings goals if selected
       if (goal) {
-        await supabase.from('savings_goals').insert({
+        supabase.from('savings_goals').insert({
           user_id: userId,
           name: goal,
           target_amount: 1000,
           current_amount: 0,
-          icon: GOALS.find(g=>g.title===goal)?.icon || '🎯',
+          icon: GOALS.find(g => g.title === goal)?.icon || '🎯',
           color: '#1D9E75'
-        })
+        }).catch(() => {})
       }
-
-      // Mark onboarding complete
-      await supabase.from('users').upsert({ id: userId, onboarding_done: true }, { onConflict: 'id' })
-    } catch(e) {
-      // Even if something fails, let the user through
     }
-    setSaving(false)
-    onComplete?.() // tell App.jsx onboarding is done so it doesn't redirect back
+
+    // Navigate immediately — no waiting, no spinner
     navigate('/')
   }
 
@@ -220,9 +217,8 @@ export default function Onboarding({ session, onComplete }) {
               if (step < STEPS.length - 1) setStep(s => s+1)
               else finish()
             }}
-            disabled={saving}
             style={{ flex:2, padding:'14px', background:'white', color:'#0F6E56', border:'none', borderRadius:12, fontSize:16, fontWeight:800, cursor:'pointer' }}>
-            {saving ? 'Setting up...' : step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
+            {step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
           </button>
         </div>
 
