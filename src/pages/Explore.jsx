@@ -30,7 +30,7 @@ const GROUPS = [
     color: '#185FA5',
     features: [
       { to:'/challenge',  icon:'⭐', label:'$100 Challenge',    desc:'30-day transformation',      color:'#7A4D0F', bg:'#FFF3CD' },
-      { to:'/realestate', icon:'🏠', label:'Real Estate Guide', desc:'Home buying steps',          color:'#8B5E3C', bg:'#F5EAE0' },
+      { to:'/nutrition',  icon:'🥗', label:'Food & Nutrition',  desc:'Recipes, weight & food access', color:'#1D9E75', bg:'#E1F5EE' },
       { to:'/travel',     icon:'🧳', label:'Travel Planner',    desc:'Trips & document expiry',    color:'#534AB7', bg:'#EEEDFE' },
     ],
   },

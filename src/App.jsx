@@ -10,10 +10,9 @@ import Budget from './pages/Budget'
 import Loans from './pages/Loans'
 import Challenge from './pages/Challenge'
 import Investments from './pages/Investments'
-import RealEstate from './pages/RealEstate'
+import Nutrition from './pages/Nutrition'
 import Faith from './pages/Faith'
 import Community from './pages/Community'
-import Immigration from './pages/Immigration'
 import HowToUse from './pages/HowToUse'
 import BudgetReport from './pages/BudgetReport'
 import Settings from './pages/Settings'
@@ -151,7 +150,7 @@ function App() {
           <Route path="investments" element={<Investments session={session} lang={lang} />} />
           <Route path="loans" element={<Loans session={session} lang={lang} />} />
           <Route path="challenge" element={<Challenge session={session} lang={lang} />} />
-          <Route path="realestate" element={<RealEstate session={session} lang={lang} />} />
+          <Route path="nutrition" element={<Nutrition session={session} />} />
           <Route path="faith" element={<Faith session={session} lang={lang} />} />
           <Route path="community" element={<Community session={session} lang={lang} />} />
           <Route path="birthdays" element={<Birthdays session={session} />} />
