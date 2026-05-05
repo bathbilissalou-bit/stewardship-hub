@@ -63,39 +63,43 @@ export default function Onboarding({ session }) {
 
   async function finish() {
     setSaving(true)
-    const userId = session.user.id
-    const now = new Date()
-    const monthYear = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
+    try {
+      const userId = session.user.id
+      const now = new Date()
+      const monthYear = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
 
-    // Save currency to profile
-    await supabase.from('users').upsert({ id: userId, currency }, { onConflict: 'id' })
+      // Save currency to profile
+      await supabase.from('users').upsert({ id: userId, currency }, { onConflict: 'id' })
 
-    // Save income to budget if provided
-    if (income && parseFloat(income) > 0) {
-      await supabase.from('budget_entries').insert({
-        user_id: userId,
-        month_year: monthYear,
-        type: 'income',
-        label: 'Monthly Income',
-        amount: parseFloat(income),
-        category: null
-      })
+      // Save income to budget if provided
+      if (income && parseFloat(income) > 0) {
+        await supabase.from('budget_entries').insert({
+          user_id: userId,
+          month_year: monthYear,
+          type: 'income',
+          label: 'Monthly Income',
+          amount: parseFloat(income),
+          category: null
+        })
+      }
+
+      // Save goal to savings goals if selected
+      if (goal) {
+        await supabase.from('savings_goals').insert({
+          user_id: userId,
+          name: goal,
+          target_amount: 1000,
+          current_amount: 0,
+          icon: GOALS.find(g=>g.title===goal)?.icon || '🎯',
+          color: '#1D9E75'
+        })
+      }
+
+      // Mark onboarding complete
+      await supabase.from('users').upsert({ id: userId, onboarding_done: true }, { onConflict: 'id' })
+    } catch(e) {
+      // Even if something fails, let the user through
     }
-
-    // Save goal to savings goals if selected
-    if (goal) {
-      await supabase.from('savings_goals').insert({
-        user_id: userId,
-        name: goal,
-        target_amount: 1000,
-        current_amount: 0,
-        icon: GOALS.find(g=>g.title===goal)?.icon || '🎯',
-        color: '#1D9E75'
-      })
-    }
-
-    // Mark onboarding complete in Supabase (works across all devices)
-    await supabase.from('users').upsert({ id: userId, onboarding_done: true }, { onConflict: 'id' })
     setSaving(false)
     navigate('/')
   }
