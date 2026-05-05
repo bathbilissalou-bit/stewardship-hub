@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -62,8 +63,12 @@ export default function Onboarding({ session, onComplete }) {
   // no saving state needed — finish() is synchronous (fire-and-forget saves)
 
   function finish() {
-    // Mark done in memory immediately — never block the user
-    onComplete?.()
+    // flushSync forces React to commit setOnboardingDone(true) in App.jsx
+    // BEFORE navigate('/') fires — without this, navigate fires while
+    // onboardingDone is still false, so App.jsx redirects straight back to /onboarding
+    flushSync(() => {
+      onComplete?.()
+    })
 
     // Fire-and-forget DB saves in background
     const userId = session?.user?.id
