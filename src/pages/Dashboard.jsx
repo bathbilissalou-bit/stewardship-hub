@@ -59,40 +59,48 @@ export default function Dashboard({ session, lang }) {
     async function load() {
       const uid = session?.user?.id
       if (!uid) return
-      const [{ data: e }, { data: l }, { data: i }, { count }] = await Promise.all([
-        supabase.from('budget_entries').select('*').eq('user_id',uid).eq('month_year',monthYear),
-        supabase.from('loans').select('*').eq('user_id',uid).eq('status','active'),
-        supabase.from('investments').select('*').eq('user_id',uid),
-        supabase.from('challenge_progress').select('id',{count:'exact',head:true}).eq('user_id',uid).eq('completed',true),
-      ])
-      setEntries(e||[])
-      setLoans(l||[])
-      setInvestments(i||[])
-      setChallenge(count||0)
-      // Load user currency
-      const { data: profile } = await supabase.from('users').select('currency').eq('id',uid).single()
-      if (profile?.currency) {
-        const symbols = { USD:'$', EUR:'€', GBP:'£', CAD:'C$', AUD:'A$', NGN:'₦', KES:'KSh', GHS:'₵', ZAR:'R', XOF:'CFA', XAF:'FCFA', INR:'₹', BRL:'R$', MXN:'MX$', CNY:'¥', JPY:'¥', KRW:'₩', RUB:'₽' }
-        setUserCurrency({ code:profile.currency, symbol:symbols[profile.currency]||'$' })
-      }
 
-      // Build last 6 months trend
+      // Build 6-month list up front (no async needed)
       const months = []
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
         months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)
       }
-      const { data: allEntries } = await supabase
-        .from('budget_entries').select('type,amount,month_year')
-        .eq('user_id', uid).in('month_year', months)
+
+      // Fire ALL queries in parallel — single round trip instead of 3
+      const [
+        { data: e },
+        { data: l },
+        { data: i },
+        { count },
+        { data: profile },
+        { data: allEntries },
+      ] = await Promise.all([
+        supabase.from('budget_entries').select('*').eq('user_id',uid).eq('month_year',monthYear),
+        supabase.from('loans').select('*').eq('user_id',uid).eq('status','active'),
+        supabase.from('investments').select('*').eq('user_id',uid),
+        supabase.from('challenge_progress').select('id',{count:'exact',head:true}).eq('user_id',uid).eq('completed',true),
+        supabase.from('users').select('currency').eq('id',uid).single(),
+        supabase.from('budget_entries').select('type,amount,month_year').eq('user_id',uid).in('month_year',months),
+      ])
+
+      setEntries(e||[])
+      setLoans(l||[])
+      setInvestments(i||[])
+      setChallenge(count||0)
+
+      if (profile?.currency) {
+        const symbols = { USD:'$', EUR:'€', GBP:'£', CAD:'C$', AUD:'A$', NGN:'₦', KES:'KSh', GHS:'₵', ZAR:'R', XOF:'CFA', XAF:'FCFA', INR:'₹', BRL:'R$', MXN:'MX$', CNY:'¥', JPY:'¥', KRW:'₩', RUB:'₽' }
+        setUserCurrency({ code:profile.currency, symbol:symbols[profile.currency]||'$' })
+      }
 
       const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
       const trend = months.map(my => {
-        const [yr, mo] = my.split('-')
+        const [, mo] = my.split('-')
         const rows = (allEntries||[]).filter(r=>r.month_year===my)
         return {
           month: MONTH_LABELS[parseInt(mo,10)-1],
-          Income: rows.filter(r=>r.type==='income').reduce((s,r)=>s+Number(r.amount),0),
+          Income:   rows.filter(r=>r.type==='income').reduce((s,r)=>s+Number(r.amount),0),
           Expenses: rows.filter(r=>r.type==='expense').reduce((s,r)=>s+Number(r.amount),0),
         }
       })
