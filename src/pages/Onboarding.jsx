@@ -57,26 +57,21 @@ export default function Onboarding({ session }) {
   const [income, setIncome] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [goal, setGoal] = useState('')
-  const [saving, setSaving] = useState(false)
+  function finish() {
+    // Write to localStorage FIRST — instant, synchronous, survives page reload.
+    // App.jsx reads this on reload and skips onboarding regardless of DB state.
+    localStorage.setItem('sh_onboarding_done', 'true')
 
-  async function finish() {
-    setSaving(true)
+    // Fire-and-forget all DB saves — none of these can block the user
     const userId = session?.user?.id
     if (userId) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
 
-      // CRITICAL: await onboarding_done=true so the DB has it before page reloads.
-      // We race with a 5s timeout so the button can never stay stuck forever.
-      await Promise.race([
-        supabase.from('users').upsert(
-          { id: userId, currency, onboarding_done: true },
-          { onConflict: 'id' }
-        ),
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]).catch(() => {})
+      supabase.from('users')
+        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
+        .catch(() => {})
 
-      // Non-critical saves — fire and forget
       if (income && parseFloat(income) > 0) {
         supabase.from('budget_entries').insert({
           user_id: userId,
@@ -100,8 +95,7 @@ export default function Onboarding({ session }) {
       }
     }
 
-    // Hard page reload — bypasses all React state / auth timing issues.
-    // App.jsx reads onboarding_done=true fresh from DB and shows the Dashboard.
+    // Hard reload — App.jsx sees sh_onboarding_done=true in localStorage → Dashboard
     window.location.replace('/')
   }
 
@@ -220,9 +214,8 @@ export default function Onboarding({ session }) {
               if (step < STEPS.length - 1) setStep(s => s+1)
               else finish()
             }}
-            disabled={saving}
-            style={{ flex:2, padding:'14px', background:'white', color:'#0F6E56', border:'none', borderRadius:12, fontSize:16, fontWeight:800, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.85 : 1 }}>
-            {saving ? '⏳ Setting up...' : step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
+            style={{ flex:2, padding:'14px', background:'white', color:'#0F6E56', border:'none', borderRadius:12, fontSize:16, fontWeight:800, cursor:'pointer' }}>
+            {step === STEPS.length-1 ? '🚀 Start using the app!' : 'Continue →'}
           </button>
         </div>
 

@@ -63,6 +63,11 @@ function App() {
     // Safety net — never stay stuck on loading screen more than 8 seconds
     const safetyTimeout = setTimeout(() => setLoading(false), 8000)
 
+    // localStorage is the fast, reliable source of truth for onboarding.
+    // DB is checked as a fallback but localStorage always wins if true.
+    const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
+    if (localDone) setOnboardingDone(true)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       try {
         setSession(session)
@@ -72,7 +77,10 @@ function App() {
             .select('onboarding_done')
             .eq('id', session.user.id)
             .single()
-          setOnboardingDone(data?.onboarding_done === true)
+          // localStorage wins — never overwrite a true value with false from DB
+          const dbDone = data?.onboarding_done === true
+          setOnboardingDone(dbDone || localDone)
+          if (dbDone) localStorage.setItem('sh_onboarding_done', 'true')
         }
       } catch(_) {}
       clearTimeout(safetyTimeout)
@@ -86,12 +94,15 @@ function App() {
       try {
         setSession(session)
         if (session?.user?.id) {
+          const local = localStorage.getItem('sh_onboarding_done') === 'true'
           const { data } = await supabase
             .from('users')
             .select('onboarding_done')
             .eq('id', session.user.id)
             .single()
-          setOnboardingDone(data?.onboarding_done === true)
+          const dbDone = data?.onboarding_done === true
+          setOnboardingDone(dbDone || local)
+          if (dbDone) localStorage.setItem('sh_onboarding_done', 'true')
         } else {
           setOnboardingDone(false)
         }
