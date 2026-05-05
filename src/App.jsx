@@ -59,31 +59,42 @@ function App() {
   }
 
   useEffect(() => {
+    // Safety net — never stay stuck on loading screen more than 8 seconds
+    const safetyTimeout = setTimeout(() => setLoading(false), 8000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
-      if (session?.user?.id) {
-        // Check onboarding status from Supabase (works across devices)
-        const { data } = await supabase
-          .from('users')
-          .select('onboarding_done')
-          .eq('id', session.user.id)
-          .single()
-        setOnboardingDone(data?.onboarding_done === true)
-      }
+      try {
+        setSession(session)
+        if (session?.user?.id) {
+          const { data } = await supabase
+            .from('users')
+            .select('onboarding_done')
+            .eq('id', session.user.id)
+            .single()
+          setOnboardingDone(data?.onboarding_done === true)
+        }
+      } catch(_) {}
+      clearTimeout(safetyTimeout)
+      setLoading(false)
+    }).catch(() => {
+      clearTimeout(safetyTimeout)
       setLoading(false)
     })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      if (session?.user?.id) {
-        const { data } = await supabase
-          .from('users')
-          .select('onboarding_done')
-          .eq('id', session.user.id)
-          .single()
-        setOnboardingDone(data?.onboarding_done === true)
-      } else {
-        setOnboardingDone(false)
-      }
+      try {
+        setSession(session)
+        if (session?.user?.id) {
+          const { data } = await supabase
+            .from('users')
+            .select('onboarding_done')
+            .eq('id', session.user.id)
+            .single()
+          setOnboardingDone(data?.onboarding_done === true)
+        } else {
+          setOnboardingDone(false)
+        }
+      } catch(_) {}
     })
 
     // Listen for language changes
