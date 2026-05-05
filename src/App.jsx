@@ -41,7 +41,10 @@ function App() {
   const [session, setSession] = useState(null)
   const [isPremium, setIsPremium] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [onboardingDone, setOnboardingDone] = useState(false)
+  // Initialize from localStorage immediately — no async wait needed
+  const [onboardingDone, setOnboardingDone] = useState(
+    () => localStorage.getItem('sh_onboarding_done') === 'true'
+  )
   const [lang, setLangState] = useState(getLang())
   const [theme, setThemeState] = useState(() => localStorage.getItem('sh_theme') || 'light')
 
@@ -62,11 +65,6 @@ function App() {
   useEffect(() => {
     // Safety net — never stay stuck on loading screen more than 8 seconds
     const safetyTimeout = setTimeout(() => setLoading(false), 8000)
-
-    // localStorage is the fast, reliable source of truth for onboarding.
-    // DB is checked as a fallback but localStorage always wins if true.
-    const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
-    if (localDone) setOnboardingDone(true)
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       try {
