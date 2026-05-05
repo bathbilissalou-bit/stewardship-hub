@@ -40,7 +40,7 @@ const GROUPS = [
     features: [
       { to:'/faith',       icon:'✦',  label:'Faith & Stewardship', desc:'Biblical wisdom',          color:'#0F6E56', bg:'#D4EDDA' },
       { to:'/community',   icon:'👥', label:'Community',           desc:'Grow together',            color:'#534AB7', bg:'#F0EFFE' },
-      { to:'/immigration', icon:'✈️', label:'Immigration Tracker', desc:'Visas & deadlines',        color:'#534AB7', bg:'#EEEDFE' },
+      { to:'/birthdays',   icon:'🎂', label:'Birthday Reminders', desc:'Never miss a birthday',    color:'#C2185B', bg:'#FCE4EC' },
     ],
   },
   {

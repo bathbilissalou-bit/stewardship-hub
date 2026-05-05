@@ -30,6 +30,7 @@ import Receipts from './pages/Receipts'
 import Travel from './pages/Travel'
 import FamilyBudget from './pages/FamilyBudget'
 import Onboarding from './pages/Onboarding'
+import Birthdays from './pages/Birthdays'
 import Subscriptions from './pages/Subscriptions'
 import NetWorth from './pages/NetWorth'
 import DebtPlanner from './pages/DebtPlanner'
@@ -144,7 +145,7 @@ function App() {
           <Route path="realestate" element={<RealEstate session={session} lang={lang} />} />
           <Route path="faith" element={<Faith session={session} lang={lang} />} />
           <Route path="community" element={<Community session={session} lang={lang} />} />
-          <Route path="immigration" element={<Immigration session={session} lang={lang} />} />
+          <Route path="birthdays" element={<Birthdays session={session} />} />
           <Route path="howtouse" element={<HowToUse lang={lang} />} />
           <Route path="report" element={<BudgetReport session={session} lang={lang} />} />
           <Route path="settings" element={<Settings session={session} isPremium={isPremium} theme={theme} setTheme={setTheme} />} />
