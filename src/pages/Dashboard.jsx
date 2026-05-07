@@ -74,37 +74,65 @@ export default function Dashboard({ session, lang }) {
   const [challenge,    setChallenge]    = useState(cached?.challenge    || 0)
   const [userCurrency, setUserCurrency] = useState(cached?.userCurrency || { code:'USD', symbol:'$' })
   const [trendData,    setTrendData]    = useState(cached?.trendData    || [])
-  // Only show skeleton on very first visit (no cache)
+  // loading = true only means "fetching" — we ALWAYS show content (never blank skeletons)
   const [loading,    setLoading]    = useState(!cached)
   const [refreshing, setRefreshing] = useState(!!cached)
 
-  // ── Fetch fresh data in background ───────────────────────────────────────────
+  // ── Fetch fresh data in two waves ────────────────────────────────────────────
+  // Wave 1 (fast): current month + loans + investments + currency — populates
+  //   the main financial cards immediately.
+  // Wave 2 (deferred): 6-month trend — heavy query, loads chart after cards.
   useEffect(() => {
     if (!uid) return
 
-    const months = Array.from({ length:6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-    })
+    let stale = false  // prevent setState after unmount
 
-    async function fetchFresh() {
+    async function fetchWave1() {
       try {
         const [
           { data: e }, { data: l }, { data: i },
-          { count }, { data: profile }, { data: allEntries },
+          { count }, { data: profile },
         ] = await Promise.all([
-          supabase.from('budget_entries').select('*').eq('user_id',uid).eq('month_year',monthYear),
-          supabase.from('loans').select('*').eq('user_id',uid).eq('status','active'),
-          supabase.from('investments').select('*').eq('user_id',uid),
+          supabase.from('budget_entries').select('type,amount,category,label,notes').eq('user_id',uid).eq('month_year',monthYear),
+          supabase.from('loans').select('id,remaining_balance,principal,status').eq('user_id',uid).eq('status','active'),
+          supabase.from('investments').select('id,current_value').eq('user_id',uid),
           supabase.from('challenge_progress').select('id',{count:'exact',head:true}).eq('user_id',uid).eq('completed',true),
           supabase.from('users').select('currency').eq('id',uid).single(),
-          supabase.from('budget_entries').select('type,amount,month_year').eq('user_id',uid).in('month_year',months),
         ])
 
+        if (stale) return
         const currency = profile?.currency
           ? { code:profile.currency, symbol:CURRENCY_SYMBOLS[profile.currency]||'$' }
           : { code:'USD', symbol:'$' }
 
+        const wave1 = { entries:e||[], loans:l||[], investments:i||[], challenge:count||0, userCurrency:currency }
+        setEntries(wave1.entries)
+        setLoans(wave1.loans)
+        setInvestments(wave1.investments)
+        setChallenge(wave1.challenge)
+        setUserCurrency(wave1.userCurrency)
+        setLoading(false)
+        setRefreshing(false)
+
+        // Kick off wave 2 (trend chart) after main cards are rendered
+        fetchWave2(wave1)
+      } catch(err) {
+        console.error('Dashboard wave1:', err)
+        if (!stale) { setLoading(false); setRefreshing(false) }
+      }
+    }
+
+    async function fetchWave2(wave1) {
+      try {
+        const months = Array.from({ length:6 }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+        })
+        const { data: allEntries } = await supabase
+          .from('budget_entries').select('type,amount,month_year')
+          .eq('user_id',uid).in('month_year',months)
+
+        if (stale) return
         const trend = months.map(my => {
           const [, mo] = my.split('-')
           const rows = (allEntries||[]).filter(r=>r.month_year===my)
@@ -114,24 +142,16 @@ export default function Dashboard({ session, lang }) {
             Expenses: rows.filter(r=>r.type==='expense').reduce((s,r)=>s+Number(r.amount),0),
           }
         })
-
-        const fresh = { entries:e||[], loans:l||[], investments:i||[], challenge:count||0, userCurrency:currency, trendData:trend }
-        setEntries(fresh.entries)
-        setLoans(fresh.loans)
-        setInvestments(fresh.investments)
-        setChallenge(fresh.challenge)
-        setUserCurrency(fresh.userCurrency)
-        setTrendData(fresh.trendData)
-        saveCache(uid, fresh)
+        setTrendData(trend)
+        // Save full data to cache now that we have everything
+        saveCache(uid, { ...wave1, trendData:trend })
       } catch(err) {
-        console.error('Dashboard fetch:', err)
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
+        console.error('Dashboard wave2:', err)
       }
     }
 
-    fetchFresh()
+    fetchWave1()
+    return () => { stale = true }
   }, [uid]) // eslint-disable-line
 
   // ── Derived ───────────────────────────────────────────────────────────────────
@@ -193,21 +213,8 @@ export default function Dashboard({ session, lang }) {
         <div style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:4 }}>— {verse.ref}</div>
       </div>
 
-      {/* ── Skeletons (first-ever visit, no cache yet) ──────────────────── */}
-      {loading && (
-        <div>
-          <Skeleton h={90}  r={16} style={{ marginBottom:16 }} />
-          <Skeleton h={200} r={14} style={{ marginBottom:16 }} />
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            <Skeleton h={80} r={14} />
-            <Skeleton h={80} r={14} />
-          </div>
-        </div>
-      )}
-
-      {/* ── Financial content ───────────────────────────────────────────── */}
-      {!loading && (
-        <div className="dash-in">
+      {/* ── Financial content — always visible; loading just means numbers are $0 ── */}
+      <div className="dash-in">
 
           {/* Net Worth */}
           <div style={{
@@ -219,11 +226,14 @@ export default function Dashboard({ session, lang }) {
             <div style={{ fontSize:11, opacity:0.8, marginBottom:4, letterSpacing:'0.05em' }}>
               {tr.netWorthLabel||'ESTIMATED NET WORTH'}
             </div>
-            <div style={{ fontSize:34, fontWeight:800, letterSpacing:'-1px' }}>
+            <div style={{ fontSize:34, fontWeight:800, letterSpacing:'-1px',
+              opacity: loading ? 0.45 : 1, transition:'opacity 0.3s' }}>
               {netWorth>=0?'+':'-'}{fmt(Math.abs(netWorth), sym)}
             </div>
             <div style={{ fontSize:11, opacity:0.7, marginTop:4 }}>
-              Portfolio {fmt(totalInvested,sym)} − Loans {fmt(totalDebt,sym)}
+              {loading
+                ? '⏳ Loading your data…'
+                : `Portfolio ${fmt(totalInvested,sym)} − Loans ${fmt(totalDebt,sym)}`}
             </div>
           </div>
 
@@ -386,8 +396,7 @@ export default function Dashboard({ session, lang }) {
               </div>
             </Link>
           )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
