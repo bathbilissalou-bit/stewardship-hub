@@ -315,11 +315,20 @@ export default function Nutrition({ session }) {
   // Load profile + weight logs
   useEffect(() => {
     if (!uid) return
+
+    // Safety net — never stay stuck on Loading...
+    const timeout = setTimeout(() => {
+      setProfileLoading(false)
+      setWeightLoading(false)
+      setEditing(true)
+    }, 5000)
+
     Promise.all([
       supabase.from('nutrition_profiles').select('*').eq('user_id', uid).single(),
       supabase.from('weight_logs').select('*').eq('user_id', uid).order('logged_at').limit(60),
-    ]).then(([{ data: p }, { data: w }]) => {
-      if (p) {
+    ]).then(([{ data: p, error: pe }, { data: w }]) => {
+      clearTimeout(timeout)
+      if (p && !pe) {
         setProfile(p)
         setForm({
           gender: p.gender || 'male',
@@ -333,12 +342,14 @@ export default function Nutrition({ session }) {
         })
         setCountry(p.country || 'US')
       } else {
-        setEditing(true) // New user — show setup
+        setEditing(true) // New user or table missing — show setup form
       }
       setWeightLogs(w || [])
       setProfileLoading(false)
       setWeightLoading(false)
     }).catch(() => {
+      clearTimeout(timeout)
+      setEditing(true)
       setProfileLoading(false)
       setWeightLoading(false)
     })
