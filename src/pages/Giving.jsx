@@ -113,9 +113,8 @@ export default function Giving({ session }) {
         </div>
       )}
 
-      {loading && <div className="spinner"/>}
-      {!loading && entries.length === 0 && (
-        <div className="empty-state"><div className="icon">🎁</div><p>{tr.noGivingYet||'No giving entries yet'}</p><p style={{marginTop:8,fontSize:13}}>{tr.tapRecordGift||'Tap + to record your first gift'}</p></div>
+      {entries.length === 0 && (
+        <div className="empty-state"><div className="icon">🎁</div><p>{loading ? '⏳ Loading…' : (tr.noGivingYet||'No giving entries yet')}</p>{!loading && <p style={{marginTop:8,fontSize:13}}>{tr.tapRecordGift||'Tap + to record your first gift'}</p>}</div>
       )}
 
       {/* Entries list */}

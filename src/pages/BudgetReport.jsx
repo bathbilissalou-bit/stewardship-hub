@@ -225,7 +225,6 @@ export default function BudgetReport({ session }) {
             </button>
           </div>
         </div>
-        {loading && <div className="spinner"/>}
       </div>
 
       <div id="full-report-content" style={{ background:"white", padding:"0 0 20px" }}>

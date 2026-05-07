@@ -145,12 +145,11 @@ export default function SavingsGoals({ session }) {
         </div>
       )}
 
-      {loading && <div className="spinner"/>}
-      {!loading && goals.length === 0 && (
+      {goals.length === 0 && (
         <div className="empty-state">
           <div className="icon">🎯</div>
-          <p>{tr.noGoalsYet||'No savings goals yet'}</p>
-          <p style={{marginTop:8, fontSize:13}}>{tr.tapToSetGoal||'Tap + to set your first goal'}</p>
+          <p>{loading ? '⏳ Loading…' : (tr.noGoalsYet||'No savings goals yet')}</p>
+          {!loading && <p style={{marginTop:8, fontSize:13}}>{tr.tapToSetGoal||'Tap + to set your first goal'}</p>}
         </div>
       )}
 

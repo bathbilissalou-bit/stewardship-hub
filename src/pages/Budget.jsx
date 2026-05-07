@@ -214,9 +214,7 @@ export default function Budget({ session }) {
           <tbody><tr>{CATEGORIES.map(cat=><td key={cat} style={{ ...CELL, border:'none', borderRight:'1px solid #e5e7eb', textAlign:'center', color:catTotals[cat]>0?'#A32D2D':'#9ca3af' }}>${fmt(catTotals[cat])}</td>)}</tr></tbody>
         </table>
       </div>
-      {loading && <div className="spinner" />}
-      {!loading && (
-        <>
+      <>
           {/* Auto-fill banner — shown for current month whenever templates exist */}
           {templates.length > 0 && monthYear === currentMonthYear && (
             <div style={{ background: entries.length === 0 ? 'linear-gradient(135deg,#E1F5EE,#EBF4FB)' : 'var(--white)', border:`1px solid ${entries.length === 0 ? '#1D9E75' : 'var(--border)'}`, borderRadius:14, padding:'12px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:12 }}>
@@ -364,7 +362,6 @@ export default function Budget({ session }) {
             </div>
           </div>
         </>
-      )}
     </div>
   )
 }

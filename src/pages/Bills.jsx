@@ -211,9 +211,8 @@ export default function Bills({ session }) {
         </div>
       )}
 
-      {loading && <div className="spinner" />}
-      {!loading && bills.length === 0 && (
-        <div className="empty-state"><div className="icon">🔔</div><p>{tr.noBills||'No bills added yet'}</p><p style={{ marginTop:8, fontSize:13 }}>{tr.tapAddBill||'Tap + to add your recurring bills'}</p></div>
+      {bills.length === 0 && (
+        <div className="empty-state"><div className="icon">🔔</div><p>{loading ? '⏳ Loading…' : (tr.noBills||'No bills added yet')}</p><p style={{ marginTop:8, fontSize:13 }}>{loading ? '' : (tr.tapAddBill||'Tap + to add your recurring bills')}</p></div>
       )}
 
       {/* Bill list */}

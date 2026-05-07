@@ -218,12 +218,11 @@ export default function Receipts({ session }) {
           </div>
         )}
 
-        {loading && <div className="spinner"/>}
-        {!loading && receipts.length === 0 && (
+        {receipts.length === 0 && (
           <div className="empty-state">
             <div className="icon">📸</div>
-            <p>No receipts yet</p>
-            <p style={{ fontSize:13, marginTop:8 }}>Take a photo — AI will read it automatically!</p>
+            <p>{loading ? '⏳ Loading…' : 'No receipts yet'}</p>
+            {!loading && <p style={{ fontSize:13, marginTop:8 }}>Take a photo — AI will read it automatically!</p>}
           </div>
         )}
 

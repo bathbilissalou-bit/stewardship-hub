@@ -429,10 +429,7 @@ export default function Investments({ session, lang }) {
         </div>
       )}
 
-      {loading && <div className="spinner" />}
-
-      {!loading && (
-        <div style={{ marginBottom:80 }}>
+      <div style={{ marginBottom:80 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
             <div className="section-title" style={{ margin:0 }}>{tr.portfolio||'Portfolio'}</div>
             <button onClick={() => setNewRow({ name:'', type:'index_funds', platform:'', amount_invested:'', current_value:'', investment_date:'' })}
@@ -538,7 +535,7 @@ export default function Investments({ session, lang }) {
 
                 {investments.length === 0 && !newRow && (
                   <tr><td colSpan={9} style={{ ...CELL, textAlign:'center', color:'#9ca3af', padding:'32px' }}>
-                    {tr.noEntriesYet||'No investments yet'} — tap + Add row to start
+                    {loading ? '⏳ Loading…' : `${tr.noEntriesYet||'No investments yet'} — tap + Add row to start`}
                   </td></tr>
                 )}
               </tbody>
@@ -549,7 +546,6 @@ export default function Investments({ session, lang }) {
             Tap any row to edit · click the ticker cell to set a custom ticker for live prices
           </div>
         </div>
-      )}
     </div>
   )
 }

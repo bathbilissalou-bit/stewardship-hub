@@ -241,10 +241,8 @@ export default function NetWorth({ session }) {
         ))}
       </div>
 
-      {loading && <div className="spinner" />}
-
       {/* ── OVERVIEW TAB ── */}
-      {!loading && tab === 'overview' && (
+      {tab === 'overview' && (
         <>
           {/* Assets breakdown */}
           {assetRows.length > 0 && (
@@ -290,8 +288,8 @@ export default function NetWorth({ session }) {
           {assetRows.length === 0 && liabRows.length === 0 && (
             <div style={{ textAlign:'center', padding:'32px 20px', color:'#9ca3af' }}>
               <div style={{ fontSize:40, marginBottom:10 }}>💰</div>
-              <div style={{ fontWeight:700, color:'#374151', marginBottom:6 }}>Start tracking your net worth</div>
-              <div style={{ fontSize:13, marginBottom:16 }}>Add your assets and liabilities to see your full financial picture</div>
+              <div style={{ fontWeight:700, color:'#374151', marginBottom:6 }}>{loading ? '⏳ Loading…' : 'Start tracking your net worth'}</div>
+              {!loading && <div style={{ fontSize:13, marginBottom:16 }}>Add your assets and liabilities to see your full financial picture</div>}
             </div>
           )}
 
@@ -305,7 +303,7 @@ export default function NetWorth({ session }) {
       )}
 
       {/* ── ASSETS TAB ── */}
-      {!loading && tab === 'assets' && (
+      {tab === 'assets' && (
         <>
           <button onClick={() => { setAddType('asset'); setForm(f=>({...f,category:'Cash & Savings'})); setShowAdd(true) }}
             style={{ width:'100%', padding:'13px', background:'linear-gradient(135deg,#1D9E75,#0F6E56)', color:'white', border:'none', borderRadius:12, fontWeight:700, fontSize:14, cursor:'pointer', marginBottom:14 }}>
@@ -348,13 +346,13 @@ export default function NetWorth({ session }) {
           })}
 
           {assetRows.length === 0 && (
-            <div style={{ textAlign:'center', padding:'24px', color:'#9ca3af', fontSize:13 }}>No assets yet — add cash, property, vehicle or other assets</div>
+            <div style={{ textAlign:'center', padding:'24px', color:'#9ca3af', fontSize:13 }}>{loading ? '⏳ Loading…' : 'No assets yet — add cash, property, vehicle or other assets'}</div>
           )}
         </>
       )}
 
       {/* ── LIABILITIES TAB ── */}
-      {!loading && tab === 'liabilities' && (
+      {tab === 'liabilities' && (
         <>
           <button onClick={() => { setAddType('liability'); setForm(f=>({...f,category:'Credit Card'})); setShowAdd(true) }}
             style={{ width:'100%', padding:'13px', background:'linear-gradient(135deg,#A32D2D,#7B1C1C)', color:'white', border:'none', borderRadius:12, fontWeight:700, fontSize:14, cursor:'pointer', marginBottom:14 }}>
@@ -397,7 +395,7 @@ export default function NetWorth({ session }) {
           })}
 
           {liabRows.length === 0 && (
-            <div style={{ textAlign:'center', padding:'24px', color:'#9ca3af', fontSize:13 }}>No liabilities — great! Add credit cards or other debts if any</div>
+            <div style={{ textAlign:'center', padding:'24px', color:'#9ca3af', fontSize:13 }}>{loading ? '⏳ Loading…' : 'No liabilities — great! Add credit cards or other debts if any'}</div>
           )}
         </>
       )}

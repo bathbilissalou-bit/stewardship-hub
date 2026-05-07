@@ -245,17 +245,15 @@ export default function Subscriptions({ session }) {
       )}
 
       {/* Subscriptions list */}
-      {loading && <div className="spinner" />}
-
-      {!loading && filtered.length === 0 && (
+      {filtered.length === 0 && (
         <div style={{ textAlign:'center', padding:'40px 20px' }}>
           <div style={{ fontSize:48, marginBottom:12 }}>🔄</div>
-          <div style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:6 }}>No subscriptions yet</div>
-          <div style={{ fontSize:13, color:'#9ca3af', marginBottom:20 }}>Add your recurring bills to see your true monthly cost</div>
+          <div style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:6 }}>{loading ? '⏳ Loading…' : 'No subscriptions yet'}</div>
+          {!loading && <div style={{ fontSize:13, color:'#9ca3af', marginBottom:20 }}>Add your recurring bills to see your true monthly cost</div>}
         </div>
       )}
 
-      {!loading && filtered.map(sub => {
+      {filtered.map(sub => {
         const cat = catMap[sub.category] || catMap['Other']
         const days = daysUntil(sub.next_billing_date)
         const monthlyEq = toMonthly(Number(sub.amount), sub.billing_cycle)
