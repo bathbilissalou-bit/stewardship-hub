@@ -76,6 +76,7 @@ function App() {
             .single()
           // localStorage wins — never overwrite a true value with false from DB
           const dbDone = data?.onboarding_done === true
+          const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
           setOnboardingDone(dbDone || localDone)
           if (dbDone) localStorage.setItem('sh_onboarding_done', 'true')
         }
