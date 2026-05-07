@@ -1,11 +1,11 @@
 import { Outlet, NavLink, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useT } from '../lib/i18n'
+import { useNavT } from '../lib/i18n-core'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationCenter from './NotificationCenter'
 
 export default function Layout({ session, lang, setLang }) {
-  const tr = useT()
+  const tr = useNavT()
 
   async function handleSignOut() {
     await supabase.auth.signOut()

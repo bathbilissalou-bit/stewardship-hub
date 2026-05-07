@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { LANGUAGES, getLang, useT } from '../lib/i18n'
+import { LANGUAGES, getLang } from '../lib/i18n-core'
 
 export default function LanguageSwitcher({ lang, setLang }) {
-  const tr = useT()
   const [open, setOpen] = useState(false)
   const current = lang || getLang()
   const currentLang = LANGUAGES[current]
@@ -34,7 +33,7 @@ export default function LanguageSwitcher({ lang, setLang }) {
         {open && (
           <div style={{ position:'fixed', top:60, right:16, background:'white', border:'1px solid #e5e7eb', borderRadius:14, padding:8, width:200, zIndex:999, maxHeight:350, overflowY:'auto', boxShadow:'0 8px 30px rgba(0,0,0,0.2)' }}>
             <div style={{ fontSize:10, fontWeight:600, color:'#9ca3af', padding:'2px 10px 8px', textTransform:'uppercase', letterSpacing:'0.06em' }}>
-              {tr.selectLanguage||'Select language'}
+              Select language
             </div>
             {Object.entries(LANGUAGES).map(([code, lang2]) => (
               <button

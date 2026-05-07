@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
-import { getLang, RTL_LANGS } from './lib/i18n'
+import { getLang, RTL_LANGS } from './lib/i18n-core'
 import Layout from './components/Layout'
 
 // ── Eagerly loaded (needed immediately for auth flow) ─────────────────────────
