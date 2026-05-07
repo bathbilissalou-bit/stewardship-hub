@@ -106,17 +106,119 @@ const RECIPES = [
     steps:['Brown beef in batches in a large pot. Set aside.','Sauté onion, carrots, celery 5 min.','Add garlic, thyme, bay leaf — 1 min.','Return beef. Add tomatoes, broth, potatoes.','Boil, reduce heat, cover, simmer 35 min. Season and serve.']
   },
 
-  // ── 🌍 African ───────────────────────────────────────────────────────────
+  // ── 🌍 African — West Africa ─────────────────────────────────────────────
   {
-    id:13, name:'Nigerian Jollof Rice', emoji:'🍛', cuisine:'african',
-    desc:'West Africa\'s most beloved party dish — smoky, rich, one-pot rice.',
-    calories:430, protein:10, carbs:78, fat:10,
-    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'50 min', servings:4,
-    ingredients:['2 cups long-grain parboiled rice','1 can plum tomatoes','2 red bell peppers','1 scotch bonnet pepper (optional)','1 onion','3 tbsp tomato paste','3 tbsp vegetable oil','2 cups vegetable or chicken broth','1 tsp curry powder','1 tsp thyme','2 bay leaves','Salt to taste'],
-    steps:['Blend tomatoes, bell peppers, onion, and scotch bonnet until smooth.','Heat oil in a heavy pot, fry tomato paste 2 min, then add blended sauce.','Cook sauce on medium heat 15–20 min, stirring often, until it darkens and oil floats to top.','Add broth, curry powder, thyme, bay leaves, and salt. Bring to a boil.','Wash rice well, add to pot. Stir once, cover tightly, cook on low heat 30 min. Do not lift lid. Fluff and serve.']
+    id:13, name:'Jollof Brown Rice', emoji:'🍛', cuisine:'african', region:'West Africa',
+    desc:'Healthier take on West Africa\'s favorite — brown rice, extra veg, less oil.',
+    calories:370, protein:10, carbs:64, fat:8,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'60 min', servings:4,
+    ingredients:['2 cups brown rice (rinsed)','1 can plum tomatoes','2 red bell peppers','1 scotch bonnet (optional)','1 onion','2 tbsp tomato paste','2 tbsp olive oil','2 cups vegetable broth','1 cup mixed veg (peas, carrots, green beans)','1 tsp curry powder','1 tsp thyme','2 bay leaves','Salt to taste'],
+    steps:['Blend tomatoes, bell peppers, onion, and scotch bonnet until smooth.','Heat oil, fry tomato paste 2 min, then add blended sauce. Cook 15–20 min until darkened.','Add broth, curry powder, thyme, bay leaves. Bring to a boil.','Add brown rice and mixed vegetables. Stir once, cover, cook 40 min on low heat.','Check rice is tender (add a splash of water if needed). Fluff and serve.']
   },
   {
-    id:14, name:'Moroccan Chicken Tagine', emoji:'🫕', cuisine:'african',
+    id:30, name:'Moi Moi', emoji:'🫘', cuisine:'african', region:'West Africa',
+    desc:'Nigerian steamed bean pudding — high protein, naturally gluten-free.',
+    calories:265, protein:18, carbs:36, fat:6,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'60 min', servings:6,
+    ingredients:['2 cups black-eyed peas (soaked overnight)','1 onion','2 red bell peppers','1 scotch bonnet pepper','3 tbsp vegetable oil','1 tsp crayfish powder (optional)','Salt to taste','Hard-boiled eggs or fish (optional)'],
+    steps:['Peel soaked beans by rubbing and rinsing. Blend smooth with onion, bell pepper, and scotch bonnet.','Stir in oil, crayfish powder (if using), and salt. Batter should be smooth and pourable.','Pour batter into greased ramekins, cups, or sealed foil packets. Add optional egg/fish inside.','Steam on a rack over boiling water, covered, for 45–50 min until firm.','Cool slightly before unmoulding. Serve warm or at room temperature.']
+  },
+  {
+    id:31, name:'Okra Soup', emoji:'🌿', cuisine:'african', region:'West Africa',
+    desc:'West African favorite — silky, nutritious soup loaded with vegetables.',
+    calories:280, protein:22, carbs:14, fat:14,
+    budget:'moderate', diet:['halal'], time:'35 min', servings:4,
+    ingredients:['300g fresh okra finely chopped','200g halal fish or chicken','1 onion diced','2 tomatoes blended','1 tbsp ground crayfish (optional)','2 tbsp palm oil (or vegetable oil)','1 cup spinach or ugu leaves','1 scotch bonnet pepper','Salt and seasoning to taste','Fufu or rice to serve'],
+    steps:['Season and par-cook fish or chicken in salted water 10 min. Reserve stock.','Heat palm oil in a pot, sauté onion until soft. Add blended tomatoes and scotch bonnet, cook 10 min.','Add reserved stock, crayfish powder, and protein. Simmer 5 min.','Stir in chopped okra and leafy greens. Simmer 5–8 min — do not overcook (keeps it mucilaginous).','Season to taste. Serve with fufu, eba, or brown rice.']
+  },
+  {
+    id:32, name:'Egusi Soup (Light)', emoji:'🥗', cuisine:'african', region:'West Africa',
+    desc:'Nigerian melon seed soup — lighter on palm oil, big on vegetables and flavor.',
+    calories:340, protein:20, carbs:16, fat:20,
+    budget:'moderate', diet:['halal'], time:'45 min', servings:4,
+    ingredients:['1 cup ground egusi (melon seeds)','200g halal chicken or fish','1 onion','2 tomatoes blended','1 scotch bonnet','1 tbsp palm oil (reduced)','2 cups spinach or bitter leaf','1 tbsp ground crayfish (optional)','Salt and seasoning','2 cups broth or water'],
+    steps:['Fry ground egusi in 1 tbsp palm oil on medium heat, stirring constantly, 3–4 min until golden and nutty.','Add blended tomatoes and scotch bonnet. Cook 10 min until oil separates.','Add broth and cooked chicken or fish. Simmer 10 min.','Stir in leafy greens and crayfish powder. Cook 5 min.','Season and serve with brown rice or whole wheat fufu.']
+  },
+  {
+    id:33, name:'Waakye', emoji:'🍚', cuisine:'african', region:'West Africa',
+    desc:'Ghanaian rice and beans cooked together — a complete, satisfying meal.',
+    calories:410, protein:16, carbs:70, fat:7,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'50 min', servings:4,
+    ingredients:['1.5 cups long-grain rice','1 cup dried black-eyed peas or black beans','1 tsp baking soda (for color)','1 onion diced','2 tbsp vegetable oil','1 tsp salt','Fried plantain, shito (black pepper sauce), and tomato stew to serve'],
+    steps:['Soak beans overnight. Cook beans in water with baking soda 30 min until nearly tender.','Drain, reserving liquid. Add rice and enough water to cover by 1 inch.','Cook on medium heat until water is absorbed and rice is fully cooked, ~20 min.','Meanwhile, fry sliced plantain until golden on both sides.','Serve waakye with fried plantain, tomato stew, and shito sauce on the side.']
+  },
+  {
+    id:34, name:'Attiéké & Grilled Fish', emoji:'🐟', cuisine:'african', region:'West Africa',
+    desc:'Ivorian fermented cassava couscous with spiced grilled tilapia.',
+    calories:390, protein:32, carbs:44, fat:10,
+    budget:'moderate', diet:['halal'], time:'30 min', servings:2,
+    ingredients:['300g tilapia or whole fish (cleaned)','1 cup attiéké (cassava couscous)','1 onion sliced','2 tomatoes sliced','1 green pepper sliced','2 tbsp vegetable oil','1 tsp chili powder','1 tsp garlic powder','Juice of 1 lime','Salt to taste'],
+    steps:['Mix chili powder, garlic powder, lime juice, and salt into a paste. Rub all over fish.','Grill fish on a hot grill or grill pan 6–8 min per side until cooked through.','Prepare attiéké per package directions (usually steam or microwave with a little water).','Fluff attiéké with a fork. Mix onion, tomatoes, green pepper, oil, and lime juice for a simple salad.','Plate attiéké, top with grilled fish and fresh vegetable salad.']
+  },
+  {
+    id:35, name:'Yassa Poulet', emoji:'🍋', cuisine:'african', region:'West Africa',
+    desc:'Senegalese caramelized lemon-onion chicken — tangy, savory, and aromatic.',
+    calories:440, protein:38, carbs:22, fat:18,
+    budget:'moderate', diet:['halal'], time:'60 min (+ marinate)', servings:4,
+    ingredients:['1 kg halal chicken pieces','4 large onions thinly sliced','Juice of 3 lemons','3 tbsp dijon mustard','4 garlic cloves minced','2 tbsp vegetable oil','1 scotch bonnet or habanero (whole)','1 bay leaf','Salt and pepper','Brown rice or baguette to serve'],
+    steps:['Marinate chicken in lemon juice, mustard, garlic, onions, salt, and pepper for at least 2 hours (overnight is best).','Remove chicken from marinade (keep marinade). Grill or broil chicken until golden, ~8 min per side.','In a large pot, caramelize the marinated onions in oil on medium heat for 15–20 min until deep golden.','Add remaining marinade, scotch bonnet, and bay leaf. Simmer 10 min.','Nestle grilled chicken into onion sauce. Cook 15 more min. Serve over brown rice.']
+  },
+
+  // ── 🌍 African — Central Africa ──────────────────────────────────────────
+  {
+    id:36, name:'Saka-Saka (Pondu)', emoji:'🌱', cuisine:'african', region:'Central Africa',
+    desc:'DRC/Congo cassava leaf stew — earthy, nutritious, and deeply satisfying.',
+    calories:270, protein:20, carbs:18, fat:12,
+    budget:'cheap', diet:['halal'], time:'60 min', servings:4,
+    ingredients:['500g frozen cassava leaves (or spinach as substitute)','200g smoked or salted fish (or halal meat)','1 onion diced','3 garlic cloves','1 tbsp palm oil','1 cup peanut butter (natural)','Salt and chili pepper to taste','Plantain or fufu to serve'],
+    steps:['Simmer cassava leaves in water 30 min until tender (or spinach, 10 min). Drain.','In a pot, sauté onion and garlic in palm oil until soft.','Add drained leaves and protein. Stir and cook 10 min.','Thin peanut butter with ½ cup water; pour into pot. Stir to combine.','Simmer 15 min, stirring frequently. Season and serve with plantain.']
+  },
+  {
+    id:37, name:'Fumbwa', emoji:'🥬', cuisine:'african', region:'Central Africa',
+    desc:'Central African wild spinach and peanut stew — vegan and protein-rich.',
+    calories:240, protein:12, carbs:18, fat:14,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'35 min', servings:3,
+    ingredients:['400g fresh spinach or wild greens','½ cup natural peanut butter','1 onion diced','2 garlic cloves','1 tbsp vegetable oil','1 cup water or vegetable broth','Salt and chili to taste','Cassava bread or white rice to serve'],
+    steps:['Blanch spinach in boiling water 5 min. Drain and squeeze dry.','Sauté onion and garlic in oil until soft, about 5 min.','Add spinach and stir to coat. Cook 3 min.','Thin peanut butter with broth and pour into pot. Mix thoroughly.','Simmer 10–15 min until creamy and fragrant. Season and serve.']
+  },
+  {
+    id:38, name:'Liboké de Poisson', emoji:'🐠', cuisine:'african', region:'Central Africa',
+    desc:'DRC banana-leaf wrapped fish steamed with herbs and spices.',
+    calories:310, protein:36, carbs:6, fat:16,
+    budget:'moderate', diet:['halal'], time:'45 min', servings:2,
+    ingredients:['2 whole tilapia or catfish (cleaned, scored)','2 tomatoes sliced','1 onion sliced','2 garlic cloves minced','1 hot pepper diced','1 tbsp mustard','1 tbsp vegetable oil','Fresh herbs (parsley, basil)','Banana leaves or foil for wrapping','Salt to taste'],
+    steps:['Mix mustard, garlic, hot pepper, oil, and salt into a marinade. Rub inside and outside fish.','Layer banana leaf (or 2 sheets of foil) with sliced onion and tomato.','Place fish on top, cover with remaining onion, tomato, and herbs.','Wrap tightly with banana leaf, tie with string. Repeat for second fish.','Grill or steam parcels 30–35 min. Open at the table for the full aromatic effect.']
+  },
+
+  // ── 🌍 African — East Africa ─────────────────────────────────────────────
+  {
+    id:39, name:'Ugali, Sukuma Wiki & Grilled Fish', emoji:'🌽', cuisine:'african', region:'East Africa',
+    desc:'East Africa\'s everyday power plate — maize meal, kale, and grilled tilapia.',
+    calories:420, protein:28, carbs:52, fat:10,
+    budget:'cheap', diet:['halal'], time:'35 min', servings:2,
+    ingredients:['1 cup maize flour (ugali)','2 cups water','1 bunch kale (sukuma wiki) chopped','1 onion diced','2 tomatoes diced','2 tilapia fillets','1 tbsp vegetable oil','1 garlic clove minced','Juice of 1 lemon','Salt and pepper'],
+    steps:['Grill tilapia: rub with lemon, salt, and pepper. Grill 4–5 min per side. Set aside.','Sauté onion and garlic in oil until soft. Add tomatoes, cook 5 min.','Add kale, stir-fry 5 min until wilted but bright green. Season.','Boil 2 cups water in a pot. Gradually pour in maize flour, stirring constantly.','Cook ugali 5 min, turning with a wooden spoon until it pulls away from the sides. Serve with kale and fish.']
+  },
+  {
+    id:40, name:'Nyama Choma (Lean Cuts)', emoji:'🥩', cuisine:'african', region:'East Africa',
+    desc:'Kenyan grilled meat — simple, smoky, and high in protein.',
+    calories:370, protein:42, carbs:2, fat:20,
+    budget:'moderate', diet:['halal'], time:'30 min (+ marinate)', servings:3,
+    ingredients:['600g halal lean goat or beef (chops or ribs, lean cuts)','1 tsp salt','1 tsp black pepper','1 tsp garlic powder','1 tsp paprika','Juice of 1 lemon','Kachumbari (tomato & onion salad) to serve','Ugali to serve'],
+    steps:['Combine salt, pepper, garlic powder, paprika, and lemon. Rub all over meat.','Rest 30 min at room temperature (or marinate overnight in fridge).','Grill over medium-high charcoal or gas grill, turning every 8–10 min.','Total cook time ~25 min for medium doneness (adjust for thickness).','Serve immediately with kachumbari (diced tomato, onion, chili, coriander, lemon) and ugali.']
+  },
+  {
+    id:41, name:'Shiro', emoji:'🟡', cuisine:'african', region:'East Africa',
+    desc:'Ethiopian/Eritrean chickpea flour stew — vegan, quick, and warming.',
+    calories:260, protein:14, carbs:36, fat:8,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'25 min', servings:3,
+    ingredients:['1 cup shiro powder (chickpea/broad bean flour)','1 onion finely diced','3 garlic cloves minced','1 tbsp berbere spice (or paprika + cayenne + cumin)','2 tbsp vegetable oil or niter kibbeh','2–3 cups water','Salt to taste','Injera or rice to serve'],
+    steps:['Heat oil in a pot. Add onion and cook on medium heat 10 min until deeply golden.','Add garlic and berbere spice, cook 2 min.','Gradually whisk in shiro powder, alternating with water, to avoid lumps.','Simmer on low heat 10–12 min, stirring frequently, until thick and creamy.','Season with salt. Serve hot on injera with a drizzle of extra oil.']
+  },
+
+  // ── 🌍 African — North Africa ────────────────────────────────────────────
+  {
+    id:14, name:'Moroccan Chicken Tagine', emoji:'🫕', cuisine:'african', region:'North Africa',
     desc:'Slow-cooked North African stew with warm spices and olives.',
     calories:480, protein:38, carbs:30, fat:20,
     budget:'moderate', diet:['halal'], time:'55 min', servings:4,
@@ -124,15 +226,41 @@ const RECIPES = [
     steps:['Season chicken with salt, pepper, cumin, paprika, and ginger.','Brown chicken in olive oil in a tagine or heavy pot. Set aside.','Sauté onions until golden, add garlic and cook 1 min.','Return chicken, add saffron water, preserved lemon, and ½ cup water.','Cover and simmer 35–40 min on low. Add olives last 10 min. Garnish with herbs and serve with couscous or bread.']
   },
   {
-    id:15, name:'Ethiopian Misir Wat', emoji:'🌶', cuisine:'african',
+    id:42, name:'Moroccan Couscous with 7 Vegetables', emoji:'🥕', cuisine:'african', region:'North Africa',
+    desc:'North Africa\'s festive staple — light, fiber-rich, and warming.',
+    calories:370, protein:12, carbs:64, fat:7,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'45 min', servings:4,
+    ingredients:['2 cups whole-wheat couscous','1 zucchini diced','2 carrots diced','1 turnip diced','1 onion diced','1 can chickpeas','1 can diced tomatoes','2 cups vegetable broth','1 tsp ras el hanout (or cumin + coriander + cinnamon)','1 tsp turmeric','2 tbsp olive oil','Fresh cilantro'],
+    steps:['Sauté onion in olive oil 5 min. Add ras el hanout and turmeric, stir 1 min.','Add carrots, turnip, tomatoes, and broth. Simmer 15 min.','Add zucchini and chickpeas. Cook 10 more min until all vegetables are tender.','Pour boiling broth over couscous (2:1 liquid to couscous ratio). Cover 5 min, fluff with fork.','Plate couscous, spoon vegetable broth and vegetables over top. Garnish with cilantro.']
+  },
+  {
+    id:43, name:'Harira', emoji:'🍅', cuisine:'african', region:'North Africa',
+    desc:'Moroccan tomato-lentil soup — traditionally eaten to break the fast.',
+    calories:240, protein:14, carbs:40, fat:4,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'50 min', servings:6,
+    ingredients:['1 cup red lentils','1 can chickpeas','1 can diced tomatoes','1 onion diced','3 celery stalks diced','4 garlic cloves','1 tsp turmeric','1 tsp cumin','1 tsp cinnamon','½ tsp ginger','Fresh cilantro and parsley','Juice of 1 lemon','2 tbsp olive oil','6 cups vegetable broth','Salt & pepper'],
+    steps:['Sauté onion and celery in olive oil 5 min. Add garlic, turmeric, cumin, cinnamon, ginger — 1 min.','Add tomatoes, lentils, chickpeas, and broth. Bring to a boil.','Reduce heat, simmer 30–35 min until lentils are fully soft.','Stir in lemon juice, cilantro, and parsley. Season well.','Serve hot with crusty bread or dates on the side.']
+  },
+  {
+    id:44, name:'Ful Medames', emoji:'🫘', cuisine:'african', region:'North Africa',
+    desc:'Egyptian/Sudanese fava bean stew — the ultimate affordable protein breakfast.',
+    calories:280, protein:16, carbs:46, fat:6,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'15 min', servings:2,
+    ingredients:['2 cans fava beans (or broad beans) drained','3 garlic cloves minced','Juice of 1 lemon','2 tbsp olive oil','1 tsp cumin','½ tsp paprika','1 tomato diced','Fresh parsley','Salt & chili flakes','Pita bread to serve'],
+    steps:['Warm fava beans in a saucepan over medium heat with ¼ cup water, 5 min.','Mash about half the beans roughly with a fork, leaving some whole.','Stir in garlic, lemon juice, cumin, and salt. Simmer 3 min.','Transfer to a shallow bowl. Drizzle with olive oil.','Top with diced tomato, parsley, paprika, and chili flakes. Serve with warm pita.']
+  },
+  {
+    id:15, name:'Ethiopian Misir Wat', emoji:'🌶', cuisine:'african', region:'East Africa',
     desc:'Fiery Ethiopian red lentil stew — vegan and incredibly flavorful.',
     calories:290, protein:18, carbs:46, fat:6,
     budget:'cheap', diet:['vegan','vegetarian','halal'], time:'40 min', servings:4,
     ingredients:['2 cups red lentils rinsed','2 onions finely diced','4 garlic cloves minced','1 tbsp ginger grated','3 tbsp berbere spice (or mix: paprika, cumin, coriander, cayenne)','2 tbsp niter kibbeh or vegetable oil','1 can diced tomatoes','2 cups water','Salt to taste'],
     steps:['Dry-fry onions in a pot on medium heat, stirring, for 8–10 min until golden (no oil).','Add oil/niter kibbeh, garlic, and ginger — cook 2 min.','Stir in berbere spice, cook 2 min until fragrant.','Add lentils, tomatoes, and water. Bring to boil.','Reduce heat, simmer 25 min stirring occasionally until thick. Serve on injera or with rice.']
   },
+
+  // ── 🌍 African — West Africa (continued) ─────────────────────────────────
   {
-    id:16, name:'West African Peanut Soup', emoji:'🥜', cuisine:'african',
+    id:16, name:'West African Peanut Soup', emoji:'🥜', cuisine:'african', region:'West Africa',
     desc:'Rich groundnut soup — comforting and full of protein.',
     calories:420, protein:24, carbs:32, fat:22,
     budget:'cheap', diet:['halal'], time:'45 min', servings:4,
@@ -140,20 +268,46 @@ const RECIPES = [
     steps:['Brown chicken (or tofu) in oil. Set aside.','Sauté onion until soft, add garlic, ginger, tomato paste — 2 min.','Whisk peanut butter with 1 cup broth until smooth; pour into pot.','Add tomatoes, remaining broth, sweet potato, and chicken. Simmer 20 min.','Stir in greens until wilted. Season and serve over rice.']
   },
   {
-    id:17, name:'Suya Beef Skewers', emoji:'🍢', cuisine:'african',
+    id:17, name:'Suya Beef Skewers', emoji:'🍢', cuisine:'african', region:'West Africa',
     desc:'Nigerian street food — spiced grilled beef skewers.',
     calories:360, protein:34, carbs:8, fat:20,
     budget:'moderate', diet:['halal'], time:'30 min (+ 1hr marinate)', servings:4,
     ingredients:['500g halal beef sirloin thinly sliced','3 tbsp ground peanuts (suya spice base)','1 tsp paprika','1 tsp ginger powder','1 tsp garlic powder','½ tsp cayenne','½ tsp onion powder','1 tsp salt','2 tbsp vegetable oil'],
     steps:['Mix ground peanuts, paprika, ginger, garlic, cayenne, onion powder, and salt.','Coat beef slices in spice mixture and oil. Marinate 1 hour (or overnight).','Thread beef onto skewers, pressing flat.','Grill on high heat 3–4 min per side until charred at edges.','Serve hot with sliced onion, tomatoes, and extra suya spice.']
   },
+
+  // ── 🌍 African — Southern Africa ─────────────────────────────────────────
   {
-    id:18, name:'South African Bobotie', emoji:'🥧', cuisine:'african',
+    id:18, name:'South African Bobotie', emoji:'🥧', cuisine:'african', region:'Southern Africa',
     desc:'Cape Malay classic — spiced minced meat baked with egg custard.',
     calories:450, protein:32, carbs:22, fat:24,
     budget:'moderate', diet:['halal'], time:'55 min', servings:6,
     ingredients:['700g halal ground beef or lamb','2 onions diced','3 garlic cloves','2 tbsp curry powder','1 tsp turmeric','2 tbsp apricot jam','2 tbsp vinegar or lemon juice','2 slices bread soaked in milk','3 eggs','1½ cups milk','¼ cup raisins','6 bay leaves','Salt & pepper'],
     steps:['Preheat oven to 350°F (180°C). Sauté onions until golden, add garlic and curry — 2 min.','Add meat, brown well. Mix in jam, vinegar, raisins, salt, and pepper.','Squeeze bread, crumble into meat mixture. Stir in 1 egg.','Spread mixture in a greased baking dish. Stick bay leaves upright.','Beat remaining eggs with milk, pour over. Bake 35–40 min until custard is set and golden.']
+  },
+  {
+    id:45, name:'Chakalaka', emoji:'🌶', cuisine:'african', region:'Southern Africa',
+    desc:'South African spicy bean and vegetable relish — vegan and vibrant.',
+    calories:180, protein:8, carbs:28, fat:4,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'25 min', servings:4,
+    ingredients:['1 can baked beans (in tomato sauce)','1 onion diced','2 carrots grated','1 green bell pepper diced','1 red bell pepper diced','2 garlic cloves minced','1 tsp curry powder','½ tsp chili flakes','1 can diced tomatoes','1 tbsp vegetable oil','Salt & pepper'],
+    steps:['Heat oil in a pan. Sauté onion until soft, 4 min.','Add garlic, curry powder, and chili flakes — cook 1 min.','Add carrots and bell peppers. Stir-fry 5 min.','Add diced tomatoes and baked beans. Simmer 10 min, stirring occasionally.','Season to taste. Serve as a side with pap, bread, or braai (BBQ).']
+  },
+  {
+    id:46, name:'Pap with Seasonal Vegetables', emoji:'🌽', cuisine:'african', region:'Southern Africa',
+    desc:'South African maize porridge — comforting, affordable, and versatile.',
+    calories:320, protein:10, carbs:58, fat:6,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'25 min', servings:3,
+    ingredients:['1.5 cups maize meal (cornmeal)','3 cups water','1 tsp salt','2 cups mixed vegetables (spinach, tomato, onion, zucchini)','2 garlic cloves','1 tbsp vegetable oil','1 tsp curry powder or mixed herbs'],
+    steps:['Bring water and salt to a boil in a heavy pot.','Gradually whisk in maize meal to avoid lumps.','Reduce heat to very low, cover, and cook 15 min, stirring every few minutes until firm.','Sauté garlic in oil, add vegetables and curry powder. Cook 8 min until tender.','Serve pap in mounds with vegetables spooned alongside. Top with chakalaka for extra flavor.']
+  },
+  {
+    id:47, name:'Bunny Chow (Lighter Version)', emoji:'🍞', cuisine:'african', region:'Southern Africa',
+    desc:'Durban street food — hollowed bread filled with a lighter bean or chicken curry.',
+    calories:470, protein:22, carbs:64, fat:12,
+    budget:'moderate', diet:['halal'], time:'40 min', servings:2,
+    ingredients:['1 small loaf white or whole-wheat bread','1 can chickpeas or 250g halal chicken breast','1 onion diced','2 tomatoes diced','3 garlic cloves','1 tbsp ginger grated','2 tbsp mild curry powder','1 tsp turmeric','1 potato diced','1 cup chicken or vegetable broth','1 tbsp vegetable oil','Fresh cilantro'],
+    steps:['Heat oil in a pot. Sauté onion until golden, add garlic, ginger, curry powder, turmeric — 2 min.','Add tomatoes and cook 5 min.','Add chickpeas (or chicken), potato, and broth. Simmer 20 min until potato is soft.','Cut loaf in half. Hollow out the inside of each half (keep bread lid).','Fill cavities generously with curry. Replace bread lid on top. Serve immediately.']
   },
 
   // ── 🌮 Latino / Latin American ───────────────────────────────────────────
@@ -886,6 +1040,33 @@ export default function Nutrition({ session }) {
             </div>
           </div>
 
+          {/* African Healthy Ingredients & Tips — show when African filter active */}
+          {recipeFilter.cuisine === 'african' && (
+            <div style={{ background:'linear-gradient(135deg, #E1F5EE, #D4EDDA)', borderRadius:14, padding:14, marginBottom:12, border:'1px solid #b2dfdb' }}>
+              <div style={{ fontSize:13, fontWeight:800, color:'#0F6E56', marginBottom:8 }}>🌿 Healthy African Ingredients</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+                {['🍌 Plantains','🥔 Cassava','🌾 Millet','🌾 Sorghum','🍠 Sweet Potatoes','🫘 Beans & Lentils','🌿 Okra','🥬 Leafy Greens','🐟 Grilled Fish','🥑 Avocados','🥜 Peanuts'].map(i => (
+                  <span key={i} style={{ fontSize:11, background:'rgba(255,255,255,0.7)', borderRadius:10, padding:'4px 8px', color:'#0F6E56', fontWeight:600 }}>{i}</span>
+                ))}
+              </div>
+              <div style={{ fontSize:12, fontWeight:700, color:'#0F6E56', marginBottom:5 }}>💡 Healthier Cooking Tips</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                {[
+                  '🔥 Grill or steam instead of deep frying',
+                  '🫙 Reduce palm oil — use 1 tbsp max per dish',
+                  '🥦 Add more vegetables and legumes to every pot',
+                  '🐟 Choose lean proteins: fish, chicken breast, beans',
+                  '🌾 Use brown rice or whole grains when possible',
+                  '🧂 Reduce seasoning cubes — build flavor with fresh herbs & spices',
+                ].map(tip => (
+                  <div key={tip} style={{ fontSize:11, color:'#374151', display:'flex', gap:6, alignItems:'flex-start' }}>
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Recipe count */}
           <div style={{ fontSize:12, color:'#9ca3af', marginBottom:10 }}>{filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} found</div>
 
@@ -910,6 +1091,9 @@ export default function Nutrition({ session }) {
                     </div>
                   </div>
                   <div style={{ marginTop:6, display:'flex', flexWrap:'wrap', gap:3 }}>
+                    {r.region && (
+                      <span style={{ fontSize:9, background:'#E1F5EE', color:'#0F6E56', borderRadius:4, padding:'2px 5px', fontWeight:700 }}>🌍 {r.region}</span>
+                    )}
                     {r.diet.slice(0,2).map(d => (
                       <span key={d} style={{ fontSize:9, background:'#f3f4f6', color:'#6b7280', borderRadius:4, padding:'2px 5px' }}>{d}</span>
                     ))}
