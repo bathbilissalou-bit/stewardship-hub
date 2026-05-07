@@ -353,6 +353,72 @@ function openMaps(query) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function MapSearch({ query, color, label }) {
+  const [zip, setZip] = useState('')
+  const [locating, setLocating] = useState(false)
+
+  function searchByZip() {
+    if (!zip.trim()) return
+    const q = `${query} near ${zip.trim()}`
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(q)}`, '_blank')
+  }
+
+  function searchByGPS() {
+    setLocating(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          setLocating(false)
+          const { latitude: lat, longitude: lng } = pos.coords
+          window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}/@${lat},${lng},13z`, '_blank')
+        },
+        () => {
+          setLocating(false)
+          window.open(`https://www.google.com/maps/search/${encodeURIComponent(query + ' near me')}`, '_blank')
+        },
+        { timeout: 8000 }
+      )
+    } else {
+      setLocating(false)
+      window.open(`https://www.google.com/maps/search/${encodeURIComponent(query + ' near me')}`, '_blank')
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {/* GPS button */}
+      <button onClick={searchByGPS} disabled={locating}
+        style={{ width:'100%', padding:'13px', background:color, color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:10, opacity:locating?0.8:1 }}>
+        {locating ? '📡 Getting location...' : `📍 ${label} (GPS)`}
+      </button>
+
+      {/* Zip code search */}
+      <div style={{ display:'flex', gap:8 }}>
+        <div style={{ flex:1, display:'flex', alignItems:'center', border:`2px solid ${color}`, borderRadius:12, overflow:'hidden', background:'var(--white)' }}>
+          <span style={{ padding:'0 10px', fontSize:16 }}>🔍</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Enter ZIP / postal code"
+            value={zip}
+            onChange={e => setZip(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && searchByZip()}
+            maxLength={10}
+            style={{ flex:1, border:'none', outline:'none', fontSize:14, padding:'11px 8px 11px 0', background:'transparent', color:'var(--text)' }}
+          />
+        </div>
+        <button onClick={searchByZip} disabled={!zip.trim()}
+          style={{ padding:'11px 18px', background:zip.trim()?color:'#e5e7eb', color:zip.trim()?'white':'#9ca3af', border:'none', borderRadius:12, fontSize:14, fontWeight:700, cursor:zip.trim()?'pointer':'default', transition:'all 0.2s' }}>
+          Search
+        </button>
+      </div>
+      <div style={{ fontSize:11, color:'#9ca3af', textAlign:'center', marginTop:5 }}>
+        Use your GPS location <strong>or</strong> type a ZIP code to search on Google Maps
+      </div>
+    </div>
+  )
+}
+
 function MacroBar({ label, value, max, color }) {
   const pct = Math.min(100, Math.round((value / max) * 100))
   return (
@@ -1003,11 +1069,12 @@ export default function Nutrition({ session }) {
                 </div>
               </div>
 
-              {/* Find on map button */}
-              <button onClick={() => openMaps('SNAP EBT grocery store near me')}
-                style={{ width:'100%', padding:'14px', background:'#1D9E75', color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                📍 Find EBT Stores Near Me (Map)
-              </button>
+              {/* Find on map — zip code or GPS */}
+              <MapSearch
+                query="SNAP EBT grocery store"
+                color="#1D9E75"
+                label="Find EBT Stores Near Me"
+              />
 
               {/* Store list */}
               {['Supermarket','Discount','Warehouse','Specialty','Dollar Store','Drugstore','Farmers Market','Online'].map(cat => {
@@ -1051,11 +1118,12 @@ export default function Nutrition({ session }) {
                 </div>
               </div>
 
-              {/* Find food bank button */}
-              <button onClick={() => openMaps('food bank near me')}
-                style={{ width:'100%', padding:'14px', background:'#1D9E75', color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                📍 Find Food Banks Near Me (Map)
-              </button>
+              {/* Find on map — zip code or GPS */}
+              <MapSearch
+                query="food bank"
+                color="#A32D2D"
+                label="Find Food Banks Near Me"
+              />
 
               {['Food Bank','Food Rescue','Emergency Aid','Community Hub','Discount Grocery','Supermarket','Savings Program'].map(cat => {
                 const items = CANADA_RESOURCES.filter(r => r.cat === cat)
