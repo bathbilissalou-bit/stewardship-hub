@@ -1,411 +1,837 @@
-import { useState, useEffect } from 'react'
-import { useT } from '../lib/i18n'
+import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 
-// ── Local storage helpers (no extra DB tables needed) ────────────────────────
-const LS_DEST = uid => `sh_travel_dest_${uid}`
-const LS_DOCS = uid => `sh_travel_docs_${uid}`
+// ── Persistence ────────────────────────────────────────────────────────────────
+const KEY = uid => `sh_travel_v2_${uid}`
+function loadAll(uid) { try { return JSON.parse(localStorage.getItem(KEY(uid)) || 'null') } catch { return null } }
+function saveAll(uid, data) { localStorage.setItem(KEY(uid), JSON.stringify(data)) }
 const uid4 = () => Math.random().toString(36).slice(2, 10)
 
-function load(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] } }
-function save(key, data) { localStorage.setItem(key, JSON.stringify(data)) }
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function daysUntil(d) {
+  if (!d) return null
+  return Math.ceil((new Date(d) - new Date()) / (1000*60*60*24))
+}
+function fmtDate(d) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('en-US',{ month:'short', day:'numeric', year:'numeric' })
+}
+function expiryBadge(days) {
+  if (days === null) return null
+  if (days < 0)   return { label:'Expired',      color:'#A32D2D', bg:'#FCEBEB', icon:'❌' }
+  if (days < 90)  return { label:'Expires soon', color:'#A32D2D', bg:'#FCEBEB', icon:'🔴' }
+  if (days < 180) return { label:'Expiring',     color:'#BA7517', bg:'#FAEEDA', icon:'🟠' }
+  return               { label:'Valid',           color:'#1D9E75', bg:'#E1F5EE', icon:'🟢' }
+}
+function fmt(n) { return n ? `$${parseFloat(n).toLocaleString()}` : '—' }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-const DEST_STATUS = [
-  { value:'wishlist', label:'Wishlist',  icon:'⭐', color:'#BA7517', bg:'#FEF3CD' },
-  { value:'planned',  label:'Planned',   icon:'📅', color:'#185FA5', bg:'#E6F1FB' },
-  { value:'visited',  label:'Visited',   icon:'✅', color:'#1D9E75', bg:'#E1F5EE' },
+// ── Constants ──────────────────────────────────────────────────────────────────
+const TABS = [
+  { id:'details',   short:'Trip Details' },
+  { id:'documents', short:'Documents'   },
+  { id:'budget',    short:'Budget'      },
+  { id:'itinerary', short:'Itinerary'   },
+  { id:'packing',   short:'Packing'     },
+  { id:'emergency', short:'Emergency'   },
+  { id:'notes',     short:'Notes'       },
 ]
 
 const DOC_TYPES = [
-  { value:'passport',   label:'Passport',           icon:'📗' },
-  { value:'national_id',label:'National ID',        icon:'🪪' },
-  { value:'visa',       label:'Visa',               icon:'🔖' },
-  { value:'drivers',    label:"Driver's License",   icon:'🚗' },
-  { value:'residence',  label:'Residence Permit',   icon:'🏠' },
-  { value:'other',      label:'Other',              icon:'📄' },
+  { id:'passport',  label:'Passport',              icon:'📗', hasExpiry:true  },
+  { id:'visa',      label:'Visa',                  icon:'🔖', hasExpiry:true  },
+  { id:'ticket',    label:'Ticket / Boarding Pass', icon:'✈️', hasExpiry:false },
+  { id:'hotel',     label:'Hotel Confirmation',     icon:'🏨', hasExpiry:false },
+  { id:'insurance', label:'Travel Insurance',       icon:'🛡️', hasExpiry:true  },
 ]
 
-const POPULAR_COUNTRIES = [
-  '🇺🇸 USA','🇨🇦 Canada','🇫🇷 France','🇬🇧 UK','🇯🇵 Japan','🇧🇷 Brazil',
-  '🇳🇬 Nigeria','🇬🇭 Ghana','🇰🇪 Kenya','🇿🇦 South Africa','🇮🇳 India',
-  '🇦🇪 UAE','🇪🇸 Spain','🇮🇹 Italy','🇩🇪 Germany','🇲🇽 Mexico',
-  '🇹🇭 Thailand','🇵🇹 Portugal','🇳🇿 New Zealand','🇸🇬 Singapore',
+const PACKING_CATS = [
+  { id:'clothes',     label:'👕 Clothes'     },
+  { id:'toiletries',  label:'🧴 Toiletries'  },
+  { id:'electronics', label:'💻 Electronics' },
+  { id:'medication',  label:'💊 Medication'  },
+  { id:'important',   label:'⭐ Important'   },
+]
+const PACKING_DEFAULTS = {
+  clothes:     ['T-shirts','Pants / Jeans','Underwear','Socks','Pajamas','Jacket / Sweater','Shoes','Sandals / Flip-flops','Formal outfit','Belt'],
+  toiletries:  ['Toothbrush & toothpaste','Shampoo & conditioner','Soap / body wash','Deodorant','Razor','Face wash & moisturizer','Sunscreen','Hairbrush / comb','Lip balm'],
+  electronics: ['Phone + charger','Laptop / tablet','Power bank','Universal adapter','Earphones / AirPods','Camera','USB cables'],
+  medication:  ['Prescription meds (full supply)','Pain reliever','Antidiarrheal','Antihistamine','Antacid','Band-aids & first aid','Hand sanitizer','Face masks','Vitamins'],
+  important:   ['Passport (copy)','Travel insurance card','Emergency cash','Credit / debit cards','Pen (for customs forms)','Travel pillow','Luggage lock','Reusable water bottle'],
+}
+
+const ITIN_TYPES = [
+  { id:'flight',      icon:'✈️', label:'Flight / Bus / Train' },
+  { id:'hotel',       icon:'🏨', label:'Hotel Check-in / out' },
+  { id:'activity',    icon:'🗺️', label:'Daily Activity'       },
+  { id:'appointment', icon:'📌', label:'Important Appointment' },
 ]
 
-// ── Expiry helpers ────────────────────────────────────────────────────────────
-function daysUntilExpiry(dateStr) {
-  if (!dateStr) return null
-  return Math.ceil((new Date(dateStr) - new Date()) / (1000*60*60*24))
+const PURPOSES = [
+  'Tourism / Vacation','Business','Family Visit','Medical','Education',
+  'Religious / Pilgrimage','Work / Assignment','Other',
+]
+
+// ── Default state ──────────────────────────────────────────────────────────────
+function defaultPacking() {
+  const out = {}
+  Object.entries(PACKING_DEFAULTS).forEach(([cat, items]) => {
+    out[cat] = items.map(name => ({ id:uid4(), name, checked:false }))
+  })
+  return out
 }
 
-function expiryStatus(days) {
-  if (days === null) return null
-  if (days < 0)   return { label:'Expired',        color:'#A32D2D', bg:'#FCEBEB', icon:'❌' }
-  if (days < 90)  return { label:'Expires soon!',  color:'#A32D2D', bg:'#FCEBEB', icon:'🔴' }
-  if (days < 180) return { label:'Expiring',       color:'#BA7517', bg:'#FAEEDA', icon:'🟠' }
-  if (days < 365) return { label:'Valid',          color:'#BA7517', bg:'#FFF3CD', icon:'🟡' }
-  return                  { label:'Valid',          color:'#1D9E75', bg:'#E1F5EE', icon:'🟢' }
+function defaultState() {
+  return {
+    destination:'', date_from:'', date_to:'', purpose:'', travelers:'1',
+    docs: DOC_TYPES.map(t => ({ id:t.id, ready:false, number:'', expiry:'', notes:'' })),
+    total_budget:'', transportation:'', lodging:'', food:'', emergency_money:'',
+    itinerary:[],
+    packing: defaultPacking(),
+    emerg_contacts:[], emerg_embassy:'', emerg_hospital:'', emerg_local:'',
+    addr:'', reminders:'', personal_notes:'',
+  }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
-}
-
-// ── Modals ────────────────────────────────────────────────────────────────────
-function DestModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ country:'', city:'', status:'wishlist', notes:'', planned_date:'' })
-  const [custom, setCustom] = useState(false)
-
+// ── Reusable Field ─────────────────────────────────────────────────────────────
+function Field({ label, children, hint }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-title">🌍 Add Destination</div>
-
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Country</label>
-          {!custom ? (
-            <>
-              <select value={form.country} onChange={e=>setForm(f=>({...f,country:e.target.value}))}>
-                <option value="">— Select country —</option>
-                {POPULAR_COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
-              <button onClick={()=>setCustom(true)} style={{marginTop:5,fontSize:11,color:'#185FA5',background:'none',border:'none',cursor:'pointer',padding:0}}>
-                + Type a different country
-              </button>
-            </>
-          ) : (
-            <input type="text" placeholder="e.g. Morocco, Ethiopia, Cuba…"
-              value={form.country} onChange={e=>setForm(f=>({...f,country:e.target.value}))} autoFocus/>
-          )}
-        </div>
-
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>City — optional</label>
-          <input type="text" placeholder="e.g. Paris, Nairobi, Tokyo…"
-            value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))}/>
-        </div>
-
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Status</label>
-          <div style={{display:'flex',gap:8,marginTop:6}}>
-            {DEST_STATUS.map(s=>(
-              <button key={s.value} onClick={()=>setForm(f=>({...f,status:s.value}))}
-                style={{flex:1,padding:'8px 4px',borderRadius:10,border:'1.5px solid',cursor:'pointer',fontSize:11,fontWeight:700,
-                  borderColor:form.status===s.value?s.color:'var(--border)',
-                  background:form.status===s.value?s.bg:'var(--bg)',
-                  color:form.status===s.value?s.color:'var(--text-muted)'}}>
-                {s.icon}<br/>{s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {form.status==='planned' && (
-          <div className="form-group" style={{marginBottom:12}}>
-            <label>📅 Planned travel date</label>
-            <input type="date" value={form.planned_date} onChange={e=>setForm(f=>({...f,planned_date:e.target.value}))}/>
-          </div>
-        )}
-
-        <div className="form-group" style={{marginBottom:16}}>
-          <label>Notes — optional</label>
-          <input type="text" placeholder="e.g. Honeymoon, solo trip, family vacation…"
-            value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={onClose} style={{padding:'14px',fontSize:14,fontWeight:600,background:'#f3f4f6',color:'#666',border:'none',borderRadius:10,cursor:'pointer'}}>Cancel</button>
-          <button onClick={()=>form.country && onSave({...form,id:uid4(),created_at:new Date().toISOString()})}
-            disabled={!form.country}
-            style={{flex:2,padding:'14px',fontSize:16,fontWeight:700,background:'linear-gradient(135deg,#1D9E75,#0F6E56)',color:'white',border:'none',borderRadius:10,cursor:'pointer',opacity:form.country?1:0.5}}>
-            💾 Save Destination
-          </button>
-        </div>
-      </div>
+    <div style={{ marginBottom:14 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:5 }}>{label}</div>
+      {children}
+      {hint && <div style={{ fontSize:11, color:'#9ca3af', marginTop:3 }}>{hint}</div>}
     </div>
   )
 }
 
-function DocModal({ onSave, onClose }) {
-  const [form, setForm] = useState({ type:'passport', name:'', country:'', number:'', issue_date:'', expiry_date:'', notes:'' })
-
+function Input({ value, onChange, placeholder, type='text', style={} }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-title">📄 Add Travel Document</div>
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+      style={{ width:'100%', padding:'11px 12px', border:'1.5px solid var(--border)', borderRadius:10, fontSize:14,
+        background:'var(--white)', color:'var(--text)', outline:'none', boxSizing:'border-box', ...style }} />
+  )
+}
 
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Document type</label>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginTop:6}}>
-            {DOC_TYPES.map(t=>(
-              <button key={t.value} onClick={()=>setForm(f=>({...f,type:t.value}))}
-                style={{padding:'8px',borderRadius:10,border:'1.5px solid',cursor:'pointer',fontSize:12,fontWeight:600,display:'flex',alignItems:'center',gap:6,
-                  borderColor:form.type===t.value?'#185FA5':'var(--border)',
-                  background:form.type===t.value?'#E6F1FB':'var(--bg)',
-                  color:form.type===t.value?'#185FA5':'var(--text-muted)'}}>
-                <span style={{fontSize:16}}>{t.icon}</span>{t.label}
-              </button>
-            ))}
-          </div>
-        </div>
+function Textarea({ value, onChange, placeholder, rows=3 }) {
+  return (
+    <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows}
+      style={{ width:'100%', padding:'11px 12px', border:'1.5px solid var(--border)', borderRadius:10, fontSize:14,
+        background:'var(--white)', color:'var(--text)', outline:'none', boxSizing:'border-box', resize:'vertical', fontFamily:'inherit' }} />
+  )
+}
 
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Name on document</label>
-          <input type="text" placeholder="e.g. John Doe" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
-        </div>
-
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Issuing country</label>
-          <input type="text" placeholder="e.g. Nigeria, Canada, France…" value={form.country} onChange={e=>setForm(f=>({...f,country:e.target.value}))}/>
-        </div>
-
-        <div className="form-group" style={{marginBottom:12}}>
-          <label>Document number — optional</label>
-          <input type="text" placeholder="e.g. A12345678" value={form.number} onChange={e=>setForm(f=>({...f,number:e.target.value}))}/>
-        </div>
-
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
-          <div className="form-group">
-            <label>Issue date</label>
-            <input type="date" value={form.issue_date} onChange={e=>setForm(f=>({...f,issue_date:e.target.value}))}/>
-          </div>
-          <div className="form-group">
-            <label>Expiry date ⚠️</label>
-            <input type="date" value={form.expiry_date} onChange={e=>setForm(f=>({...f,expiry_date:e.target.value}))}/>
-          </div>
-        </div>
-
-        {/* Live expiry preview */}
-        {form.expiry_date && (() => {
-          const days = daysUntilExpiry(form.expiry_date)
-          const status = expiryStatus(days)
-          return (
-            <div style={{background:status.bg,borderRadius:10,padding:'8px 12px',marginBottom:12,fontSize:12,color:status.color,fontWeight:600}}>
-              {status.icon} {days < 0 ? 'Already expired!' : `Expires in ${days} days (${formatDate(form.expiry_date)})`}
-            </div>
-          )
-        })()}
-
-        <div className="form-group" style={{marginBottom:16}}>
-          <label>Notes — optional</label>
-          <input type="text" placeholder="e.g. Renewal in progress…" value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={onClose} style={{padding:'14px',fontSize:14,fontWeight:600,background:'#f3f4f6',color:'#666',border:'none',borderRadius:10,cursor:'pointer'}}>Cancel</button>
-          <button onClick={()=>(form.name||form.country) && onSave({...form,id:uid4(),created_at:new Date().toISOString()})}
-            disabled={!form.name && !form.country}
-            style={{flex:2,padding:'14px',fontSize:16,fontWeight:700,background:'linear-gradient(135deg,#185FA5,#0d3f70)',color:'white',border:'none',borderRadius:10,cursor:'pointer',opacity:(form.name||form.country)?1:0.5}}>
-            💾 Save Document
-          </button>
-        </div>
-      </div>
+function SectionCard({ title, icon, children, style={} }) {
+  return (
+    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:14, padding:16, marginBottom:14, ...style }}>
+      {title && <div style={{ fontSize:14, fontWeight:800, color:'var(--text)', marginBottom:12, display:'flex', alignItems:'center', gap:7 }}>
+        <span>{icon}</span>{title}
+      </div>}
+      {children}
     </div>
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function Travel({ session }) {
-  const tr = useT()
   const userId = session?.user?.id || 'guest'
-  const [tab,       setTab]       = useState('destinations')
-  const [dest,      setDest]      = useState(() => load(LS_DEST(userId)))
-  const [docs,      setDocs]      = useState(() => load(LS_DOCS(userId)))
-  const [showDest,  setShowDest]  = useState(false)
-  const [showDoc,   setShowDoc]   = useState(false)
-  const [filterStatus, setFilterStatus] = useState('all')
 
-  function saveDests(next) { setDest(next); save(LS_DEST(userId), next) }
-  function saveDocs(next)  { setDocs(next);  save(LS_DOCS(userId),  next) }
+  const [tab, setTab] = useState('details')
 
-  function addDest(d)  { saveDests([d, ...dest]); setShowDest(false) }
-  function addDoc(d)   { saveDocs([d,  ...docs]);  setShowDoc(false)  }
-  function delDest(id) { saveDests(dest.filter(d=>d.id!==id)) }
-  function delDoc(id)  { saveDocs(docs.filter(d=>d.id!==id))  }
-  function cycleDest(id) {
-    const order = ['wishlist','planned','visited']
-    saveDests(dest.map(d => d.id===id ? {...d, status: order[(order.indexOf(d.status)+1)%3]} : d))
+  const [trip, setTripRaw] = useState(() => {
+    const saved = loadAll(userId)
+    if (!saved) return defaultState()
+    const def = defaultState()
+    return {
+      ...def, ...saved,
+      docs: saved.docs?.length === DOC_TYPES.length ? saved.docs : def.docs,
+      packing: saved.packing || def.packing,
+      itinerary: saved.itinerary || [],
+      emerg_contacts: saved.emerg_contacts || [],
+    }
+  })
+
+  const update = useCallback((patch) => {
+    setTripRaw(prev => {
+      const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }
+      saveAll(userId, next)
+      return next
+    })
+  }, [userId])
+
+  // ── UI-only state ──────────────────────────────────────────────────────────
+  const [packCat, setPackCat]       = useState('clothes')
+  const [newItem, setNewItem]       = useState('')
+  const [showItinForm, setShowItinForm] = useState(false)
+  const [itinForm, setItinForm]     = useState({ type:'flight', date:'', time:'', title:'', desc:'' })
+  const [showEmergForm, setShowEmergForm] = useState(false)
+  const [emergForm, setEmergForm]   = useState({ name:'', phone:'', relation:'' })
+  const [expandedDocs, setExpandedDocs] = useState({})
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function updateDoc(id, patch) {
+    update(t => ({ ...t, docs: t.docs.map(d => d.id===id ? { ...d, ...patch } : d) }))
+  }
+  function togglePack(cat, itemId) {
+    update(t => ({
+      ...t,
+      packing: { ...t.packing, [cat]: t.packing[cat].map(i => i.id===itemId ? { ...i, checked:!i.checked } : i) }
+    }))
+  }
+  function addPackItem() {
+    if (!newItem.trim()) return
+    update(t => ({
+      ...t,
+      packing: { ...t.packing, [packCat]: [...t.packing[packCat], { id:uid4(), name:newItem.trim(), checked:false }] }
+    }))
+    setNewItem('')
+  }
+  function delPackItem(cat, id) {
+    update(t => ({ ...t, packing: { ...t.packing, [cat]: t.packing[cat].filter(i=>i.id!==id) } }))
+  }
+  function addItin() {
+    if (!itinForm.title.trim()) return
+    update(t => ({
+      ...t,
+      itinerary: [...t.itinerary, { ...itinForm, id:uid4() }]
+        .sort((a,b) => (a.date||'').localeCompare(b.date||''))
+    }))
+    setItinForm({ type:'flight', date:'', time:'', title:'', desc:'' })
+    setShowItinForm(false)
+  }
+  function delItin(id) {
+    update(t => ({ ...t, itinerary: t.itinerary.filter(e=>e.id!==id) }))
+  }
+  function addContact() {
+    if (!emergForm.name.trim()) return
+    update(t => ({ ...t, emerg_contacts: [...t.emerg_contacts, { ...emergForm, id:uid4() }] }))
+    setEmergForm({ name:'', phone:'', relation:'' })
+    setShowEmergForm(false)
+  }
+  function delContact(id) {
+    update(t => ({ ...t, emerg_contacts: t.emerg_contacts.filter(c=>c.id!==id) }))
   }
 
-  // Expiry alerts
-  const expiringSoon = docs.filter(d => {
-    const days = daysUntilExpiry(d.expiry_date)
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const spent = ['transportation','lodging','food','emergency_money'].reduce((s,k)=>s+(parseFloat(trip[k])||0),0)
+  const budgetLeft = (parseFloat(trip.total_budget)||0) - spent
+  const budgetPct  = trip.total_budget ? Math.min(100, (spent/(parseFloat(trip.total_budget)))*100) : 0
+  const docsReady  = trip.docs.filter(d=>d.ready).length
+  const packItems  = Object.values(trip.packing).flat()
+  const packDone   = packItems.filter(i=>i.checked).length
+  const tripDays   = trip.date_from && trip.date_to
+    ? Math.ceil((new Date(trip.date_to)-new Date(trip.date_from))/(1000*60*60*24)) : null
+
+  // expiring docs alert
+  const expiringDocs = trip.docs.filter(d => {
+    if (!d.expiry) return false
+    const days = daysUntil(d.expiry)
     return days !== null && days < 180
   })
 
-  const visited   = dest.filter(d=>d.status==='visited').length
-  const planned   = dest.filter(d=>d.status==='planned').length
-  const wishlist  = dest.filter(d=>d.status==='wishlist').length
-  const filteredDest = filterStatus==='all' ? dest : dest.filter(d=>d.status===filterStatus)
+  const inputStyle = { width:'100%', padding:'11px 12px', border:'1.5px solid var(--border)', borderRadius:10,
+    fontSize:14, background:'var(--white)', color:'var(--text)', outline:'none', boxSizing:'border-box' }
 
   return (
-    <div style={{paddingBottom:100}}>
-      {/* Header */}
-      <div style={{background:'linear-gradient(135deg,#534AB7,#185FA5)',borderRadius:'16px 16px 0 0',padding:'18px 16px 28px',marginBottom:'-14px',color:'white'}}>
-        <div style={{fontSize:28,marginBottom:4}}>✈️</div>
-        <h2 style={{color:'white',margin:'0 0 4px',fontSize:22,fontWeight:800}}>Travel Planner</h2>
-        <p style={{color:'rgba(255,255,255,0.8)',margin:0,fontSize:13}}>Plan trips & track travel documents</p>
+    <div style={{ paddingBottom:100 }}>
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div style={{ background:'linear-gradient(135deg,#534AB7,#185FA5)', borderRadius:'16px 16px 0 0',
+        padding:'18px 16px 32px', marginBottom:'-16px', color:'white' }}>
+        <div style={{ fontSize:28, marginBottom:4 }}>✈️</div>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Travel Planner</h2>
+        {trip.destination
+          ? <p style={{ color:'rgba(255,255,255,0.9)', margin:0, fontSize:13, fontWeight:600 }}>
+              📍 {trip.destination}{tripDays ? ` · ${tripDays} days` : ''}
+            </p>
+          : <p style={{ color:'rgba(255,255,255,0.7)', margin:0, fontSize:13 }}>Plan every detail of your trip</p>
+        }
       </div>
 
-      {/* Expiry alerts */}
-      {expiringSoon.length > 0 && (
-        <div style={{marginTop:16}}>
-          {expiringSoon.map(d=>{
-            const days = daysUntilExpiry(d.expiry_date)
-            const st   = expiryStatus(days)
+      {/* ── Expiry alerts ────────────────────────────────────────────────── */}
+      {expiringDocs.length > 0 && (
+        <div style={{ marginTop:20 }}>
+          {expiringDocs.map(d => {
+            const days = daysUntil(d.expiry)
+            const badge = expiryBadge(days)
+            const type = DOC_TYPES.find(t=>t.id===d.id)
             return (
-              <div key={d.id} style={{background:st.bg,borderRadius:10,padding:'10px 14px',marginBottom:8,border:`1px solid ${st.color}44`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div key={d.id} style={{ background:badge.bg, border:`1px solid ${badge.color}44`, borderRadius:10,
+                padding:'10px 14px', marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <div>
-                  <div style={{fontSize:12,fontWeight:700,color:st.color}}>{st.icon} {DOC_TYPES.find(t=>t.value===d.type)?.label||d.type} — {d.name||d.country}</div>
-                  <div style={{fontSize:11,color:st.color,opacity:0.8}}>{days<0?'Expired!': `Expires in ${days} days — ${formatDate(d.expiry_date)}`}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:badge.color }}>{badge.icon} {type?.label}</div>
+                  <div style={{ fontSize:11, color:badge.color, opacity:0.8 }}>
+                    {days < 0 ? 'Expired!' : `Expires in ${days} days — ${fmtDate(d.expiry)}`}
+                  </div>
                 </div>
-                <span style={{fontSize:20}}>{DOC_TYPES.find(t=>t.value===d.type)?.icon}</span>
+                <span style={{ fontSize:20 }}>{type?.icon}</span>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{display:'flex',gap:8,margin:'16px 0 12px'}}>
-        {[['destinations','🌍 Destinations'],['documents','📄 Documents']].map(([v,l])=>(
-          <button key={v} onClick={()=>setTab(v)}
-            style={{flex:1,padding:'10px',borderRadius:10,border:'1.5px solid',fontWeight:700,fontSize:13,cursor:'pointer',
-              borderColor:tab===v?'#534AB7':'var(--border)',
-              background:tab===v?'#534AB7':'white',
-              color:tab===v?'white':'var(--text-muted)'}}>
-            {l}
-          </button>
-        ))}
+      {/* ── Tab bar ──────────────────────────────────────────────────────── */}
+      <div style={{ overflowX:'auto', scrollbarWidth:'none', WebkitOverflowScrolling:'touch', margin:'18px 0 16px' }}>
+        <div style={{ display:'flex', gap:6, minWidth:'max-content', paddingBottom:2 }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{ padding:'8px 14px', borderRadius:20, border:'1.5px solid', fontWeight:700, fontSize:12,
+                cursor:'pointer', whiteSpace:'nowrap', flexShrink:0,
+                borderColor: tab===t.id ? '#534AB7' : 'var(--border)',
+                background:  tab===t.id ? '#534AB7' : 'var(--white)',
+                color:       tab===t.id ? 'white'   : 'var(--text-muted)' }}>
+              {t.short}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── DESTINATIONS TAB ─────────────────────────────────────────────── */}
-      {tab==='destinations' && (
-        <>
-          {/* Stats */}
-          {dest.length > 0 && (
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
-              {[['✅','Visited',visited,'#1D9E75'],['📅','Planned',planned,'#185FA5'],['⭐','Wishlist',wishlist,'#BA7517']].map(([ic,l,n,c])=>(
-                <div key={l} className="metric-card" style={{textAlign:'center'}}>
-                  <div style={{fontSize:18}}>{ic}</div>
-                  <div style={{fontSize:18,fontWeight:800,color:c}}>{n}</div>
-                  <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:600}}>{l}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Filter pills */}
-          {dest.length > 0 && (
-            <div style={{display:'flex',gap:6,marginBottom:12,overflowX:'auto',scrollbarWidth:'none'}}>
-              <button onClick={()=>setFilterStatus('all')}
-                style={{padding:'5px 14px',borderRadius:20,border:'1.5px solid',fontSize:12,fontWeight:600,cursor:'pointer',flexShrink:0,
-                  borderColor:filterStatus==='all'?'#534AB7':'var(--border)',background:filterStatus==='all'?'#534AB7':'white',color:filterStatus==='all'?'white':'var(--text-muted)'}}>
-                All ({dest.length})
-              </button>
-              {DEST_STATUS.map(s=>(
-                <button key={s.value} onClick={()=>setFilterStatus(s.value)}
-                  style={{padding:'5px 14px',borderRadius:20,border:'1.5px solid',fontSize:12,fontWeight:600,cursor:'pointer',flexShrink:0,
-                    borderColor:filterStatus===s.value?s.color:'var(--border)',background:filterStatus===s.value?s.bg:'white',color:filterStatus===s.value?s.color:'var(--text-muted)'}}>
-                  {s.icon} {s.label} ({dest.filter(d=>d.status===s.value).length})
-                </button>
-              ))}
-            </div>
-          )}
-
-          {filteredDest.length===0 && (
-            <div className="empty-state">
-              <div className="icon">🌍</div>
-              <p>No destinations yet</p>
-              <p style={{fontSize:13,marginTop:6}}>Tap + to add your first dream destination!</p>
-            </div>
-          )}
-
-          {filteredDest.map(d=>{
-            const st = DEST_STATUS.find(s=>s.value===d.status)
-            const daysTo = d.planned_date ? Math.ceil((new Date(d.planned_date)-new Date())/(1000*60*60*24)) : null
-            return (
-              <div key={d.id} className="card" style={{marginBottom:10,padding:'14px 16px'}}>
-                <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-                  <div style={{width:46,height:46,borderRadius:13,background:st.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>
-                    {st.icon}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:15}}>{d.country}</div>
-                    {d.city && <div style={{fontSize:12,color:'var(--text-muted)'}}>{d.city}</div>}
-                    {d.notes && <div style={{fontSize:11,color:'#9ca3af',marginTop:2,fontStyle:'italic'}}>{d.notes}</div>}
-                    {daysTo !== null && (
-                      <div style={{fontSize:11,color:'#185FA5',fontWeight:600,marginTop:3}}>
-                        📅 {daysTo>0?`${daysTo} days until your trip`:'Trip date has passed'} — {formatDate(d.planned_date)}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
-                    <button onClick={()=>delDest(d.id)} style={{fontSize:11,color:'#ef4444',background:'none',border:'none',cursor:'pointer'}}>✕</button>
-                    <button onClick={()=>cycleDest(d.id)}
-                      style={{padding:'3px 10px',borderRadius:12,border:`1.5px solid ${st.color}`,background:st.bg,color:st.color,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
-                      {st.icon} {st.label}
-                    </button>
-                  </div>
-                </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 1 — TRIP DETAILS
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'details' && (
+        <div>
+          {/* Progress summary */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14 }}>
+            {[
+              { label:'Documents', value:`${docsReady}/${trip.docs.length}`, icon:'📄', color:'#185FA5' },
+              { label:'Packing',   value:`${packDone}/${packItems.length}`, icon:'🎒', color:'#1D9E75' },
+              { label:'Budget',    value:trip.total_budget ? fmt(trip.total_budget) : '—', icon:'💰', color:'#BA7517' },
+            ].map(s => (
+              <div key={s.label} style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12,
+                padding:'12px 8px', textAlign:'center' }}>
+                <div style={{ fontSize:18 }}>{s.icon}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:s.color }}>{s.value}</div>
+                <div style={{ fontSize:10, color:'var(--text-muted)', fontWeight:600 }}>{s.label}</div>
               </div>
-            )
-          })}
+            ))}
+          </div>
 
-          <button className="fab" onClick={()=>setShowDest(true)}>+</button>
-          {showDest && <DestModal onSave={addDest} onClose={()=>setShowDest(false)}/>}
-        </>
+          <SectionCard title="Destination" icon="📍">
+            <Field label="Where are you going?">
+              <Input value={trip.destination} placeholder="e.g. Paris, France · Lagos, Nigeria · New York, USA"
+                onChange={e => update({ destination:e.target.value })} />
+            </Field>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <Field label="Departure date">
+                <input type="date" value={trip.date_from} onChange={e=>update({date_from:e.target.value})} style={inputStyle}/>
+              </Field>
+              <Field label="Return date">
+                <input type="date" value={trip.date_to} onChange={e=>update({date_to:e.target.value})} style={inputStyle}/>
+              </Field>
+            </div>
+            {tripDays !== null && (
+              <div style={{ fontSize:12, color:'#534AB7', fontWeight:700, marginTop:-6, marginBottom:10 }}>
+                🗓 {tripDays} day{tripDays!==1?'s':''} trip · {fmtDate(trip.date_from)} → {fmtDate(trip.date_to)}
+              </div>
+            )}
+            <Field label="Purpose of trip">
+              <select value={trip.purpose} onChange={e=>update({purpose:e.target.value})} style={inputStyle}>
+                <option value="">— Select purpose —</option>
+                {PURPOSES.map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+            </Field>
+            <Field label="Number of travelers">
+              <Input value={trip.travelers} type="number" placeholder="e.g. 2"
+                onChange={e=>update({travelers:e.target.value})} />
+            </Field>
+          </SectionCard>
+
+          {/* Quick links to other tabs */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            {[
+              { tab:'documents', icon:'📄', label:'Documents',  color:'#185FA5', bg:'#EBF4FB', sub:`${docsReady}/${trip.docs.length} ready` },
+              { tab:'budget',    icon:'💰', label:'Budget',     color:'#BA7517', bg:'#FEF3CD', sub:trip.total_budget?fmt(trip.total_budget):'Set budget' },
+              { tab:'itinerary', icon:'📅', label:'Itinerary',  color:'#534AB7', bg:'#EEEDFE', sub:`${trip.itinerary.length} entr${trip.itinerary.length===1?'y':'ies'}` },
+              { tab:'packing',   icon:'🎒', label:'Packing',    color:'#1D9E75', bg:'#E1F5EE', sub:`${packDone}/${packItems.length} packed` },
+              { tab:'emergency', icon:'🆘', label:'Emergency',  color:'#A32D2D', bg:'#FCEBEB', sub:`${trip.emerg_contacts.length} contact${trip.emerg_contacts.length===1?'':'s'}` },
+              { tab:'notes',     icon:'📝', label:'Notes',      color:'#374151', bg:'#f3f4f6', sub:'Addresses & reminders' },
+            ].map(item => (
+              <button key={item.tab} onClick={()=>setTab(item.tab)}
+                style={{ background:'var(--white)', border:`1px solid ${item.color}33`, borderRadius:12, padding:'12px',
+                  cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:item.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
+                  {item.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:700, color:item.color }}>{item.label}</div>
+                  <div style={{ fontSize:10, color:'#9ca3af' }}>{item.sub}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* ── DOCUMENTS TAB ────────────────────────────────────────────────── */}
-      {tab==='documents' && (
-        <>
-          {docs.length===0 && (
-            <div className="empty-state">
-              <div className="icon">📄</div>
-              <p>No documents tracked yet</p>
-              <p style={{fontSize:13,marginTop:6}}>Add your passport, ID, or visa to get expiry alerts.</p>
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 2 — DOCUMENTS
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'documents' && (
+        <div>
+          <div style={{ fontSize:12, color:'#9ca3af', marginBottom:12 }}>
+            {docsReady}/{trip.docs.length} documents ready · Tap a document to expand details
+          </div>
+          {DOC_TYPES.map(type => {
+            const doc = trip.docs.find(d=>d.id===type.id)
+            const expanded = expandedDocs[type.id]
+            const days = daysUntil(doc?.expiry)
+            const badge = type.hasExpiry && doc?.expiry ? expiryBadge(days) : null
+            return (
+              <div key={type.id} style={{ background:'var(--white)', border:`1.5px solid ${doc?.ready?'#1D9E75':'var(--border)'}`,
+                borderRadius:14, marginBottom:10, overflow:'hidden' }}>
+
+                {/* Header row */}
+                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', cursor:'pointer' }}
+                  onClick={() => setExpandedDocs(prev => ({ ...prev, [type.id]:!prev[type.id] }))}>
+                  <div style={{ width:42, height:42, borderRadius:12, background:doc?.ready?'#E1F5EE':'#f3f4f6',
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
+                    {type.icon}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:14, color:'var(--text)' }}>{type.label}</div>
+                    <div style={{ fontSize:11, color:'#9ca3af' }}>
+                      {doc?.number ? `No. ${doc.number}` : 'Tap to add details'}
+                      {badge && <span style={{ marginLeft:8, color:badge.color }}>{badge.icon} {badge.label}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    {/* Ready toggle */}
+                    <button onClick={e => { e.stopPropagation(); updateDoc(type.id, { ready:!doc?.ready }) }}
+                      style={{ padding:'5px 12px', borderRadius:20, border:`1.5px solid ${doc?.ready?'#1D9E75':'var(--border)'}`,
+                        background:doc?.ready?'#E1F5EE':'var(--bg)', color:doc?.ready?'#1D9E75':'#9ca3af',
+                        fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                      {doc?.ready ? '✓ Ready' : 'Mark Ready'}
+                    </button>
+                    <span style={{ color:'#9ca3af', fontSize:14 }}>{expanded ? '▲' : '▼'}</span>
+                  </div>
+                </div>
+
+                {/* Expanded fields */}
+                {expanded && (
+                  <div style={{ padding:'0 16px 16px', borderTop:'1px solid var(--border)' }}>
+                    <div style={{ paddingTop:12, display:'flex', flexDirection:'column', gap:10 }}>
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>
+                          {type.id==='ticket' ? 'Booking Reference' : type.id==='hotel' ? 'Confirmation Number' : 'Document Number'}
+                        </div>
+                        <input value={doc?.number||''} onChange={e=>updateDoc(type.id,{number:e.target.value})}
+                          placeholder={type.id==='ticket'?'e.g. ABC123':type.id==='hotel'?'e.g. HBC99012':'e.g. A12345678'}
+                          style={{...inputStyle}} />
+                      </div>
+                      {type.hasExpiry && (
+                        <div>
+                          <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>
+                            {type.id==='ticket' ? 'Travel Date' : 'Expiry Date'}
+                          </div>
+                          <input type="date" value={doc?.expiry||''} onChange={e=>updateDoc(type.id,{expiry:e.target.value})} style={inputStyle}/>
+                          {doc?.expiry && badge && (
+                            <div style={{ marginTop:6, padding:'6px 10px', background:badge.bg, borderRadius:8, fontSize:11, color:badge.color, fontWeight:600 }}>
+                              {badge.icon} {days < 0 ? 'Already expired!' : `${days} days until expiry · ${fmtDate(doc.expiry)}`}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Notes (optional)</div>
+                        <input value={doc?.notes||''} onChange={e=>updateDoc(type.id,{notes:e.target.value})}
+                          placeholder="e.g. Renewal in progress, kept in folder…" style={inputStyle}/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 3 — BUDGET
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'budget' && (
+        <div>
+          <SectionCard title="Total Trip Budget" icon="💰">
+            <Field label="Total budget amount">
+              <div style={{ display:'flex', alignItems:'center', gap:8, border:'2px solid #1D9E75', borderRadius:12, padding:'0 12px', background:'var(--white)' }}>
+                <span style={{ fontSize:18, color:'#1D9E75', fontWeight:700 }}>$</span>
+                <input type="number" value={trip.total_budget} placeholder="e.g. 3000"
+                  onChange={e=>update({total_budget:e.target.value})}
+                  style={{ flex:1, border:'none', outline:'none', fontSize:22, fontWeight:700, color:'#1D9E75', padding:'12px 0', background:'transparent' }}/>
+              </div>
+            </Field>
+
+            {/* Spending bar */}
+            {trip.total_budget && (
+              <div>
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:4 }}>
+                  <span style={{ color:'#374151', fontWeight:600 }}>Allocated: {fmt(spent)}</span>
+                  <span style={{ color: budgetLeft>=0 ? '#1D9E75' : '#A32D2D', fontWeight:700 }}>
+                    {budgetLeft>=0 ? `${fmt(budgetLeft)} remaining` : `${fmt(Math.abs(budgetLeft))} over budget`}
+                  </span>
+                </div>
+                <div style={{ height:8, background:'#f3f4f6', borderRadius:4, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${budgetPct}%`, borderRadius:4,
+                    background: budgetPct>90 ? '#A32D2D' : budgetPct>70 ? '#BA7517' : '#1D9E75',
+                    transition:'width 0.4s' }}/>
+                </div>
+                <div style={{ fontSize:10, color:'#9ca3af', textAlign:'right', marginTop:2 }}>{Math.round(budgetPct)}% allocated</div>
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Budget Breakdown" icon="📊">
+            {[
+              { key:'transportation', label:'✈️ Transportation', placeholder:'Flights, trains, bus, taxi…' },
+              { key:'lodging',        label:'🏨 Lodging',        placeholder:'Hotel, Airbnb, hostel…' },
+              { key:'food',           label:'🍽 Food',           placeholder:'Meals, restaurants, groceries…' },
+              { key:'emergency_money',label:'🆘 Emergency Money',placeholder:'Safety buffer amount…' },
+            ].map(row => (
+              <Field key={row.key} label={row.label}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, border:'1.5px solid var(--border)', borderRadius:10, padding:'0 12px', background:'var(--white)' }}>
+                  <span style={{ color:'#9ca3af', fontSize:14 }}>$</span>
+                  <input type="number" value={trip[row.key]} placeholder={row.placeholder}
+                    onChange={e=>update({[row.key]:e.target.value})}
+                    style={{ flex:1, border:'none', outline:'none', fontSize:14, padding:'11px 0', background:'transparent', color:'var(--text)' }}/>
+                </div>
+              </Field>
+            ))}
+          </SectionCard>
+
+          {/* Breakdown summary */}
+          {spent > 0 && (
+            <SectionCard>
+              {[
+                { key:'transportation', label:'Transportation', icon:'✈️', color:'#534AB7' },
+                { key:'lodging',        label:'Lodging',        icon:'🏨', color:'#185FA5' },
+                { key:'food',           label:'Food',           icon:'🍽', color:'#1D9E75' },
+                { key:'emergency_money',label:'Emergency',      icon:'🆘', color:'#A32D2D' },
+              ].filter(r=>parseFloat(trip[r.key])>0).map(row => {
+                const pct = trip.total_budget ? Math.min(100,(parseFloat(trip[row.key]||0)/parseFloat(trip.total_budget))*100) : 0
+                return (
+                  <div key={row.key} style={{ marginBottom:10 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:3 }}>
+                      <span style={{ fontWeight:600, color:'var(--text)' }}>{row.icon} {row.label}</span>
+                      <span style={{ fontWeight:700, color:row.color }}>{fmt(trip[row.key])}</span>
+                    </div>
+                    <div style={{ height:5, background:'#f3f4f6', borderRadius:3 }}>
+                      <div style={{ height:'100%', width:`${pct}%`, background:row.color, borderRadius:3 }}/>
+                    </div>
+                  </div>
+                )
+              })}
+            </SectionCard>
+          )}
+
+          {/* Currency converter link */}
+          <Link to="/currency" style={{ textDecoration:'none' }}>
+            <div style={{ background:'linear-gradient(135deg,#185FA5,#0d3f70)', borderRadius:14, padding:'16px 18px',
+              display:'flex', alignItems:'center', gap:14 }}>
+              <div style={{ width:46, height:46, borderRadius:13, background:'rgba(255,255,255,0.15)',
+                display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>💱</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:14, fontWeight:800, color:'white', marginBottom:2 }}>Currency Converter</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.8)' }}>Check live exchange rates for your destination</div>
+              </div>
+              <div style={{ fontSize:20, color:'rgba(255,255,255,0.7)' }}>›</div>
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 4 — ITINERARY
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'itinerary' && (
+        <div>
+          {trip.itinerary.length === 0 && !showItinForm && (
+            <div style={{ textAlign:'center', padding:'32px 0', color:'#9ca3af' }}>
+              <div style={{ fontSize:48, marginBottom:8 }}>📅</div>
+              <div style={{ fontWeight:700, marginBottom:4 }}>No itinerary yet</div>
+              <div style={{ fontSize:13 }}>Add your flight, hotel, activities & appointments</div>
             </div>
           )}
 
-          {docs.map(d=>{
-            const days   = daysUntilExpiry(d.expiry_date)
-            const status = expiryStatus(days)
-            const docType = DOC_TYPES.find(t=>t.value===d.type)
+          {/* Entries grouped by date */}
+          {trip.itinerary.map((entry, i) => {
+            const type = ITIN_TYPES.find(t=>t.id===entry.type)
+            const prevDate = i > 0 ? trip.itinerary[i-1].date : null
+            const showDate = entry.date && entry.date !== prevDate
             return (
-              <div key={d.id} className="card" style={{marginBottom:10,padding:'14px 16px',borderLeft:`4px solid ${status?.color||'#e5e7eb'}`}}>
-                <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-                  <div style={{width:46,height:46,borderRadius:13,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,flexShrink:0}}>
-                    {docType?.icon||'📄'}
+              <div key={entry.id}>
+                {showDate && (
+                  <div style={{ fontSize:12, fontWeight:700, color:'#534AB7', marginBottom:6, marginTop:i>0?10:0, paddingLeft:4 }}>
+                    📆 {fmtDate(entry.date)}
                   </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                      <span style={{fontWeight:700,fontSize:14}}>{docType?.label}</span>
-                      {status && <span style={{fontSize:10,fontWeight:700,color:status.color,background:status.bg,padding:'2px 7px',borderRadius:10}}>{status.icon} {status.label}</span>}
-                    </div>
-                    <div style={{fontWeight:600,fontSize:13}}>{d.name}</div>
-                    {d.country && <div style={{fontSize:11,color:'var(--text-muted)'}}>Issued by: {d.country}</div>}
-                    {d.number  && <div style={{fontSize:11,color:'var(--text-muted)'}}>No: {d.number}</div>}
-                    <div style={{display:'flex',gap:12,marginTop:4,fontSize:11,color:'var(--text-muted)'}}>
-                      {d.issue_date  && <span>Issued: {formatDate(d.issue_date)}</span>}
-                      {d.expiry_date && (
-                        <span style={{fontWeight:600,color:status?.color}}>
-                          Expires: {formatDate(d.expiry_date)} {days!==null && `(${days<0?'expired':days+' days'})`}
-                        </span>
-                      )}
-                    </div>
-                    {d.notes && <div style={{fontSize:11,color:'#9ca3af',marginTop:2,fontStyle:'italic'}}>{d.notes}</div>}
+                )}
+                <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12,
+                  padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'flex-start', gap:12 }}>
+                  <div style={{ width:38, height:38, borderRadius:10, background:'#EEEDFE', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
+                    {type?.icon}
                   </div>
-                  <button onClick={()=>delDoc(d.id)} style={{fontSize:11,color:'#ef4444',background:'none',border:'none',cursor:'pointer',flexShrink:0}}>✕</button>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:14, color:'var(--text)' }}>{entry.title}</div>
+                    <div style={{ fontSize:11, color:'#534AB7', fontWeight:600, marginBottom:2 }}>{type?.label}{entry.time ? ` · ${entry.time}` : ''}</div>
+                    {entry.desc && <div style={{ fontSize:12, color:'#6b7280', lineHeight:1.5 }}>{entry.desc}</div>}
+                  </div>
+                  <button onClick={()=>delItin(entry.id)} style={{ fontSize:12, color:'#ef4444', background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>✕</button>
                 </div>
               </div>
             )
           })}
 
-          <button className="fab" style={{background:'linear-gradient(135deg,#185FA5,#0d3f70)'}} onClick={()=>setShowDoc(true)}>+</button>
-          {showDoc && <DocModal onSave={addDoc} onClose={()=>setShowDoc(false)}/>}
-        </>
+          {/* Add entry form */}
+          {showItinForm ? (
+            <div style={{ background:'var(--white)', border:'1.5px solid #534AB7', borderRadius:14, padding:16, marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:800, color:'#534AB7', marginBottom:12 }}>➕ Add Itinerary Entry</div>
+
+              {/* Type selector */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                {ITIN_TYPES.map(t=>(
+                  <button key={t.id} onClick={()=>setItinForm(f=>({...f,type:t.id}))}
+                    style={{ padding:'8px', borderRadius:10, border:`1.5px solid ${itinForm.type===t.id?'#534AB7':'var(--border)'}`,
+                      background:itinForm.type===t.id?'#EEEDFE':'var(--bg)', color:itinForm.type===t.id?'#534AB7':'var(--text-muted)',
+                      fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{fontSize:16}}>{t.icon}</span>{t.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Date</div>
+                  <input type="date" value={itinForm.date} onChange={e=>setItinForm(f=>({...f,date:e.target.value}))} style={inputStyle}/>
+                </div>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Time (optional)</div>
+                  <input type="time" value={itinForm.time} onChange={e=>setItinForm(f=>({...f,time:e.target.value}))} style={inputStyle}/>
+                </div>
+              </div>
+
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Title *</div>
+                <input value={itinForm.title} onChange={e=>setItinForm(f=>({...f,title:e.target.value}))}
+                  placeholder={itinForm.type==='flight'?'e.g. Air France AF123 YYZ → CDG':itinForm.type==='hotel'?'e.g. Check-in — Marriott Paris':'e.g. Eiffel Tower visit'}
+                  style={inputStyle}/>
+              </div>
+
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Details (optional)</div>
+                <textarea value={itinForm.desc} onChange={e=>setItinForm(f=>({...f,desc:e.target.value}))}
+                  placeholder="Terminal, confirmation #, address, notes…" rows={2}
+                  style={{...inputStyle, resize:'vertical', fontFamily:'inherit'}}/>
+              </div>
+
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={()=>setShowItinForm(false)}
+                  style={{ flex:1, padding:'12px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontSize:14, fontWeight:600, cursor:'pointer' }}>
+                  Cancel
+                </button>
+                <button onClick={addItin} disabled={!itinForm.title.trim()}
+                  style={{ flex:2, padding:'12px', background:itinForm.title.trim()?'#534AB7':'#e5e7eb', color:itinForm.title.trim()?'white':'#9ca3af',
+                    border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:itinForm.title.trim()?'pointer':'default' }}>
+                  ➕ Add Entry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={()=>setShowItinForm(true)}
+              style={{ width:'100%', padding:'14px', background:'#EEEDFE', color:'#534AB7', border:'1.5px dashed #534AB7',
+                borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:4 }}>
+              + Add Flight / Hotel / Activity / Appointment
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5 — PACKING LIST
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'packing' && (
+        <div>
+          {/* Progress */}
+          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px', marginBottom:14 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:6 }}>
+              <span style={{ fontWeight:700 }}>🎒 Packing Progress</span>
+              <span style={{ fontWeight:800, color:'#1D9E75' }}>{packDone}/{packItems.length}</span>
+            </div>
+            <div style={{ height:8, background:'#f3f4f6', borderRadius:4 }}>
+              <div style={{ height:'100%', width:`${packItems.length?Math.round((packDone/packItems.length)*100):0}%`,
+                background:'#1D9E75', borderRadius:4, transition:'width 0.3s' }}/>
+            </div>
+          </div>
+
+          {/* Category tabs */}
+          <div style={{ overflowX:'auto', scrollbarWidth:'none', marginBottom:12 }}>
+            <div style={{ display:'flex', gap:6, minWidth:'max-content' }}>
+              {PACKING_CATS.map(cat => {
+                const items = trip.packing[cat.id] || []
+                const done = items.filter(i=>i.checked).length
+                return (
+                  <button key={cat.id} onClick={()=>setPackCat(cat.id)}
+                    style={{ padding:'7px 14px', borderRadius:20, border:'1.5px solid', fontSize:12, fontWeight:700,
+                      cursor:'pointer', whiteSpace:'nowrap',
+                      borderColor: packCat===cat.id ? '#1D9E75' : 'var(--border)',
+                      background:  packCat===cat.id ? '#1D9E75' : 'var(--white)',
+                      color:       packCat===cat.id ? 'white'   : 'var(--text-muted)' }}>
+                    {cat.label} <span style={{ opacity:0.7, fontSize:10 }}>({done}/{items.length})</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Item list */}
+          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden', marginBottom:12 }}>
+            {(trip.packing[packCat]||[]).map((item,i,arr) => (
+              <div key={item.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 16px',
+                borderBottom: i<arr.length-1?'1px solid var(--border)':'none',
+                background: item.checked ? '#f9fafb' : 'var(--white)' }}>
+                <button onClick={()=>togglePack(packCat,item.id)}
+                  style={{ width:24, height:24, borderRadius:7, border:`2px solid ${item.checked?'#1D9E75':'#d1d5db'}`,
+                    background: item.checked?'#1D9E75':'transparent', display:'flex', alignItems:'center', justifyContent:'center',
+                    cursor:'pointer', flexShrink:0 }}>
+                  {item.checked && <span style={{ color:'white', fontSize:13, fontWeight:700 }}>✓</span>}
+                </button>
+                <span style={{ flex:1, fontSize:14, color: item.checked?'#9ca3af':'var(--text)',
+                  textDecoration: item.checked?'line-through':'none' }}>{item.name}</span>
+                <button onClick={()=>delPackItem(packCat,item.id)}
+                  style={{ fontSize:11, color:'#d1d5db', background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add custom item */}
+          <div style={{ display:'flex', gap:8 }}>
+            <input value={newItem} onChange={e=>setNewItem(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&addPackItem()}
+              placeholder={`Add item to ${PACKING_CATS.find(c=>c.id===packCat)?.label}…`}
+              style={{...inputStyle, flex:1}}/>
+            <button onClick={addPackItem} disabled={!newItem.trim()}
+              style={{ padding:'11px 18px', background:newItem.trim()?'#1D9E75':'#e5e7eb', color:newItem.trim()?'white':'#9ca3af',
+                border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:newItem.trim()?'pointer':'default' }}>
+              Add
+            </button>
+          </div>
+          <div style={{ fontSize:11, color:'#9ca3af', textAlign:'center', marginTop:6 }}>Press Enter or tap Add · Items auto-save</div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 6 — EMERGENCY INFO
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'emergency' && (
+        <div>
+          {/* Emergency contacts */}
+          <SectionCard title="Emergency Contacts" icon="📞">
+            {trip.emerg_contacts.length === 0 && (
+              <div style={{ textAlign:'center', padding:'12px 0', color:'#9ca3af', fontSize:13 }}>
+                No emergency contacts added yet
+              </div>
+            )}
+            {trip.emerg_contacts.map(c => (
+              <div key={c.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0',
+                borderBottom:'1px solid var(--border)' }}>
+                <div style={{ width:38, height:38, borderRadius:10, background:'#FCEBEB', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>👤</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>
+                  <div style={{ fontSize:12, color:'#9ca3af' }}>{c.relation} {c.phone && `· ${c.phone}`}</div>
+                </div>
+                <a href={`tel:${c.phone}`} style={{ fontSize:18, textDecoration:'none' }}>📱</a>
+                <button onClick={()=>delContact(c.id)} style={{ fontSize:11, color:'#ef4444', background:'none', border:'none', cursor:'pointer' }}>✕</button>
+              </div>
+            ))}
+
+            {showEmergForm ? (
+              <div style={{ marginTop:12, padding:'12px', background:'#f9fafb', borderRadius:10 }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:10 }}>
+                  <input value={emergForm.name} onChange={e=>setEmergForm(f=>({...f,name:e.target.value}))}
+                    placeholder="Full name *" style={inputStyle}/>
+                  <input value={emergForm.phone} onChange={e=>setEmergForm(f=>({...f,phone:e.target.value}))}
+                    type="tel" placeholder="Phone number" style={inputStyle}/>
+                  <input value={emergForm.relation} onChange={e=>setEmergForm(f=>({...f,relation:e.target.value}))}
+                    placeholder="Relationship (e.g. Spouse, Parent, Friend)" style={inputStyle}/>
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={()=>setShowEmergForm(false)}
+                    style={{ flex:1, padding:'10px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                  <button onClick={addContact} disabled={!emergForm.name.trim()}
+                    style={{ flex:2, padding:'10px', background:emergForm.name.trim()?'#A32D2D':'#e5e7eb', color:emergForm.name.trim()?'white':'#9ca3af',
+                      border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:emergForm.name.trim()?'pointer':'default' }}>
+                    ➕ Save Contact
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={()=>setShowEmergForm(true)}
+                style={{ width:'100%', marginTop:10, padding:'10px', background:'#FCEBEB', color:'#A32D2D',
+                  border:'1.5px dashed #A32D2D', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                + Add Emergency Contact
+              </button>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Embassy / Consulate" icon="🏛️">
+            <Field label="Embassy or consulate address / phone">
+              <Textarea value={trip.emerg_embassy} onChange={e=>update({emerg_embassy:e.target.value})}
+                placeholder={`e.g. Nigerian Embassy in France\n12 Avenue Foch, Paris\n+33 1 42 12 34 56`} rows={3}/>
+            </Field>
+          </SectionCard>
+
+          <SectionCard title="Hospital / Pharmacy" icon="🏥">
+            <Field label="Nearest hospital or pharmacy at destination">
+              <Textarea value={trip.emerg_hospital} onChange={e=>update({emerg_hospital:e.target.value})}
+                placeholder={`e.g. Hôpital Lariboisière, Paris\n2 Rue Ambroise Paré\n+33 1 49 95 65 65`} rows={3}/>
+            </Field>
+          </SectionCard>
+
+          <SectionCard title="Local Emergency Number" icon="🆘">
+            <Field label="Emergency number at your destination" hint="e.g. 911 (USA), 999 (UK), 15/17/18 (France), 999 (Nigeria)">
+              <Input value={trip.emerg_local} placeholder="e.g. 112 (international) · 911 (USA) · 999 (Nigeria)"
+                onChange={e=>update({emerg_local:e.target.value})}/>
+            </Field>
+            {trip.emerg_local && (
+              <a href={`tel:${trip.emerg_local.split(' ')[0]}`}
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px',
+                  background:'#A32D2D', color:'white', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:700, marginTop:-4 }}>
+                📞 Call {trip.emerg_local}
+              </a>
+            )}
+          </SectionCard>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 7 — NOTES
+      ════════════════════════════════════════════════════════════════════ */}
+      {tab === 'notes' && (
+        <div>
+          <SectionCard title="Addresses" icon="📍">
+            <Field label="Important addresses at your destination"
+              hint="Hotel address, venue, family home, airport pickup point…">
+              <Textarea value={trip.addr} onChange={e=>update({addr:e.target.value})}
+                placeholder={`Hotel: 12 Rue de Rivoli, Paris 75001\nAirport: CDG Terminal 2E\nFamily: 5 Baker Street, London`} rows={5}/>
+            </Field>
+          </SectionCard>
+
+          <SectionCard title="Reminders" icon="⏰">
+            <Field label="Things to remember before and during your trip"
+              hint="Pre-departure tasks, deadlines, important to-dos…">
+              <Textarea value={trip.reminders} onChange={e=>update({reminders:e.target.value})}
+                placeholder={`- Print boarding pass\n- Notify bank of travel dates\n- Download offline maps\n- Pack phone charger & adapter`} rows={5}/>
+            </Field>
+          </SectionCard>
+
+          <SectionCard title="Personal Travel Notes" icon="✍️">
+            <Field label="Free space for anything else"
+              hint="Visa tips, cultural notes, recommendations from friends…">
+              <Textarea value={trip.personal_notes} onChange={e=>update({personal_notes:e.target.value})}
+                placeholder="Write anything you want to remember about this trip…" rows={7}/>
+            </Field>
+          </SectionCard>
+
+          <div style={{ textAlign:'center', fontSize:11, color:'#9ca3af', padding:'8px 0' }}>
+            ✅ All notes auto-save as you type
+          </div>
+        </div>
       )}
     </div>
   )
