@@ -32,8 +32,9 @@ const ACTIVITY_OPTIONS = [
 ]
 
 const RECIPES = [
+  // ── International / General ──────────────────────────────────────────────
   {
-    id:1, name:'Overnight Oats', emoji:'🥣',
+    id:1, name:'Overnight Oats', emoji:'🥣', cuisine:'international',
     desc:'No-cook breakfast packed with fiber and protein.',
     calories:350, protein:12, carbs:52, fat:9,
     budget:'cheap', diet:['vegan','vegetarian'], time:'5 min + overnight', servings:1,
@@ -41,7 +42,7 @@ const RECIPES = [
     steps:['Combine oats, milk, chia seeds, and maple syrup in a jar.','Stir until well mixed.','Refrigerate overnight (minimum 4 hours).','Top with berries and cinnamon before eating.','Warm in microwave 1–2 min if you prefer it hot.']
   },
   {
-    id:2, name:'Lentil & Veggie Soup', emoji:'🍲',
+    id:2, name:'Lentil & Veggie Soup', emoji:'🍲', cuisine:'international',
     desc:'Hearty, filling soup with plant-based protein.',
     calories:280, protein:16, carbs:44, fat:4,
     budget:'cheap', diet:['vegan','vegetarian','halal'], time:'35 min', servings:4,
@@ -49,15 +50,7 @@ const RECIPES = [
     steps:['Sauté onion, carrots, celery in a pot 5 min.','Add garlic, cumin, turmeric — cook 1 min.','Rinse lentils; add with tomatoes and broth.','Boil then simmer 25 min until lentils are soft.','Season and serve with crusty bread.']
   },
   {
-    id:3, name:'Black Bean Tacos', emoji:'🌮',
-    desc:'Quick weeknight tacos, budget-friendly and filling.',
-    calories:310, protein:14, carbs:48, fat:7,
-    budget:'cheap', diet:['vegan','vegetarian'], time:'15 min', servings:2,
-    ingredients:['1 can black beans drained','4 corn tortillas','1 cup shredded cabbage','1 avocado sliced','½ cup salsa','1 lime','1 tsp cumin','1 tsp chili powder','Fresh cilantro'],
-    steps:['Warm beans in pan with cumin, chili powder, splash of water.','Warm tortillas in a dry skillet or over flame.','Fill with beans, cabbage, avocado.','Top with salsa, lime, and cilantro.','Serve immediately.']
-  },
-  {
-    id:4, name:'Chicken Shawarma Bowl', emoji:'🍗',
+    id:4, name:'Chicken Shawarma Bowl', emoji:'🍗', cuisine:'international',
     desc:'Restaurant-style halal bowl made at home.',
     calories:520, protein:42, carbs:38, fat:18,
     budget:'moderate', diet:['halal'], time:'30 min', servings:2,
@@ -65,7 +58,7 @@ const RECIPES = [
     steps:['Marinate chicken with spices and 1 tbsp olive oil, 15 min.','Cook basmati rice per package instructions.','Grill or pan-fry chicken 5–6 min per side until cooked.','Mix yogurt with garlic and salt for sauce.','Slice chicken, serve over rice with cucumber and yogurt sauce.']
   },
   {
-    id:5, name:'Keto Egg & Avocado Bowl', emoji:'🥑',
+    id:5, name:'Keto Egg & Avocado Bowl', emoji:'🥑', cuisine:'international',
     desc:'Low-carb, high-fat breakfast to fuel your morning.',
     calories:420, protein:20, carbs:6, fat:36,
     budget:'moderate', diet:['keto','vegetarian'], time:'10 min', servings:1,
@@ -73,15 +66,7 @@ const RECIPES = [
     steps:['Melt butter in a non-stick pan over medium-low heat.','Scramble eggs gently — remove while still slightly soft.','Halve avocado and score the flesh.','Place avocado in bowl, top with eggs.','Add tomatoes, chives, salt, pepper, and chili flakes.']
   },
   {
-    id:6, name:'Chickpea Coconut Curry', emoji:'🍛',
-    desc:'Creamy, warming curry ready in 25 minutes.',
-    calories:380, protein:14, carbs:50, fat:14,
-    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'25 min', servings:3,
-    ingredients:['2 cans chickpeas drained','1 can coconut milk','1 can diced tomatoes','1 onion','3 garlic cloves','1 tbsp ginger','2 tbsp curry powder','1 tsp garam masala','2 cups spinach','Basmati rice to serve'],
-    steps:['Sauté onion in oil 5 min until soft.','Add garlic, ginger — cook 1 min.','Stir in curry powder and garam masala, 30 sec.','Add chickpeas, tomatoes, coconut milk. Simmer 15 min.','Stir in spinach until wilted. Serve over rice.']
-  },
-  {
-    id:7, name:'Baked Salmon & Broccoli', emoji:'🐟',
+    id:7, name:'Baked Salmon & Broccoli', emoji:'🐟', cuisine:'international',
     desc:'Omega-3 rich one-pan dinner, keto-friendly.',
     calories:490, protein:38, carbs:12, fat:32,
     budget:'premium', diet:['keto','halal'], time:'25 min', servings:2,
@@ -89,15 +74,7 @@ const RECIPES = [
     steps:['Preheat oven to 400°F (200°C).','Toss broccoli with 1 tbsp oil, salt, pepper — spread on baking sheet.','Place salmon on sheet, brush with oil, garlic, dill, paprika.','Lay lemon slices on each fillet.','Bake 18–20 min until salmon flakes easily.']
   },
   {
-    id:8, name:'Rice & Beans', emoji:'🍚',
-    desc:'The ultimate budget meal — complete protein, high fiber.',
-    calories:450, protein:18, carbs:82, fat:5,
-    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'30 min', servings:4,
-    ingredients:['2 cups long-grain rice','2 cans kidney beans','1 onion','3 garlic cloves','1 bell pepper','1 tsp cumin','1 tsp oregano','2 cups broth','Hot sauce to serve'],
-    steps:['Sauté onion and bell pepper in oil 5 min.','Add garlic, cumin, oregano — 1 min.','Add rice, stir to coat.','Pour in broth + water to cover. Boil.','Add beans, reduce heat, cover, simmer 20 min. Fluff and serve.']
-  },
-  {
-    id:9, name:'Turkey Veggie Stir Fry', emoji:'🥘',
+    id:9, name:'Turkey Veggie Stir Fry', emoji:'🥘', cuisine:'international',
     desc:'High-protein, low-carb dinner in under 20 minutes.',
     calories:420, protein:38, carbs:22, fat:16,
     budget:'moderate', diet:['halal'], time:'20 min', servings:2,
@@ -105,7 +82,7 @@ const RECIPES = [
     steps:['Brown turkey in hot wok over high heat, break apart.','Add garlic and ginger, stir 30 sec.','Add vegetables — stir fry 3–4 min.','Mix soy sauce, sesame oil, cornstarch; pour over pan.','Toss until glossy. Garnish with green onions.']
   },
   {
-    id:10, name:'Cauliflower Fried Rice', emoji:'🥦',
+    id:10, name:'Cauliflower Fried Rice', emoji:'🥦', cuisine:'international',
     desc:'Keto spin on fried rice — low carb, big flavor.',
     calories:260, protein:12, carbs:14, fat:18,
     budget:'moderate', diet:['keto','vegan'], time:'20 min', servings:2,
@@ -113,7 +90,7 @@ const RECIPES = [
     steps:['Heat oil in a large skillet over high heat.','Add garlic, cook 30 sec. Add peas & carrots, 2 min.','Push vegetables aside, scramble eggs in empty space.','Add cauliflower rice, combine everything.','Pour in soy sauce and sesame oil, cook 4–5 min until golden.']
   },
   {
-    id:11, name:'Greek Yogurt Parfait', emoji:'🍓',
+    id:11, name:'Greek Yogurt Parfait', emoji:'🍓', cuisine:'international',
     desc:'High-protein snack or breakfast ready in 3 minutes.',
     calories:290, protein:22, carbs:34, fat:6,
     budget:'moderate', diet:['vegetarian'], time:'3 min', servings:1,
@@ -121,12 +98,178 @@ const RECIPES = [
     steps:['Spoon Greek yogurt into a bowl or glass.','Layer granola over yogurt.','Add sliced strawberries.','Drizzle with honey, sprinkle chia seeds.','Eat immediately or refrigerate up to 2 hours.']
   },
   {
-    id:12, name:'Beef & Vegetable Soup', emoji:'🥩',
+    id:12, name:'Beef & Vegetable Soup', emoji:'🥩', cuisine:'international',
     desc:'Nourishing one-pot meal, perfect for meal prep.',
     calories:340, protein:28, carbs:28, fat:12,
     budget:'moderate', diet:['halal'], time:'45 min', servings:6,
     ingredients:['500g halal beef stew cubes','3 potatoes diced','3 carrots','2 celery stalks','1 onion','3 garlic cloves','1 can diced tomatoes','4 cups beef broth','1 tsp thyme','1 bay leaf'],
     steps:['Brown beef in batches in a large pot. Set aside.','Sauté onion, carrots, celery 5 min.','Add garlic, thyme, bay leaf — 1 min.','Return beef. Add tomatoes, broth, potatoes.','Boil, reduce heat, cover, simmer 35 min. Season and serve.']
+  },
+
+  // ── 🌍 African ───────────────────────────────────────────────────────────
+  {
+    id:13, name:'Nigerian Jollof Rice', emoji:'🍛', cuisine:'african',
+    desc:'West Africa\'s most beloved party dish — smoky, rich, one-pot rice.',
+    calories:430, protein:10, carbs:78, fat:10,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'50 min', servings:4,
+    ingredients:['2 cups long-grain parboiled rice','1 can plum tomatoes','2 red bell peppers','1 scotch bonnet pepper (optional)','1 onion','3 tbsp tomato paste','3 tbsp vegetable oil','2 cups vegetable or chicken broth','1 tsp curry powder','1 tsp thyme','2 bay leaves','Salt to taste'],
+    steps:['Blend tomatoes, bell peppers, onion, and scotch bonnet until smooth.','Heat oil in a heavy pot, fry tomato paste 2 min, then add blended sauce.','Cook sauce on medium heat 15–20 min, stirring often, until it darkens and oil floats to top.','Add broth, curry powder, thyme, bay leaves, and salt. Bring to a boil.','Wash rice well, add to pot. Stir once, cover tightly, cook on low heat 30 min. Do not lift lid. Fluff and serve.']
+  },
+  {
+    id:14, name:'Moroccan Chicken Tagine', emoji:'🫕', cuisine:'african',
+    desc:'Slow-cooked North African stew with warm spices and olives.',
+    calories:480, protein:38, carbs:30, fat:20,
+    budget:'moderate', diet:['halal'], time:'55 min', servings:4,
+    ingredients:['1 kg halal chicken pieces','2 onions sliced','4 garlic cloves','1 preserved lemon quartered','1 cup green olives','1 tsp ginger','1 tsp cumin','1 tsp paprika','½ tsp saffron dissolved in 2 tbsp water','3 tbsp olive oil','Fresh cilantro and parsley','Salt & pepper'],
+    steps:['Season chicken with salt, pepper, cumin, paprika, and ginger.','Brown chicken in olive oil in a tagine or heavy pot. Set aside.','Sauté onions until golden, add garlic and cook 1 min.','Return chicken, add saffron water, preserved lemon, and ½ cup water.','Cover and simmer 35–40 min on low. Add olives last 10 min. Garnish with herbs and serve with couscous or bread.']
+  },
+  {
+    id:15, name:'Ethiopian Misir Wat', emoji:'🌶', cuisine:'african',
+    desc:'Fiery Ethiopian red lentil stew — vegan and incredibly flavorful.',
+    calories:290, protein:18, carbs:46, fat:6,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'40 min', servings:4,
+    ingredients:['2 cups red lentils rinsed','2 onions finely diced','4 garlic cloves minced','1 tbsp ginger grated','3 tbsp berbere spice (or mix: paprika, cumin, coriander, cayenne)','2 tbsp niter kibbeh or vegetable oil','1 can diced tomatoes','2 cups water','Salt to taste'],
+    steps:['Dry-fry onions in a pot on medium heat, stirring, for 8–10 min until golden (no oil).','Add oil/niter kibbeh, garlic, and ginger — cook 2 min.','Stir in berbere spice, cook 2 min until fragrant.','Add lentils, tomatoes, and water. Bring to boil.','Reduce heat, simmer 25 min stirring occasionally until thick. Serve on injera or with rice.']
+  },
+  {
+    id:16, name:'West African Peanut Soup', emoji:'🥜', cuisine:'african',
+    desc:'Rich groundnut soup — comforting and full of protein.',
+    calories:420, protein:24, carbs:32, fat:22,
+    budget:'cheap', diet:['halal'], time:'45 min', servings:4,
+    ingredients:['500g halal chicken or tofu cubed','1 cup natural peanut butter','1 can diced tomatoes','1 onion diced','3 garlic cloves','1 tbsp fresh ginger','1 sweet potato cubed','3 cups chicken or vegetable broth','1 tbsp tomato paste','2 cups spinach or kale','Chili flakes to taste'],
+    steps:['Brown chicken (or tofu) in oil. Set aside.','Sauté onion until soft, add garlic, ginger, tomato paste — 2 min.','Whisk peanut butter with 1 cup broth until smooth; pour into pot.','Add tomatoes, remaining broth, sweet potato, and chicken. Simmer 20 min.','Stir in greens until wilted. Season and serve over rice.']
+  },
+  {
+    id:17, name:'Suya Beef Skewers', emoji:'🍢', cuisine:'african',
+    desc:'Nigerian street food — spiced grilled beef skewers.',
+    calories:360, protein:34, carbs:8, fat:20,
+    budget:'moderate', diet:['halal'], time:'30 min (+ 1hr marinate)', servings:4,
+    ingredients:['500g halal beef sirloin thinly sliced','3 tbsp ground peanuts (suya spice base)','1 tsp paprika','1 tsp ginger powder','1 tsp garlic powder','½ tsp cayenne','½ tsp onion powder','1 tsp salt','2 tbsp vegetable oil'],
+    steps:['Mix ground peanuts, paprika, ginger, garlic, cayenne, onion powder, and salt.','Coat beef slices in spice mixture and oil. Marinate 1 hour (or overnight).','Thread beef onto skewers, pressing flat.','Grill on high heat 3–4 min per side until charred at edges.','Serve hot with sliced onion, tomatoes, and extra suya spice.']
+  },
+  {
+    id:18, name:'South African Bobotie', emoji:'🥧', cuisine:'african',
+    desc:'Cape Malay classic — spiced minced meat baked with egg custard.',
+    calories:450, protein:32, carbs:22, fat:24,
+    budget:'moderate', diet:['halal'], time:'55 min', servings:6,
+    ingredients:['700g halal ground beef or lamb','2 onions diced','3 garlic cloves','2 tbsp curry powder','1 tsp turmeric','2 tbsp apricot jam','2 tbsp vinegar or lemon juice','2 slices bread soaked in milk','3 eggs','1½ cups milk','¼ cup raisins','6 bay leaves','Salt & pepper'],
+    steps:['Preheat oven to 350°F (180°C). Sauté onions until golden, add garlic and curry — 2 min.','Add meat, brown well. Mix in jam, vinegar, raisins, salt, and pepper.','Squeeze bread, crumble into meat mixture. Stir in 1 egg.','Spread mixture in a greased baking dish. Stick bay leaves upright.','Beat remaining eggs with milk, pour over. Bake 35–40 min until custard is set and golden.']
+  },
+
+  // ── 🌮 Latino / Latin American ───────────────────────────────────────────
+  {
+    id:3, name:'Black Bean Tacos', emoji:'🌮', cuisine:'latino',
+    desc:'Quick Mexican-style tacos, budget-friendly and filling.',
+    calories:310, protein:14, carbs:48, fat:7,
+    budget:'cheap', diet:['vegan','vegetarian'], time:'15 min', servings:2,
+    ingredients:['1 can black beans drained','4 corn tortillas','1 cup shredded cabbage','1 avocado sliced','½ cup salsa','1 lime','1 tsp cumin','1 tsp chili powder','Fresh cilantro'],
+    steps:['Warm beans in pan with cumin, chili powder, splash of water.','Warm tortillas in a dry skillet or over flame.','Fill with beans, cabbage, avocado.','Top with salsa, lime, and cilantro.','Serve immediately.']
+  },
+  {
+    id:8, name:'Latin Rice & Beans', emoji:'🍚', cuisine:'latino',
+    desc:'The ultimate budget meal — complete protein, high fiber.',
+    calories:450, protein:18, carbs:82, fat:5,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'30 min', servings:4,
+    ingredients:['2 cups long-grain rice','2 cans kidney beans','1 onion','3 garlic cloves','1 bell pepper','1 tsp cumin','1 tsp oregano','2 cups broth','Hot sauce to serve'],
+    steps:['Sauté onion and bell pepper in oil 5 min.','Add garlic, cumin, oregano — 1 min.','Add rice, stir to coat.','Pour in broth + water to cover. Boil.','Add beans, reduce heat, cover, simmer 20 min. Fluff and serve.']
+  },
+  {
+    id:19, name:'Arroz con Pollo', emoji:'🍗', cuisine:'latino',
+    desc:'Latin America\'s favorite one-pot chicken and rice.',
+    calories:510, protein:40, carbs:50, fat:14,
+    budget:'moderate', diet:['halal'], time:'50 min', servings:4,
+    ingredients:['4 halal chicken thighs','2 cups long-grain rice','1 onion diced','1 bell pepper diced','4 garlic cloves','1 can diced tomatoes','1 tsp cumin','1 tsp oregano','1 tsp sazón or paprika','½ cup green olives','3 cups chicken broth','Fresh cilantro'],
+    steps:['Season chicken with cumin, oregano, sazón, salt, and pepper. Brown in oil 5 min per side. Set aside.','Sauté onion and pepper in same pot until soft, add garlic — 1 min.','Add tomatoes, rice, stir to coat. Add broth and olives.','Nestle chicken on top. Bring to boil, cover, cook on low 30 min.','Remove chicken, fluff rice with cilantro. Serve together.']
+  },
+  {
+    id:20, name:'Cuban Black Bean Soup', emoji:'🫘', cuisine:'latino',
+    desc:'Smoky, savory Cuban-style black bean soup.',
+    calories:310, protein:16, carbs:52, fat:5,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'40 min', servings:4,
+    ingredients:['2 cans black beans','1 onion diced','1 green bell pepper','4 garlic cloves','1 tsp cumin','1 tsp dried oregano','2 tbsp apple cider vinegar','3 cups vegetable broth','2 tbsp olive oil','Salt & pepper','White rice and lime to serve'],
+    steps:['Sauté onion and bell pepper in olive oil until soft, 5 min.','Add garlic, cumin, oregano — cook 1 min.','Add beans (with liquid) and broth. Simmer 20 min.','Mash about ¼ of the beans for a thicker consistency.','Stir in vinegar, season well. Serve over white rice with lime wedges.']
+  },
+  {
+    id:21, name:'Shrimp Ceviche', emoji:'🍋', cuisine:'latino',
+    desc:'Fresh Peruvian-style ceviche — no cooking needed.',
+    calories:210, protein:26, carbs:14, fat:4,
+    budget:'moderate', diet:['halal'], time:'20 min + 30 min rest', servings:3,
+    ingredients:['400g cooked shrimp (or raw, very fresh)','½ cup lime juice (about 8 limes)','1 red onion thinly sliced','2 jalapeños or serrano peppers diced','1 cup cherry tomatoes halved','1 avocado diced','Fresh cilantro','1 tsp salt','Tortilla chips to serve'],
+    steps:['If using raw shrimp, toss with lime juice and let sit 20–30 min until pink and opaque (the acid "cooks" them).','Add red onion, jalapeño, salt. Toss and let marinate 10 more min.','Fold in tomatoes, avocado, and cilantro gently.','Taste, adjust salt and lime.','Serve immediately with tortilla chips or tostadas.']
+  },
+  {
+    id:22, name:'Colombian Bandeja Bowl', emoji:'🥘', cuisine:'latino',
+    desc:'Inspired by Colombia\'s famous bandeja paisa — hearty and filling.',
+    calories:580, protein:38, carbs:62, fat:18,
+    budget:'moderate', diet:['halal'], time:'40 min', servings:2,
+    ingredients:['200g halal ground beef','1 cup red beans (canned)','1 cup white rice','1 plantain sliced','2 eggs','1 avocado','1 tomato diced','1 onion','2 garlic cloves','1 tsp cumin','Salt & oil'],
+    steps:['Cook rice. Meanwhile, sauté onion, garlic, cumin — add ground beef and brown well.','Season beans and warm with a little salt and cumin.','Fry plantain slices in oil until golden on both sides.','Fry eggs sunny-side up.','Plate rice, beans, beef, plantain, and egg side by side. Add sliced avocado and tomato.']
+  },
+  {
+    id:23, name:'Lomo Saltado', emoji:'🥩', cuisine:'latino',
+    desc:'Peruvian stir-fry with beef, tomatoes, and fries — a fusion classic.',
+    calories:490, protein:30, carbs:48, fat:20,
+    budget:'moderate', diet:['halal'], time:'30 min', servings:2,
+    ingredients:['300g halal beef sirloin strips','2 tomatoes cut in wedges','1 red onion in wedges','2 jalapeños or ají amarillo sliced','3 tbsp soy sauce','2 tbsp red wine vinegar','1 tbsp vegetable oil','Fresh cilantro','2 cups frozen fries (baked)','White rice to serve'],
+    steps:['Bake fries per package instructions.','In a very hot wok or skillet, sear beef strips in oil 2 min until browned. Set aside.','In same pan, stir fry onion and jalapeños on high heat 2 min.','Add tomatoes, soy sauce, and vinegar — toss 1 min.','Return beef, add fries and cilantro, toss everything together. Serve with rice.']
+  },
+
+  // ── 🍝 Italian ───────────────────────────────────────────────────────────
+  {
+    id:6, name:'Chickpea Coconut Curry', emoji:'🍛', cuisine:'international',
+    desc:'Creamy, warming curry ready in 25 minutes.',
+    calories:380, protein:14, carbs:50, fat:14,
+    budget:'cheap', diet:['vegan','vegetarian','halal'], time:'25 min', servings:3,
+    ingredients:['2 cans chickpeas drained','1 can coconut milk','1 can diced tomatoes','1 onion','3 garlic cloves','1 tbsp ginger','2 tbsp curry powder','1 tsp garam masala','2 cups spinach','Basmati rice to serve'],
+    steps:['Sauté onion in oil 5 min until soft.','Add garlic, ginger — cook 1 min.','Stir in curry powder and garam masala, 30 sec.','Add chickpeas, tomatoes, coconut milk. Simmer 15 min.','Stir in spinach until wilted. Serve over rice.']
+  },
+  {
+    id:24, name:'Pasta e Fagioli', emoji:'🍝', cuisine:'italian',
+    desc:'Classic Italian pasta and bean soup — cheap, filling, delicious.',
+    calories:390, protein:18, carbs:62, fat:8,
+    budget:'cheap', diet:['vegan','vegetarian'], time:'35 min', servings:4,
+    ingredients:['1 cup small pasta (ditalini or tubetti)','2 cans cannellini beans','1 can diced tomatoes','1 onion diced','4 garlic cloves','2 celery stalks','2 carrots diced','4 cups vegetable broth','2 tbsp olive oil','1 tsp rosemary','1 tsp thyme','Parmesan rind (optional)','Salt & pepper'],
+    steps:['Sauté onion, carrots, celery in olive oil 6 min until soft.','Add garlic, rosemary, thyme — cook 1 min.','Add tomatoes, beans, broth, and parmesan rind. Simmer 15 min.','Mash about ¼ of beans in pot to thicken broth.','Add pasta, cook per package time. Remove rind, drizzle olive oil, and serve.']
+  },
+  {
+    id:25, name:'Classic Minestrone', emoji:'🥣', cuisine:'italian',
+    desc:'Italy\'s ultimate vegetable soup — colourful, hearty, healthy.',
+    calories:260, protein:12, carbs:42, fat:5,
+    budget:'cheap', diet:['vegan','vegetarian'], time:'40 min', servings:5,
+    ingredients:['2 cups mixed vegetables (zucchini, carrots, celery, green beans)','1 can diced tomatoes','1 can kidney beans','½ cup small pasta','1 onion','3 garlic cloves','4 cups vegetable broth','2 tbsp tomato paste','1 tsp Italian seasoning','2 cups spinach or kale','Olive oil and parmesan to serve'],
+    steps:['Sauté onion and garlic in olive oil 4 min.','Add carrots, celery, zucchini — cook 4 min.','Stir in tomato paste, Italian seasoning, then add tomatoes and broth.','Simmer 15 min, add beans and pasta, cook 8–10 more min.','Stir in greens until wilted. Serve with a drizzle of olive oil and parmesan.']
+  },
+  {
+    id:26, name:'Mushroom Risotto', emoji:'🍄', cuisine:'italian',
+    desc:'Creamy, luxurious Italian risotto — vegetarian comfort food.',
+    calories:430, protein:12, carbs:64, fat:14,
+    budget:'moderate', diet:['vegetarian'], time:'35 min', servings:3,
+    ingredients:['1.5 cups arborio rice','300g mixed mushrooms sliced','1 onion finely diced','3 garlic cloves','½ cup dry white wine (or extra broth)','5 cups warm vegetable broth','½ cup parmesan grated','2 tbsp butter','2 tbsp olive oil','Fresh thyme','Salt & pepper'],
+    steps:['Warm broth in a separate pot. Sauté mushrooms in olive oil until golden, set aside.','In same pan, sauté onion until translucent. Add garlic and rice, stir 2 min.','Pour in wine and stir until absorbed.','Add warm broth one ladle at a time, stirring constantly, each addition absorbed before next (~20 min total).','Remove from heat, stir in butter, parmesan, and mushrooms. Season and serve immediately.']
+  },
+  {
+    id:27, name:'Caprese Salad', emoji:'🍅', cuisine:'italian',
+    desc:'The simplest Italian salad — fresh, light, and beautiful.',
+    calories:190, protein:11, carbs:6, fat:14,
+    budget:'moderate', diet:['vegetarian'], time:'5 min', servings:2,
+    ingredients:['2 large ripe tomatoes sliced','200g fresh mozzarella sliced','Fresh basil leaves','3 tbsp extra-virgin olive oil','1 tsp balsamic glaze','Flaky sea salt','Cracked black pepper'],
+    steps:['Arrange tomato and mozzarella slices alternating on a plate.','Tuck fresh basil leaves between slices.','Drizzle generously with olive oil and balsamic glaze.','Season with flaky salt and cracked pepper.','Serve immediately — best at room temperature.']
+  },
+  {
+    id:28, name:'Italian Wedding Soup', emoji:'🍜', cuisine:'italian',
+    desc:'Light Italian soup with mini meatballs and greens.',
+    calories:340, protein:28, carbs:26, fat:12,
+    budget:'moderate', diet:['halal'], time:'40 min', servings:4,
+    ingredients:['300g halal ground beef or chicken','¼ cup breadcrumbs','1 egg','2 garlic cloves minced','¼ cup parmesan','1 tsp Italian seasoning','6 cups chicken broth','1 cup small pasta (acini de pepe or orzo)','3 cups baby spinach','1 onion diced','2 carrots diced','Salt & pepper'],
+    steps:['Mix ground meat with breadcrumbs, egg, garlic, parmesan, and seasoning. Roll into 1-inch meatballs.','Sauté onion and carrots in oil 4 min. Add broth, bring to boil.','Gently drop in meatballs, simmer 10 min.','Add pasta, cook 8 min until al dente.','Stir in spinach until wilted. Season, serve with extra parmesan.']
+  },
+  {
+    id:29, name:'Spaghetti Aglio e Olio', emoji:'🧄', cuisine:'italian',
+    desc:'Rome\'s midnight pasta — just garlic, olive oil, and chili.',
+    calories:420, protein:12, carbs:64, fat:14,
+    budget:'cheap', diet:['vegan','vegetarian'], time:'15 min', servings:2,
+    ingredients:['200g spaghetti','6 garlic cloves thinly sliced','½ tsp red chili flakes','5 tbsp extra-virgin olive oil','½ cup pasta cooking water','Fresh parsley chopped','Salt','Parmesan to serve (optional)'],
+    steps:['Cook spaghetti in well-salted boiling water. Save ½ cup pasta water before draining.','While pasta cooks, gently toast garlic in olive oil on low heat until just golden (2–3 min). Add chili flakes.','Add drained pasta to the garlic oil pan.','Pour in pasta water gradually, tossing vigorously to create a silky sauce.','Top with parsley and parmesan. Serve immediately.']
   },
 ]
 
@@ -296,7 +439,7 @@ export default function Nutrition({ session }) {
   const [savingProfile, setSavingProfile] = useState(false)
 
   // ── Recipes tab state
-  const [recipeFilter, setRecipeFilter] = useState({ diet:'all', budget:'all', maxCal:9999 })
+  const [recipeFilter, setRecipeFilter] = useState({ diet:'all', budget:'all', cuisine:'all', maxCal:9999 })
   const [selectedRecipe, setSelectedRecipe] = useState(null)
 
   // ── Weight tab state
@@ -410,6 +553,7 @@ export default function Nutrition({ session }) {
   const filteredRecipes = RECIPES.filter(r => {
     if (recipeFilter.diet !== 'all' && !r.diet.includes(recipeFilter.diet)) return false
     if (recipeFilter.budget !== 'all' && r.budget !== recipeFilter.budget) return false
+    if (recipeFilter.cuisine !== 'all' && r.cuisine !== recipeFilter.cuisine) return false
     if (r.calories > recipeFilter.maxCal) return false
     return true
   })
@@ -606,6 +750,29 @@ export default function Nutrition({ session }) {
           {/* Filters */}
           <div style={{ background:'var(--white)', borderRadius:14, padding:'14px', marginBottom:14, border:'1px solid var(--border)' }}>
             <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>🔍 Filter Recipes</div>
+
+            {/* Cuisine */}
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Cuisine</div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {[
+                  {v:'all',       l:'🌐 All'},
+                  {v:'african',   l:'🌍 African'},
+                  {v:'latino',    l:'🌮 Latino'},
+                  {v:'italian',   l:'🍝 Italian'},
+                  {v:'international', l:'🥗 Other'},
+                ].map(c => (
+                  <button key={c.v} onClick={() => setRecipeFilter(p=>({...p, cuisine:c.v}))}
+                    style={{ padding:'5px 11px', borderRadius:16, border:'none', cursor:'pointer', fontSize:12, fontWeight:600,
+                      background: recipeFilter.cuisine===c.v?'#1D9E75':'#f3f4f6',
+                      color: recipeFilter.cuisine===c.v?'white':'#6b7280' }}>
+                    {c.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Diet */}
             <div style={{ marginBottom:10 }}>
               <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Diet Type</div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -619,6 +786,8 @@ export default function Nutrition({ session }) {
                 ))}
               </div>
             </div>
+
+            {/* Budget */}
             <div style={{ marginBottom:10 }}>
               <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Budget</div>
               <div style={{ display:'flex', gap:6 }}>
@@ -632,11 +801,22 @@ export default function Nutrition({ session }) {
                 ))}
               </div>
             </div>
+
+            {/* Calorie limit */}
             <div>
-              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Max Calories: {recipeFilter.maxCal === 9999 ? 'Any' : `${recipeFilter.maxCal} kcal`}</div>
-              <input type="range" min={200} max={800} step={50} value={recipeFilter.maxCal === 9999 ? 800 : recipeFilter.maxCal}
-                onChange={e => setRecipeFilter(p => ({...p, maxCal: parseInt(e.target.value) === 800 ? 9999 : parseInt(e.target.value)}))}
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:5 }}>
+                <span>Max Calories</span>
+                <span style={{ fontWeight:700, color: recipeFilter.maxCal===9999?'#1D9E75':'#A32D2D' }}>
+                  {recipeFilter.maxCal === 9999 ? 'No limit' : `≤ ${recipeFilter.maxCal} kcal`}
+                </span>
+              </div>
+              <input type="range" min={200} max={600} step={50}
+                value={recipeFilter.maxCal === 9999 ? 600 : recipeFilter.maxCal}
+                onChange={e => setRecipeFilter(p => ({...p, maxCal: parseInt(e.target.value) === 600 ? 9999 : parseInt(e.target.value)}))}
                 style={{ width:'100%', accentColor:'#1D9E75' }}/>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#d1d5db', marginTop:2 }}>
+                <span>200 kcal</span><span>300</span><span>400</span><span>500</span><span>No limit</span>
+              </div>
             </div>
           </div>
 
