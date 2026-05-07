@@ -1,4 +1,5 @@
 // Separate file so recharts (411 kB) only downloads when charts actually render
+import { memo } from 'react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -7,7 +8,7 @@ import {
 const fmt = (n, symbol='$') =>
   `${symbol}${Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0})}`
 
-export function DonutChart({ data, total, symbol='$' }) {
+export const DonutChart = memo(function DonutChart({ data, total, symbol='$' }) {
   return (
     <div style={{ position:'relative', width:150, height:150, flexShrink:0 }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -29,9 +30,9 @@ export function DonutChart({ data, total, symbol='$' }) {
       </div>
     </div>
   )
-}
+})
 
-export function TrendChart({ data, symbol='$' }) {
+export const TrendChart = memo(function TrendChart({ data, symbol='$' }) {
   return (
     <ResponsiveContainer width="100%" height={170}>
       <BarChart data={data} barCategoryGap="30%" barGap={3}>
@@ -48,4 +49,4 @@ export function TrendChart({ data, symbol='$' }) {
       </BarChart>
     </ResponsiveContainer>
   )
-}
+})

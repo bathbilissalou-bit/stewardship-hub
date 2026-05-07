@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import jsPDF from 'jspdf'
 
 const CATEGORIES = ['Food','Transport','Shopping','Health','Housing','Utilities','Entertainment','Business','Other']
 const CAT_ICONS = { Food:'🛒', Transport:'🚗', Shopping:'🛍️', Health:'🏥', Housing:'🏠', Utilities:'💡', Entertainment:'🎬', Business:'💼', Other:'📄' }
@@ -113,7 +112,8 @@ export default function Receipts({ session }) {
     fetchReceipts()
   }
 
-  function exportPDF() {
+  async function exportPDF() {
+    const { default: jsPDF } = await import('jspdf')
     const doc = new jsPDF()
     doc.setFontSize(18); doc.setTextColor(15,110,86)
     doc.text('Receipt Summary', 20, 20)

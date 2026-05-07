@@ -45,7 +45,6 @@ function PageLoader() {
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh', flexDirection:'column', gap:12 }}>
       <div style={{ fontSize:28, animation:'spin 1s linear infinite' }}>✦</div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }

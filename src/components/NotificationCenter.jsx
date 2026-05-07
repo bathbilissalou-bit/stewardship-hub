@@ -51,6 +51,13 @@ function fireBrowserNotification(title, body, tag) {
   } catch (_) {}
 }
 
+// ── Module-level cache — survives page navigation, resets after 5 min ────────
+const CACHE_TTL = 5 * 60 * 1000   // 5 minutes
+let _cachedAlerts = null
+let _cachedSymbol = '$'
+let _cacheUserId  = null
+let _cacheTime    = 0
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function NotificationCenter({ userId }) {
   const [open,        setOpen]        = useState(false)
@@ -61,15 +68,24 @@ export default function NotificationCenter({ userId }) {
   const [symbol,      setSymbol]      = useState('$')
   const [permGranted, setPermGranted] = useState(Notification?.permission === 'granted')
 
-  const loadAlerts = useCallback(async () => {
+  const loadAlerts = useCallback(async (force = false) => {
     if (!userId) return
+
+    // Return cached data if fresh and same user — avoids 4 DB queries on every page nav
+    const now = Date.now()
+    if (!force && _cacheUserId === userId && _cachedAlerts && (now - _cacheTime) < CACHE_TTL) {
+      setAlerts(_cachedAlerts)
+      setSymbol(_cachedSymbol)
+      return
+    }
+
     let userRow, bills, subs, goals
     try {
       const [r0, r1, r2, r3] = await Promise.all([
         supabase.from('users').select('currency').eq('id', userId).single(),
-        supabase.from('bills').select('*').eq('user_id', userId),
-        supabase.from('subscriptions').select('*').eq('user_id', userId),
-        supabase.from('savings_goals').select('*').eq('user_id', userId).eq('status','active'),
+        supabase.from('bills').select('id,name,amount,due_day,due_month,status,paid_month').eq('user_id', userId),
+        supabase.from('subscriptions').select('id,name,amount,icon,next_billing_date').eq('user_id', userId),
+        supabase.from('savings_goals').select('id,name,icon,current_amount,target_amount').eq('user_id', userId).eq('status','active'),
       ])
       userRow = r0.data; bills = r1.data; subs = r2.data; goals = r3.data
     } catch (_) { return }
@@ -138,6 +154,12 @@ export default function NotificationCenter({ userId }) {
       if (b.days === null) return -1
       return a.days - b.days
     })
+
+    // Save to module-level cache
+    _cachedAlerts = newAlerts
+    _cachedSymbol = userRow?.currency ? (SYMBOLS[userRow.currency] || '$') : '$'
+    _cacheUserId  = userId
+    _cacheTime    = Date.now()
 
     setAlerts(newAlerts)
 

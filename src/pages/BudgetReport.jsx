@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react'
-import jsPDF from 'jspdf'
-import * as XLSX from 'xlsx'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import html2canvas from 'html2canvas'
 import { supabase } from '../lib/supabase'
 import { useT } from '../lib/i18n'
 
@@ -120,7 +117,9 @@ export default function BudgetReport({ session }) {
 
   function handlePrint() { window.print() }
 
-  function handleDownloadExcel() {
+  async function handleDownloadExcel() {
+    // Load xlsx (282 KB) only when user actually clicks Export
+    const XLSX = await import('xlsx')
     const wb = XLSX.utils.book_new()
 
     // Income sheet
@@ -164,6 +163,11 @@ export default function BudgetReport({ session }) {
     if (!el) return
     setDownloading(true)
     try {
+      // Load jsPDF + html2canvas (600 KB total) only when user clicks Download PDF
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ])
       const canvas = await html2canvas(el, { scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false, allowTaint:true })
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' })
