@@ -85,8 +85,12 @@ export default function Budget({ session }) {
 
   async function fetchEntries() {
     setLoading(true)
-    const { data } = await supabase.from('budget_entries').select('*').eq('user_id', userId).eq('month_year', monthYear).order('created_at',{ascending:true})
-    setEntries(data||[])
+    const { data, error } = await supabase
+      .from('budget_entries').select('*')
+      .eq('user_id', userId).eq('month_year', monthYear)
+      .order('created_at', { ascending:true })
+    if (error) showToast('⚠️ Could not load entries — check connection', 'error')
+    setEntries(data || [])
     setLoading(false)
   }
 
@@ -164,16 +168,43 @@ export default function Budget({ session }) {
     URL.revokeObjectURL(url)
   }
   async function saveNewRow() {
-    if (!newRow.label||!newRow.amount) return
-    setSaving(true)
-    await supabase.from('budget_entries').insert({ user_id:userId, month_year:monthYear, type:newRow.type, category:newRow.type==='expense'?newRow.category:null, label:newRow.label, amount:parseFloat(newRow.amount) })
-    // Optionally save as recurring template
-    if (newRow.saveAsRecurring) {
-      await supabase.from('recurring_templates').insert({ user_id:userId, type:newRow.type, label:newRow.label, amount:parseFloat(newRow.amount), category:newRow.type==='expense'?newRow.category:null })
-      await fetchTemplates()
-      showToast('✓ Saved + added to recurring')
+    if (!newRow.label || !newRow.amount) {
+      showToast('⚠️ Please fill in both description and amount', 'error')
+      return
     }
-    setNewRow(null); setSaving(false); fetchEntries()
+    setSaving(true)
+    try {
+      const { error } = await supabase.from('budget_entries').insert({
+        user_id:   userId,
+        month_year: monthYear,
+        type:      newRow.type,
+        category:  newRow.type === 'expense' ? newRow.category : null,
+        label:     newRow.label.trim(),
+        amount:    parseFloat(newRow.amount),
+      })
+      if (error) throw error
+
+      // Optionally save as recurring template
+      if (newRow.saveAsRecurring) {
+        await supabase.from('recurring_templates').insert({
+          user_id:  userId,
+          type:     newRow.type,
+          label:    newRow.label.trim(),
+          amount:   parseFloat(newRow.amount),
+          category: newRow.type === 'expense' ? newRow.category : null,
+        })
+        await fetchTemplates()
+        showToast('✓ Saved + added to recurring')
+      } else {
+        showToast('✓ Entry saved')
+      }
+      setNewRow(null)
+      fetchEntries()
+    } catch(err) {
+      showToast(`⚠️ Could not save: ${err?.message || 'Please try again'}`, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
