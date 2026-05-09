@@ -732,9 +732,16 @@ export default function Nutrition({ session }) {
       diet: form.diet,
       country,
     }
-    const { data } = await supabase.from('nutrition_profiles')
+    console.log('[Nutrition] upserting profile:', payload)
+    const { data, error } = await supabase.from('nutrition_profiles')
       .upsert(payload, { onConflict: 'user_id' })
-      .select().single().catch(() => ({ data: null }))
+      .select().single()
+    console.log('[Nutrition] upsert result:', { data, error })
+    if (error) {
+      alert(`Could not save profile: ${error.message}\n\nPlease run NUTRITION_SQL.sql in Supabase.`)
+      setSavingProfile(false)
+      return
+    }
     if (data) setProfile(data)
     setSavingProfile(false)
     setEditing(false)
@@ -744,9 +751,15 @@ export default function Nutrition({ session }) {
     if (!weightInput) return
     setAddingWeight(true)
     const kg = weightUnit === 'lbs' ? parseFloat(weightInput) / 2.205 : parseFloat(weightInput)
-    const { data } = await supabase.from('weight_logs')
+    const { data, error } = await supabase.from('weight_logs')
       .insert({ user_id: uid, weight: parseFloat(kg.toFixed(1)), note: weightNote.trim() || null })
-      .select().single().catch(() => ({ data: null }))
+      .select().single()
+    if (error) {
+      console.error('[Nutrition] weight log error:', error)
+      alert(`Could not save weight: ${error.message}`)
+      setAddingWeight(false)
+      return
+    }
     if (data) setWeightLogs(prev => [...prev, data].sort((a,b) => a.logged_at.localeCompare(b.logged_at)))
     setWeightInput('')
     setWeightNote('')
