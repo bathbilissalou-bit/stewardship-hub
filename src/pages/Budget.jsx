@@ -139,7 +139,7 @@ export default function Budget({ session }) {
 
   function showToast(msg, type='success') {
     setToast(msg); setToastType(type)
-    setTimeout(() => setToast(null), type === 'error' ? 3500 : 2000)
+    setTimeout(() => setToast(null), type === 'error' ? 6000 : 2000)
   }
 
   async function updateEntry(id, field, value) {
@@ -172,27 +172,35 @@ export default function Budget({ session }) {
       showToast('⚠️ Please fill in both description and amount', 'error')
       return
     }
+    if (!userId) {
+      showToast('⚠️ Not logged in — please refresh', 'error')
+      return
+    }
     setSaving(true)
     try {
-      const { error } = await supabase.from('budget_entries').insert({
-        user_id:   userId,
+      const payload = {
+        user_id:    userId,
         month_year: monthYear,
-        type:      newRow.type,
-        category:  newRow.type === 'expense' ? newRow.category : null,
-        label:     newRow.label.trim(),
-        amount:    parseFloat(newRow.amount),
-      })
+        type:       newRow.type,
+        category:   newRow.type === 'expense' ? (newRow.category || 'Needs') : null,
+        label:      newRow.label.trim(),
+        amount:     parseFloat(newRow.amount) || 0,
+      }
+      console.log('[Budget] inserting:', payload)
+      const { data, error } = await supabase.from('budget_entries').insert(payload).select()
+      console.log('[Budget] insert result:', { data, error })
       if (error) throw error
 
       // Optionally save as recurring template
       if (newRow.saveAsRecurring) {
-        await supabase.from('recurring_templates').insert({
+        const { error: tErr } = await supabase.from('recurring_templates').insert({
           user_id:  userId,
           type:     newRow.type,
           label:    newRow.label.trim(),
-          amount:   parseFloat(newRow.amount),
-          category: newRow.type === 'expense' ? newRow.category : null,
+          amount:   parseFloat(newRow.amount) || 0,
+          category: newRow.type === 'expense' ? (newRow.category || 'Needs') : null,
         })
+        if (tErr) console.warn('[Budget] template insert error:', tErr)
         await fetchTemplates()
         showToast('✓ Saved + added to recurring')
       } else {
@@ -201,7 +209,9 @@ export default function Budget({ session }) {
       setNewRow(null)
       fetchEntries()
     } catch(err) {
-      showToast(`⚠️ Could not save: ${err?.message || 'Please try again'}`, 'error')
+      console.error('[Budget] save error:', err)
+      const msg = err?.message || err?.details || err?.hint || 'Please try again'
+      showToast(`⚠️ ${msg}`, 'error')
     } finally {
       setSaving(false)
     }
@@ -210,7 +220,7 @@ export default function Budget({ session }) {
   return (
     <div>
       {toast && (
-        <div style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background: toastType === 'error' ? '#A32D2D' : '#1D9E75', color:'white', padding:'10px 20px', borderRadius:30, fontSize:14, fontWeight:600, zIndex:1000, boxShadow:'0 4px 15px rgba(0,0,0,0.2)', pointerEvents:'none', whiteSpace:'nowrap' }}>
+        <div onClick={() => setToast(null)} style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background: toastType === 'error' ? '#A32D2D' : '#1D9E75', color:'white', padding:'10px 20px', borderRadius:30, fontSize:14, fontWeight:600, zIndex:1000, boxShadow:'0 4px 15px rgba(0,0,0,0.2)', cursor:'pointer', maxWidth:'90vw', textAlign:'center', lineHeight:1.4 }}>
           {toast}
         </div>
       )}
