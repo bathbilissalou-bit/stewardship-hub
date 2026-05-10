@@ -15,7 +15,6 @@
     <link rel="apple-touch-icon" href="/icon.svg" />
 
     <!-- ⚡ Preconnect: browser starts TCP handshake to Supabase BEFORE JS runs -->
-    <!-- Saves 200–400 ms on every session start -->
     <link rel="preconnect" href="https://mukccbbpayuyynmlkcia.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://mukccbbpayuyynmlkcia.supabase.co" />
   </head>
@@ -29,24 +28,14 @@
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
-    <!-- SERVICE WORKER TEMPORARILY DISABLED for Supabase connectivity testing -->
-    <!-- Re-enable after confirming DB requests work without SW -->
-    <!--
+    <!-- Service worker: handles offline fallback for app shell only.
+         Supabase requests are bypassed (early return, no event.respondWith). -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW registered'))
-            .catch(err => console.log('SW error:', err))
-        })
-      }
-    </script>
-    -->
-    <script>
-      // Unregister any existing service workers so old SW doesn't intercept requests
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          regs.forEach(reg => reg.unregister())
+            .then(() => console.log('[SW] registered'))
+            .catch(err => console.warn('[SW] registration failed:', err))
         })
       }
     </script>
