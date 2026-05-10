@@ -217,8 +217,26 @@ export default function Budget({ session }) {
     }
   }
 
+  async function testInsert() {
+    const result = await supabase.from('budget_entries').insert({
+      user_id:    userId,
+      month_year: monthYear,
+      type:       'income',
+      label:      'TEST ENTRY',
+      amount:     1,
+      category:   null,
+    }).select()
+    alert('userId: ' + userId + '\nmonthYear: ' + monthYear + '\nerror: ' + JSON.stringify(result.error) + '\ndata: ' + JSON.stringify(result.data))
+  }
+
   return (
     <div>
+      {/* TEMP DEBUG BUTTON — remove after fix */}
+      <button onClick={testInsert}
+        style={{ width:'100%', padding:12, background:'#7c3aed', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+        🔬 Test DB Insert (tap to diagnose)
+      </button>
+
       {toast && (
         <div onClick={() => setToast(null)} style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background: toastType === 'error' ? '#A32D2D' : '#1D9E75', color:'white', padding:'10px 20px', borderRadius:30, fontSize:14, fontWeight:600, zIndex:1000, boxShadow:'0 4px 15px rgba(0,0,0,0.2)', cursor:'pointer', maxWidth:'90vw', textAlign:'center', lineHeight:1.4 }}>
           {toast}
