@@ -222,10 +222,14 @@ export default function Budget({ session }) {
     const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
     const BASE = 'https://mukccbbpayuyynmlkcia.supabase.co'
 
-    // Get the current session JWT
-    const { data: { session: sess } } = await supabase.auth.getSession()
-    const token = sess?.access_token || ANON_KEY
-    setDiagResult(`userId: ${userId}\ntoken: ${token === ANON_KEY ? 'ANON (no session!)' : 'USER JWT ✅'}\n\n⏳ Testing raw fetch GET...`)
+    // Read session token directly from localStorage (no Supabase client call)
+    let token = ANON_KEY
+    try {
+      const raw = localStorage.getItem('sb-mukccbbpayuyynmlkcia-auth-token')
+      const parsed = raw ? JSON.parse(raw) : null
+      if (parsed?.access_token) token = parsed.access_token
+    } catch(_) {}
+    setDiagResult(`userId: ${userId}\ntoken: ${token === ANON_KEY ? '⚠️ ANON (no session in localStorage!)' : '✅ USER JWT found'}\n\n⏳ Testing raw fetch GET...`)
 
     // Raw fetch GET (bypass Supabase client)
     const ctrl1 = new AbortController()
