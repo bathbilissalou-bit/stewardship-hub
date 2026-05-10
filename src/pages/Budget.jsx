@@ -219,19 +219,30 @@ export default function Budget({ session }) {
   }
 
   async function testInsert() {
-    setDiagResult('⏳ Testing...')
-    const result = await supabase.from('budget_entries').insert({
-      user_id:    userId,
-      month_year: monthYear,
-      type:       'income',
-      label:      'TEST ENTRY',
-      amount:     1,
-      category:   null,
-    }).select()
-    const msg = result.error
-      ? `❌ ERROR: ${result.error.message} | code: ${result.error.code} | hint: ${result.error.hint}`
-      : `✅ SUCCESS — inserted row: ${JSON.stringify(result.data?.[0])}`
-    setDiagResult(`userId: ${userId}\nmonthYear: ${monthYear}\n\n${msg}`)
+    const timeout = ms => new Promise(r => setTimeout(() => r({ error: { message: `TIMED OUT after ${ms/1000}s` }, data: null }), ms))
+
+    // Step 1: test SELECT
+    setDiagResult('⏳ Step 1/2: Testing SELECT...')
+    const selRes = await Promise.race([
+      supabase.from('budget_entries').select('id').limit(1),
+      timeout(7000)
+    ])
+    if (selRes.error) {
+      setDiagResult(`userId: ${userId}\n\nStep 1 SELECT: ❌ ${selRes.error.message}\n\n→ Supabase project may be PAUSED.\nGo to supabase.com → your project → Resume.`)
+      return
+    }
+    setDiagResult(`Step 1 SELECT: ✅ OK (${selRes.data?.length ?? 0} rows)\n⏳ Step 2/2: Testing INSERT...`)
+
+    // Step 2: test INSERT
+    const insRes = await Promise.race([
+      supabase.from('budget_entries').insert({ user_id: userId, month_year: monthYear, type: 'income', label: 'TEST', amount: 1, category: null }),
+      timeout(7000)
+    ])
+    const msg = insRes.error
+      ? `Step 2 INSERT: ❌ ${insRes.error.message}\ncode: ${insRes.error.code}\nhint: ${insRes.error.hint}`
+      : `Step 2 INSERT: ✅ SUCCESS — budget save should work now!`
+    setDiagResult(`userId: ${userId}\nmonthYear: ${monthYear}\n\nStep 1 SELECT: ✅ OK\n${msg}`)
+    if (!insRes.error) fetchEntries()
   }
 
   return (
