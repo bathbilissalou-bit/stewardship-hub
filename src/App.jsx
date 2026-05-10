@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { getLang, RTL_LANGS } from './lib/i18n-core'
 import Layout from './components/Layout'
@@ -47,6 +47,34 @@ function PageLoader() {
       <div style={{ fontSize:28, animation:'spin 1s linear infinite' }}>✦</div>
     </div>
   )
+}
+
+function safeReturnPath(stateFrom) {
+  if (typeof stateFrom !== 'string' || !stateFrom.startsWith('/') || stateFrom.startsWith('//')) return '/'
+  return stateFrom
+}
+
+/** Redirect unauthenticated visitors to login but remember the URL they wanted (e.g. /budget). */
+function RequireAuth({ session, onboardingDone, lang, setLang }) {
+  const location = useLocation()
+  if (!session) {
+    const from = `${location.pathname}${location.search || ''}`
+    return <Navigate to="/login" replace state={{ from }} />
+  }
+  if (!onboardingDone) return <Navigate to="/onboarding" replace />
+  return <Layout session={session} lang={lang} setLang={setLang} />
+}
+
+function LoginPage({ session }) {
+  const location = useLocation()
+  if (session) return <Navigate to={safeReturnPath(location.state?.from)} replace />
+  return <Login />
+}
+
+function SignupPage({ session }) {
+  const location = useLocation()
+  if (session) return <Navigate to={safeReturnPath(location.state?.from)} replace />
+  return <Signup />
 }
 
 function App() {
@@ -143,8 +171,8 @@ function App() {
         <Routes>
           <Route path="/welcome"        element={<Welcome />} />
           <Route path="/privacy"        element={<Privacy />} />
-          <Route path="/login"          element={!session ? <Login /> : <Navigate to="/" />} />
-          <Route path="/signup"         element={!session ? <Signup /> : <Navigate to="/" />} />
+          <Route path="/login"          element={<LoginPage session={session} />} />
+          <Route path="/signup"         element={<SignupPage session={session} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/onboarding"     element={
             session
@@ -153,11 +181,7 @@ function App() {
           } />
 
           <Route path="/" element={
-            !session
-              ? <Navigate to="/login" />
-              : !onboardingDone
-                ? <Navigate to="/onboarding" />
-                : <Layout session={session} lang={lang} setLang={setLangState} />
+            <RequireAuth session={session} onboardingDone={onboardingDone} lang={lang} setLang={setLangState} />
           }>
             <Route index                  element={<Dashboard       session={session} lang={lang} />} />
             <Route path="budget"          element={<Budget          session={session} lang={lang} />} />

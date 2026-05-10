@@ -1,5 +1,5 @@
 // Bump version on every deploy to force cache clear
-const CACHE_NAME = 'stewardship-hub-v4'
+const CACHE_NAME = 'stewardship-hub-v7'
 
 self.addEventListener('install', event => {
   // Activate immediately — don't wait for old tabs to close
@@ -16,16 +16,17 @@ self.addEventListener('activate', event => {
 })
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return
-
   const url = new URL(event.request.url)
 
-  // Never cache JS/CSS bundles or API calls — always fetch fresh from network
-  if (
-    url.pathname.includes('/assets/') ||
-    url.hostname.includes('supabase') ||
-    url.hostname.includes('anthropic')
-  ) {
+  // Skip SW handling: browser uses normal network for Supabase (/rest/v1, /auth/v1, etc.).
+  // Do not call respondWith() — that yields the default fetch (same idea as “direct to network”).
+  // Use ".supabase.co" so we don’t match hostnames like "notsupabase.co".
+  if (url.hostname === 'supabase.co' || url.hostname.endsWith('.supabase.co')) return
+
+  if (event.request.method !== 'GET') return
+
+  // Never cache JS/CSS bundles or third-party APIs — always fetch fresh from network
+  if (url.pathname.includes('/assets/') || url.hostname.includes('anthropic')) {
     event.respondWith(fetch(event.request))
     return
   }

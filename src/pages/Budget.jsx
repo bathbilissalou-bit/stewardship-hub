@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT, getLang, LANG_LOCALES } from '../lib/i18n'
-import { Link } from 'react-router-dom'
-
-
 const SMART_CATEGORIES = {
   Needs: ['rent','rental','mortgage','electric','electricity','water','gas','internet','phone','insurance','grocery','groceries','food','transport','bus','metro','subway','train','car payment','loan','medical','doctor','hospital','pharmacy','childcare','school','tuition','utilities','bill','tax'],
   Wants: ['restaurant','coffee','starbucks','netflix','spotify','amazon','shopping','clothes','clothing','entertainment','gym','vacation','travel','hotel','airbnb','uber','lyft','dining','bar','movie','cinema','games','gaming','apple','subscription','salon','haircut','nails','beauty'],
@@ -31,12 +28,20 @@ function formatMonthLabel(my) {
   const [y,m] = my.split('-')
   return new Date(y,m-1).toLocaleDateString('en-US',{month:'long',year:'numeric'})
 }
-function getAllMonths() {
-  const year = new Date().getFullYear()
-  return Array.from({length:12},(_,i)=>{
-    const m = String(i+1).padStart(2,'0')
-    return { value:`${year}-${m}`, label:new Date(year,i).toLocaleDateString('en-US',{month:'long',year:'numeric'}) }
-  })
+/** Enough history/future so the dropdown always matches month navigation (‹ ›). */
+function getMonthSelectOptions() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - 72, 1)
+  const options = []
+  for (let i = 0; i < 120; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    options.push({
+      value,
+      label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    })
+  }
+  return options
 }
 
 const CELL = { padding:'8px 10px', borderRight:'1px solid #e5e7eb', borderBottom:'1px solid #e5e7eb', fontSize:12, background:'white', color:'#1a1a1a' }
@@ -76,7 +81,6 @@ export default function Budget({ session }) {
   const [toast, setToast] = useState(null)
   const [toastType, setToastType] = useState('success')
   const [showTemplates, setShowTemplates] = useState(false)
-  const [diagResult, setDiagResult] = useState(null)
   const updateTimeout = useRef(null)
   const prevEditingId = useRef(null)
   const monthYear = getMonthYear(monthOffset)
@@ -187,9 +191,7 @@ export default function Budget({ session }) {
         label:      newRow.label.trim(),
         amount:     parseFloat(newRow.amount) || 0,
       }
-      console.log('[Budget] inserting:', payload)
-      const { data, error } = await supabase.from('budget_entries').insert(payload).select()
-      console.log('[Budget] insert result:', { data, error })
+      const { error } = await supabase.from('budget_entries').insert(payload).select()
       if (error) throw error
 
       // Optionally save as recurring template
@@ -218,68 +220,8 @@ export default function Budget({ session }) {
     }
   }
 
-  async function testInsert() {
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
-    const BASE = 'https://mukccbbpayuyynmlkcia.supabase.co'
-
-    // Read session token directly from localStorage (no Supabase client call)
-    let token = ANON_KEY
-    try {
-      const raw = localStorage.getItem('sb-mukccbbpayuyynmlkcia-auth-token')
-      const parsed = raw ? JSON.parse(raw) : null
-      if (parsed?.access_token) token = parsed.access_token
-    } catch(_) {}
-    setDiagResult(`userId: ${userId}\ntoken: ${token === ANON_KEY ? '⚠️ ANON (no session in localStorage!)' : '✅ USER JWT found'}\n\n⏳ Testing raw fetch GET...`)
-
-    // Raw fetch GET (bypass Supabase client)
-    const ctrl1 = new AbortController()
-    const t1 = setTimeout(() => ctrl1.abort(), 7000)
-    try {
-      const r = await fetch(`${BASE}/rest/v1/budget_entries?select=id&limit=1`, {
-        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` },
-        signal: ctrl1.signal,
-      })
-      clearTimeout(t1)
-      const body = await r.text()
-      setDiagResult(prev => prev + `\nGET: HTTP ${r.status} → ${body.slice(0,120)}\n\n⏳ Testing raw fetch POST...`)
-
-      // Raw fetch POST (INSERT)
-      const ctrl2 = new AbortController()
-      const t2 = setTimeout(() => ctrl2.abort(), 7000)
-      try {
-        const r2 = await fetch(`${BASE}/rest/v1/budget_entries`, {
-          method: 'POST',
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ user_id: userId, month_year: monthYear, type: 'income', label: 'TEST', amount: 1, category: null }),
-          signal: ctrl2.signal,
-        })
-        clearTimeout(t2)
-        const body2 = await r2.text()
-        setDiagResult(prev => prev + `\nPOST: HTTP ${r2.status} → ${body2.slice(0,200) || '(empty = success)'}`)
-        if (r2.ok) fetchEntries()
-      } catch(e2) {
-        clearTimeout(t2)
-        setDiagResult(prev => prev + `\nPOST FAILED: ${e2.name}: ${e2.message}`)
-      }
-    } catch(e) {
-      clearTimeout(t1)
-      setDiagResult(prev => prev + `\nGET FAILED: ${e.name}: ${e.message}\n\n→ Browser is blocking requests to Supabase.\nCheck browser extensions or try a different network.`)
-    }
-  }
-
   return (
     <div>
-      {/* TEMP DEBUG BUTTON — remove after fix */}
-      <button onClick={testInsert}
-        style={{ width:'100%', padding:12, background:'#7c3aed', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:4 }}>
-        🔬 Test DB Insert (tap to diagnose)
-      </button>
-      {diagResult && (
-        <div style={{ background:'#1e1e2e', color:'#cdd6f4', padding:'12px 14px', fontSize:11, fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-all', marginBottom:8, borderRadius:8, border:'2px solid #7c3aed' }}>
-          {diagResult}
-        </div>
-      )}
-
       {toast && (
         <div onClick={() => setToast(null)} style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background: toastType === 'error' ? '#A32D2D' : '#1D9E75', color:'white', padding:'10px 20px', borderRadius:30, fontSize:14, fontWeight:600, zIndex:1000, boxShadow:'0 4px 15px rgba(0,0,0,0.2)', cursor:'pointer', maxWidth:'90vw', textAlign:'center', lineHeight:1.4 }}>
           {toast}
@@ -298,7 +240,7 @@ export default function Budget({ session }) {
           const diff = (parseInt(y)-now.getFullYear())*12 + (parseInt(m)-1-now.getMonth())
           setMonthOffset(diff)
         }} style={{ flex:1, padding:'10px 14px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontSize:15, fontWeight:600, textAlign:'center', cursor:'pointer', outline:'none' }}>
-          {getAllMonths().map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          {getMonthSelectOptions().map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
         </select>
         <button onClick={() => setMonthOffset(o=>o+1)} disabled={monthOffset>=0} style={{ padding:'8px 14px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', cursor:'pointer', fontSize:16, opacity:monthOffset>=0?0.3:1 }}>›</button>
         {entries.length > 0 && (
@@ -313,7 +255,7 @@ export default function Budget({ session }) {
       <div style={{ overflowX:'auto', marginBottom:16, borderRadius:10, border:'1px solid #e5e7eb' }}>
         <table style={{ width:'100%', borderCollapse:'collapse', borderTop:'1px solid #e5e7eb', borderLeft:'1px solid #e5e7eb' }}>
           <thead><tr>{CATEGORIES.map(cat=><th key={cat} style={{ ...HEAD, border:'none', borderRight:'1px solid #e5e7eb', textAlign:'center' }}>{cat}</th>)}</tr></thead>
-          <tbody><tr>{CATEGORIES.map(cat=><td key={cat} style={{ ...CELL, border:'none', borderRight:'1px solid #e5e7eb', textAlign:'center', color:catTotals[cat]>0?'#A32D2D':'#9ca3af' }}>${fmt(catTotals[cat])}</td>)}</tr></tbody>
+          <tbody><tr>{CATEGORIES.map(cat=><td key={cat} style={{ ...CELL, border:'none', borderRight:'1px solid #e5e7eb', textAlign:'center', color:catTotals[cat]>0?'#A32D2D':'#9ca3af' }}>{currencySymbol}{fmt(catTotals[cat])}</td>)}</tr></tbody>
         </table>
       </div>
       <>
