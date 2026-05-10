@@ -1,5 +1,5 @@
-// Bump version on every deploy to force cache clear
-const CACHE_NAME = 'stewardship-hub-v7'
+// Bump version on every deploy so clients drop old caches and install fresh logic.
+const CACHE_NAME = 'stewardship-hub-v8'
 
 self.addEventListener('install', event => {
   // Activate immediately — don't wait for old tabs to close
@@ -7,7 +7,7 @@ self.addEventListener('install', event => {
 })
 
 self.addEventListener('activate', event => {
-  // Delete ALL old caches so stale JS is never served
+  // Delete ALL old caches so stale JS is never served; claim clients so new SW applies
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.map(key => caches.delete(key)))
@@ -18,10 +18,15 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url)
 
-  // Skip SW handling: browser uses normal network for Supabase (/rest/v1, /auth/v1, etc.).
-  // Do not call respondWith() — that yields the default fetch (same idea as “direct to network”).
-  // Use ".supabase.co" so we don’t match hostnames like "notsupabase.co".
-  if (url.hostname === 'supabase.co' || url.hostname.endsWith('.supabase.co')) return
+  // Never intercept Supabase traffic (all HTTP methods including OPTIONS preflight).
+  // Same host serves: /rest/v1, /auth/v1, /storage/v1, /realtime/v1, /functions/v1
+  // — must bypass with early return only; do NOT call event.respondWith().
+  if (
+    url.hostname === "supabase.co" ||
+    url.hostname.endsWith(".supabase.co")
+  ) {
+    return
+  }
 
   if (event.request.method !== 'GET') return
 
