@@ -219,30 +219,48 @@ export default function Budget({ session }) {
   }
 
   async function testInsert() {
-    const timeout = ms => new Promise(r => setTimeout(() => r({ error: { message: `TIMED OUT after ${ms/1000}s` }, data: null }), ms))
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
+    const BASE = 'https://mukccbbpayuyynmlkcia.supabase.co'
 
-    // Step 1: test SELECT
-    setDiagResult('⏳ Step 1/2: Testing SELECT...')
-    const selRes = await Promise.race([
-      supabase.from('budget_entries').select('id').limit(1),
-      timeout(7000)
-    ])
-    if (selRes.error) {
-      setDiagResult(`userId: ${userId}\n\nStep 1 SELECT: ❌ ${selRes.error.message}\n\n→ Supabase project may be PAUSED.\nGo to supabase.com → your project → Resume.`)
-      return
+    // Get the current session JWT
+    const { data: { session: sess } } = await supabase.auth.getSession()
+    const token = sess?.access_token || ANON_KEY
+    setDiagResult(`userId: ${userId}\ntoken: ${token === ANON_KEY ? 'ANON (no session!)' : 'USER JWT ✅'}\n\n⏳ Testing raw fetch GET...`)
+
+    // Raw fetch GET (bypass Supabase client)
+    const ctrl1 = new AbortController()
+    const t1 = setTimeout(() => ctrl1.abort(), 7000)
+    try {
+      const r = await fetch(`${BASE}/rest/v1/budget_entries?select=id&limit=1`, {
+        headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` },
+        signal: ctrl1.signal,
+      })
+      clearTimeout(t1)
+      const body = await r.text()
+      setDiagResult(prev => prev + `\nGET: HTTP ${r.status} → ${body.slice(0,120)}\n\n⏳ Testing raw fetch POST...`)
+
+      // Raw fetch POST (INSERT)
+      const ctrl2 = new AbortController()
+      const t2 = setTimeout(() => ctrl2.abort(), 7000)
+      try {
+        const r2 = await fetch(`${BASE}/rest/v1/budget_entries`, {
+          method: 'POST',
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ user_id: userId, month_year: monthYear, type: 'income', label: 'TEST', amount: 1, category: null }),
+          signal: ctrl2.signal,
+        })
+        clearTimeout(t2)
+        const body2 = await r2.text()
+        setDiagResult(prev => prev + `\nPOST: HTTP ${r2.status} → ${body2.slice(0,200) || '(empty = success)'}`)
+        if (r2.ok) fetchEntries()
+      } catch(e2) {
+        clearTimeout(t2)
+        setDiagResult(prev => prev + `\nPOST FAILED: ${e2.name}: ${e2.message}`)
+      }
+    } catch(e) {
+      clearTimeout(t1)
+      setDiagResult(prev => prev + `\nGET FAILED: ${e.name}: ${e.message}\n\n→ Browser is blocking requests to Supabase.\nCheck browser extensions or try a different network.`)
     }
-    setDiagResult(`Step 1 SELECT: ✅ OK (${selRes.data?.length ?? 0} rows)\n⏳ Step 2/2: Testing INSERT...`)
-
-    // Step 2: test INSERT
-    const insRes = await Promise.race([
-      supabase.from('budget_entries').insert({ user_id: userId, month_year: monthYear, type: 'income', label: 'TEST', amount: 1, category: null }),
-      timeout(7000)
-    ])
-    const msg = insRes.error
-      ? `Step 2 INSERT: ❌ ${insRes.error.message}\ncode: ${insRes.error.code}\nhint: ${insRes.error.hint}`
-      : `Step 2 INSERT: ✅ SUCCESS — budget save should work now!`
-    setDiagResult(`userId: ${userId}\nmonthYear: ${monthYear}\n\nStep 1 SELECT: ✅ OK\n${msg}`)
-    if (!insRes.error) fetchEntries()
   }
 
   return (
