@@ -5,122 +5,147 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Supabase Diagnostic</title>
   <style>
-    body { font-family: monospace; background: #0f0f1a; color: #cdd6f4; padding: 20px; margin: 0; }
-    h1 { color: #cba6f7; font-size: 18px; margin-bottom: 20px; }
-    .step { background: #1e1e2e; border: 1px solid #313244; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-    .step h2 { font-size: 13px; color: #89dceb; margin: 0 0 8px; }
-    .ok  { color: #a6e3a1; }
-    .err { color: #f38ba8; }
+    body { font-family: monospace; background: #0f0f1a; color: #cdd6f4; padding: 16px; margin: 0; font-size: 13px; }
+    h1  { color: #cba6f7; font-size: 17px; margin: 0 0 16px; }
+    .card { background: #1e1e2e; border: 1px solid #313244; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    .card h2 { font-size: 12px; color: #89dceb; margin: 0 0 6px; letter-spacing: .04em; }
+    pre { white-space: pre-wrap; word-break: break-all; margin: 0; line-height: 1.6; }
+    .ok   { color: #a6e3a1; }
+    .err  { color: #f38ba8; }
     .warn { color: #fab387; }
-    pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; margin: 4px 0; }
-    button { background: #cba6f7; color: #1e1e2e; border: none; padding: 12px 24px; border-radius: 8px;
-             font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 16px; }
+    .info { color: #89b4fa; }
+    button { background: #cba6f7; color: #1e1e2e; border: none; padding: 14px; border-radius: 8px;
+             font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 14px; }
   </style>
 </head>
 <body>
-  <h1>🔬 Supabase Raw Fetch Diagnostic</h1>
+  <h1>🔬 Supabase Diagnostic</h1>
+  <p style="color:#6c7086;font-size:12px;margin:0 0 14px">No service worker. No React. Raw browser fetch only.</p>
   <button onclick="runDiag()">▶ Run Full Diagnostic</button>
-  <div id="output"></div>
+  <div id="out"></div>
 
   <script>
-    const SUPABASE_URL = 'https://mukccbbpayuyynmlkcia.supabase.co'
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
+    // ── Hardcoded credentials (same as src/lib/supabase-config.js fallbacks) ──
+    const SUPABASE_URL  = 'https://mukccbbpayuyynmlkcia.supabase.co'
+    const ANON_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
 
-    function log(stepId, html) {
-      document.getElementById(stepId).innerHTML += html
+    // ── Note: this page cannot read import.meta.env — it's not a Vite module.
+    // The app uses hardcoded fallbacks in supabase-config.js so env vars are not needed.
+
+    function card(id, title) {
+      const d = document.createElement('div')
+      d.className = 'card'
+      d.innerHTML = `<h2>${title}</h2><pre id="${id}"></pre>`
+      document.getElementById('out').appendChild(d)
+    }
+    function w(id, cls, text) {
+      const el = document.getElementById(id)
+      if (el) el.innerHTML += `<span class="${cls}">${text}\n</span>`
     }
 
-    function step(id, title) {
-      const div = document.createElement('div')
-      div.className = 'step'
-      div.innerHTML = `<h2>${title}</h2><div id="${id}"></div>`
-      document.getElementById('output').appendChild(div)
-    }
-
-    async function fetchWithTimeout(url, opts, ms = 8000) {
-      const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), ms)
-      try {
-        const r = await fetch(url, { ...opts, signal: ctrl.signal })
-        clearTimeout(t)
-        return r
-      } catch(e) {
-        clearTimeout(t)
-        throw e
-      }
+    async function ft(url, opts, ms = 9000) {
+      const c = new AbortController()
+      const t = setTimeout(() => c.abort(), ms)
+      try { const r = await fetch(url, { ...opts, signal: c.signal }); clearTimeout(t); return r }
+      catch(e) { clearTimeout(t); throw e }
     }
 
     async function runDiag() {
-      document.getElementById('output').innerHTML = ''
+      document.getElementById('out').innerHTML = ''
 
-      // Step 1: Config
-      step('s1', '1. Config check')
-      log('s1', `<pre class="ok">URL: ${SUPABASE_URL}\nKEY: ${ANON_KEY.slice(0,30)}...\nKEY length: ${ANON_KEY.length} chars</pre>`)
+      // ── 1. Config ──────────────────────────────────────────────────────────
+      card('c1', '1 · Config (matches user request)')
+      w('c1','ok',`SUPABASE URL:  ${SUPABASE_URL}`)
+      w('c1','ok',`HAS KEY:       ${!!ANON_KEY}`)
+      w('c1','info',`KEY START:     ${ANON_KEY.slice(0,20)}...`)
+      w('c1','info',`KEY LENGTH:    ${ANON_KEY.length} chars`)
 
-      // Step 2: Service Worker
-      step('s2', '2. Service Worker state')
-      if ('serviceWorker' in navigator) {
+      // ── 2. Service Worker state ────────────────────────────────────────────
+      card('c2', '2 · Service Worker state')
+      if (!('serviceWorker' in navigator)) {
+        w('c2','ok','SW not supported — no interception possible')
+      } else {
         const regs = await navigator.serviceWorker.getRegistrations()
         if (regs.length === 0) {
-          log('s2', `<pre class="ok">✅ No active service workers (correct)</pre>`)
+          w('c2','ok','✅ 0 service workers registered — SW cannot intercept anything')
         } else {
-          log('s2', `<pre class="warn">⚠️ ${regs.length} SW still registered: ${regs.map(r=>r.scope).join(', ')}</pre>`)
+          w('c2','warn',`⚠️  ${regs.length} SW still active: ${regs.map(r=>r.scope).join(', ')}`)
           for (const r of regs) await r.unregister()
-          log('s2', `<pre class="ok">→ Unregistered. Reload page then run again.</pre>`)
+          w('c2','warn','→ Unregistered now. Reload page then re-run.')
         }
-      } else {
-        log('s2', `<pre class="ok">SW not supported in this browser</pre>`)
       }
 
-      // Step 3: Raw GET to REST root
-      step('s3', '3. Raw GET /rest/v1/ (no auth)')
+      // ── 3. Raw GET /rest/v1/ ───────────────────────────────────────────────
+      card('c3', '3 · Raw GET /rest/v1/ (anon key only)')
+      w('c3','info','→ fetch ' + SUPABASE_URL + '/rest/v1/')
       try {
-        const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/`, {
-          headers: { 'apikey': ANON_KEY }
+        const r = await ft(`${SUPABASE_URL}/rest/v1/`, {
+          method: 'GET',
+          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
         })
         const body = await r.text()
-        log('s3', `<pre class="${r.ok ? 'ok' : 'warn'}">HTTP ${r.status} ${r.statusText}\n${body.slice(0,200)}</pre>`)
+        w('c3', r.ok ? 'ok' : 'warn', `REST STATUS: ${r.status} ${r.statusText}`)
+        w('c3','info',`REST BODY:   ${body.slice(0,200)}`)
+        if (r.status === 200) w('c3','ok','✅ Supabase REST API is reachable from this browser!')
       } catch(e) {
-        log('s3', `<pre class="err">❌ FAILED: ${e.name}: ${e.message}</pre>`)
+        w('c3','err',`❌ GET FAILED: ${e.name}: ${e.message}`)
+        if (e.name === 'AbortError') w('c3','err','→ Request timed out after 9s — likely a network/VPN/firewall block')
+        else w('c3','err','→ Could be CORS, DNS, or network block')
       }
 
-      // Step 4: GET budget_entries with session token
-      step('s4', '4. GET budget_entries (with session token)')
-      let userToken = ANON_KEY
+      // ── 4. GET budget_entries with session JWT ─────────────────────────────
+      card('c4', '4 · GET budget_entries (session token from localStorage)')
+      let userToken = ANON_KEY, userId = null
       try {
         const raw = localStorage.getItem('sb-mukccbbpayuyynmlkcia-auth-token')
-        const parsed = raw ? JSON.parse(raw) : null
-        if (parsed?.access_token) { userToken = parsed.access_token; log('s4', `<pre class="ok">✅ Session token found in localStorage</pre>`) }
-        else log('s4', `<pre class="warn">⚠️ No session token — using anon key (RLS will block)</pre>`)
-      } catch(e) { log('s4', `<pre class="warn">localStorage error: ${e.message}</pre>`) }
+        const p = raw ? JSON.parse(raw) : null
+        if (p?.access_token) {
+          userToken = p.access_token
+          userId = p.user?.id
+          w('c4','ok',`✅ Session token found — userId: ${userId}`)
+        } else {
+          w('c4','warn','⚠️  No session in localStorage — log in at / first, then re-run')
+        }
+      } catch(e) { w('c4','err','localStorage read error: ' + e.message) }
 
       try {
-        const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/budget_entries?select=id&limit=1`, {
+        const r = await ft(`${SUPABASE_URL}/rest/v1/budget_entries?select=id&limit=1`, {
           headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${userToken}` }
         })
         const body = await r.text()
-        log('s4', `<pre class="${r.ok ? 'ok' : 'warn'}">HTTP ${r.status}\n${body.slice(0,300)}</pre>`)
+        w('c4', r.ok ? 'ok' : 'warn', `HTTP ${r.status}: ${body.slice(0,200)}`)
       } catch(e) {
-        log('s4', `<pre class="err">❌ FAILED: ${e.name}: ${e.message}</pre>`)
+        w('c4','err',`❌ FAILED: ${e.name}: ${e.message}`)
       }
 
-      // Step 5: POST (INSERT) budget_entries
-      step('s5', '5. POST budget_entries (INSERT test)')
-      try {
-        const userId = (() => { try { return JSON.parse(localStorage.getItem('sb-mukccbbpayuyynmlkcia-auth-token'))?.user?.id } catch(_) { return null } })()
-        if (!userId) { log('s5', `<pre class="warn">⚠️ No user ID found — skipping insert (need to be logged in)</pre>`); return }
-        log('s5', `<pre>userId: ${userId}</pre>`)
-        const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/budget_entries`, {
-          method: 'POST',
-          headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ user_id: userId, month_year: '2026-05', type: 'income', label: 'DIAG TEST', amount: 1, category: null })
-        })
-        const body = await r.text()
-        log('s5', `<pre class="${r.ok ? 'ok' : 'err'}">HTTP ${r.status} ${r.statusText}\n${body || '(empty body = success)'}</pre>`)
-        if (r.ok) log('s5', `<pre class="ok">✅ INSERT WORKED! Budget save is fixed.</pre>`)
-      } catch(e) {
-        log('s5', `<pre class="err">❌ FAILED: ${e.name}: ${e.message}</pre>`)
+      // ── 5. POST INSERT test ────────────────────────────────────────────────
+      card('c5', '5 · Raw POST INSERT into budget_entries')
+      if (!userId) {
+        w('c5','warn','⚠️  Skipped — no session (log in first, then re-run)')
+      } else {
+        try {
+          const body = JSON.stringify({ user_id: userId, month_year: '2026-05', type: 'income', label: 'DIAG TEST — safe to delete', amount: 1, category: null })
+          const r = await ft(`${SUPABASE_URL}/rest/v1/budget_entries`, {
+            method: 'POST',
+            headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${userToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body
+          })
+          const rb = await r.text()
+          w('c5', r.ok ? 'ok' : 'err', `HTTP ${r.status} ${r.statusText}`)
+          w('c5','info', rb || '(empty body = success)')
+          if (r.ok) w('c5','ok','✅ INSERT WORKED — budget save is fully fixed!')
+          else w('c5','err','❌ INSERT REJECTED — check RLS policies in Supabase')
+        } catch(e) {
+          w('c5','err',`❌ FAILED: ${e.name}: ${e.message}`)
+          if (e.name === 'AbortError') w('c5','err','→ Timed out — network/VPN/firewall blocking Supabase POST')
+        }
       }
+
+      // ── 6. Summary ────────────────────────────────────────────────────────
+      card('c6', '6 · Next steps')
+      w('c6','info','If step 3 fails:  problem is network/VPN/firewall — try different WiFi or mobile data')
+      w('c6','info','If step 3 passes but step 5 fails:  problem is RLS policies — run BUDGET_FIX_SQL.sql')
+      w('c6','info','If step 5 passes: budget is fixed — re-enable SW in index.html and redeploy')
     }
   </script>
 </body>
