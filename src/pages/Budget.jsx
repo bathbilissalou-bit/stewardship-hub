@@ -76,6 +76,7 @@ export default function Budget({ session }) {
   const [toast, setToast] = useState(null)
   const [toastType, setToastType] = useState('success')
   const [showTemplates, setShowTemplates] = useState(false)
+  const [diagResult, setDiagResult] = useState(null)
   const updateTimeout = useRef(null)
   const prevEditingId = useRef(null)
   const monthYear = getMonthYear(monthOffset)
@@ -218,6 +219,7 @@ export default function Budget({ session }) {
   }
 
   async function testInsert() {
+    setDiagResult('⏳ Testing...')
     const result = await supabase.from('budget_entries').insert({
       user_id:    userId,
       month_year: monthYear,
@@ -226,16 +228,24 @@ export default function Budget({ session }) {
       amount:     1,
       category:   null,
     }).select()
-    alert('userId: ' + userId + '\nmonthYear: ' + monthYear + '\nerror: ' + JSON.stringify(result.error) + '\ndata: ' + JSON.stringify(result.data))
+    const msg = result.error
+      ? `❌ ERROR: ${result.error.message} | code: ${result.error.code} | hint: ${result.error.hint}`
+      : `✅ SUCCESS — inserted row: ${JSON.stringify(result.data?.[0])}`
+    setDiagResult(`userId: ${userId}\nmonthYear: ${monthYear}\n\n${msg}`)
   }
 
   return (
     <div>
       {/* TEMP DEBUG BUTTON — remove after fix */}
       <button onClick={testInsert}
-        style={{ width:'100%', padding:12, background:'#7c3aed', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+        style={{ width:'100%', padding:12, background:'#7c3aed', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:4 }}>
         🔬 Test DB Insert (tap to diagnose)
       </button>
+      {diagResult && (
+        <div style={{ background:'#1e1e2e', color:'#cdd6f4', padding:'12px 14px', fontSize:11, fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-all', marginBottom:8, borderRadius:8, border:'2px solid #7c3aed' }}>
+          {diagResult}
+        </div>
+      )}
 
       {toast && (
         <div onClick={() => setToast(null)} style={{ position:'fixed', top:20, left:'50%', transform:'translateX(-50%)', background: toastType === 'error' ? '#A32D2D' : '#1D9E75', color:'white', padding:'10px 20px', borderRadius:30, fontSize:14, fontWeight:600, zIndex:1000, boxShadow:'0 4px 15px rgba(0,0,0,0.2)', cursor:'pointer', maxWidth:'90vw', textAlign:'center', lineHeight:1.4 }}>
