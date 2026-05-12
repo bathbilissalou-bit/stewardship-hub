@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { useT, getLang, LANG_LOCALES } from '../lib/i18n'
+import { useT, getLang, LANG_LOCALES, interpolate } from '../lib/i18n'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SMART CATEGORY DETECTION  (logic unchanged)
@@ -29,18 +29,37 @@ function getMonthYear(offset = 0) {
 }
 function formatMonthLabel(my) {
   const [y, m] = my.split('-')
-  return new Date(y, m - 1).toLocaleDateString('en-US', { month:'long', year:'numeric' })
+  const locale = LANG_LOCALES[getLang()] || 'en-US'
+  return new Date(y, m - 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 }
 function getMonthSelectOptions() {
   const now   = new Date()
   const start = new Date(now.getFullYear(), now.getMonth() - 72, 1)
   const opts  = []
+  const locale = LANG_LOCALES[getLang()] || 'en-US'
   for (let i = 0; i < 120; i++) {
     const d     = new Date(start.getFullYear(), start.getMonth() + i, 1)
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    opts.push({ value, label: d.toLocaleDateString('en-US', { month:'long', year:'numeric' }) })
+    opts.push({ value, label: d.toLocaleDateString(locale, { month: 'long', year: 'numeric' }) })
   }
   return opts
+}
+
+function budgetCatLabel(tr, cat) {
+  const map = {
+    Needs: tr.budget_cat_needs,
+    Wants: tr.budget_cat_wants,
+    Giving: tr.budget_cat_giving,
+    Savings: tr.budget_cat_savings,
+    Investments: tr.budget_cat_investments,
+  }
+  return map[cat] || cat
+}
+
+function budgetEntryTypeLabel(tr, type) {
+  if (type === 'income') return tr.budget_type_income
+  if (type === 'expense') return tr.budget_type_expense
+  return type
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,32 +86,31 @@ const sh = {
 // Pure function — derives a calm, contextual message from the month's numbers.
 // Never shames, always guides.
 // ─────────────────────────────────────────────────────────────────────────────
-function getInsight(income, expenses, surplus, catTotals) {
+function getInsight(tr, income, expenses, surplus, catTotals) {
   if (!income && !expenses) return null
   if (!income) return {
     icon: '📥',
-    text: 'Add your income first to see how your spending is tracking.',
+    text: tr.budget_insight_no_income,
     tone: 'neutral',
   }
   const pct = income > 0 ? Math.round(expenses / income * 100) : 0
   if (pct === 0) return {
     icon: '📝',
-    text: "No expenses logged yet. Add them to get a complete picture of this month.",
+    text: tr.budget_insight_no_expenses,
     tone: 'neutral',
   }
 
-  // Find biggest spending category for contextual nudge
   const topCat = CATEGORIES
     .filter(c => (catTotals[c] || 0) > 0)
     .sort((a, b) => (catTotals[b] || 0) - (catTotals[a] || 0))[0]
 
-  const topLabel = topCat ? `Your largest category is ${topCat}.` : ''
+  const top = topCat ? interpolate(tr.budget_insight_top_cat, { cat: budgetCatLabel(tr, topCat) }) + ' ' : ''
 
-  if (pct <= 50)  return { icon:'✦',  text:`Outstanding — you've used only ${pct}% of your income. ${topLabel} You're building real financial margin.`,                   tone:'positive' }
-  if (pct <= 70)  return { icon:'✦',  text:`You've used ${pct}% of your income. ${topLabel} Great balance — keep this rhythm.`,                                          tone:'positive' }
-  if (pct <= 85)  return { icon:'💡', text:`${pct}% of income used this month. ${topLabel} You're on track — stay mindful of discretionary spending.`,                  tone:'gentle'   }
-  if (pct <= 100) return { icon:'💡', text:`You've used ${pct}% of your income. ${topLabel} A small reduction in Wants can significantly improve your margin.`,         tone:'caution'  }
-  return               { icon:'🔍', text:`Your spending is ${pct - 100}% over income this month. ${topLabel} Let's review where you can create more breathing room.`,  tone:'caution'  }
+  if (pct <= 50) return { icon: '✦', text: interpolate(tr.budget_insight_band50, { pct, top }), tone: 'positive' }
+  if (pct <= 70) return { icon: '✦', text: interpolate(tr.budget_insight_band70, { pct, top }), tone: 'positive' }
+  if (pct <= 85) return { icon: '💡', text: interpolate(tr.budget_insight_band85, { pct, top }), tone: 'gentle' }
+  if (pct <= 100) return { icon: '💡', text: interpolate(tr.budget_insight_band100, { pct, top }), tone: 'caution' }
+  return { icon: '🔍', text: interpolate(tr.budget_insight_over, { over: String(pct - 100), top }), tone: 'caution' }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -142,7 +160,7 @@ export default function Budget({ session }) {
       .from('budget_entries').select('*')
       .eq('user_id', userId).eq('month_year', monthYear)
       .order('created_at', { ascending:true })
-    if (error) showToast('⚠️ Could not load entries — check connection', 'error')
+    if (error) showToast(tr.budget_err_load, 'error')
     setEntries(data || [])
     setLoading(false)
   }
@@ -157,7 +175,7 @@ export default function Budget({ session }) {
     await supabase.from('budget_entries').insert(rows)
     await fetchEntries()
     setApplying(false)
-    showToast(`✓ Applied ${rows.length} recurring entries`)
+    showToast(interpolate(tr.budget_applied_recurring, { n: rows.length }))
   }
   async function deleteTemplate(id) {
     await supabase.from('recurring_templates').delete().eq('id', id)
@@ -176,7 +194,7 @@ export default function Budget({ session }) {
   useEffect(() => { fetchEntries() }, [monthYear])
 
   useEffect(() => {
-    if (prevEditingId.current !== null && editingId === null) showToast('✓ Saved')
+    if (prevEditingId.current !== null && editingId === null) showToast(tr.budget_saved_toast)
     prevEditingId.current = editingId
   }, [editingId])
 
@@ -190,7 +208,7 @@ export default function Budget({ session }) {
     clearTimeout(updateTimeout.current)
     updateTimeout.current = setTimeout(async () => {
       const { error } = await supabase.from('budget_entries').update({ [field]: field === 'amount' ? parseFloat(value) || 0 : value }).eq('id', id)
-      if (error) showToast('⚠️ Save failed — check your connection', 'error')
+      if (error) showToast(tr.budget_err_save, 'error')
     }, 500)
   }
   async function deleteEntry(id) {
@@ -198,8 +216,8 @@ export default function Budget({ session }) {
     fetchEntries()
   }
   async function saveNewRow() {
-    if (!newRow.label || !newRow.amount) { showToast('⚠️ Please fill in both description and amount', 'error'); return }
-    if (!userId)                          { showToast('⚠️ Not logged in — please refresh', 'error');             return }
+    if (!newRow.label || !newRow.amount) { showToast(tr.budget_err_fill, 'error'); return }
+    if (!userId)                          { showToast(tr.budget_err_login, 'error');             return }
     setSaving(true)
     try {
       const payload = {
@@ -220,22 +238,22 @@ export default function Budget({ session }) {
         })
         if (tErr) console.warn('[Budget] template insert error:', tErr)
         await fetchTemplates()
-        showToast('✓ Saved + added to recurring')
+        showToast(tr.budget_saved_recurring)
       } else {
-        showToast('✓ Entry saved')
+        showToast(tr.budget_saved_entry)
       }
       setNewRow(null)
       fetchEntries()
     } catch(err) {
       console.error('[Budget] save error:', err)
-      const msg = err?.message || err?.details || err?.hint || 'Please try again'
+      const msg = err?.message || err?.details || err?.hint || tr.budget_err_generic.replace(/^⚠️\s*/, '')
       showToast(`⚠️ ${msg}`, 'error')
     } finally {
       setSaving(false)
     }
   }
   function downloadCSV() {
-    const headers = ['Type','Description','Category','Amount']
+    const headers = [tr.budget_csv_col_type, tr.budget_csv_col_description, tr.budget_csv_col_category, tr.budget_csv_col_amount]
     const rows    = entries.map(e => [e.type, `"${(e.label||'').replace(/"/g,'""')}"`, e.category||'', Number(e.amount).toFixed(2)])
     const csv     = [headers, ...rows].map(r => r.join(',')).join('\n')
     const blob    = new Blob([csv], { type:'text/csv' })
@@ -253,7 +271,7 @@ export default function Budget({ session }) {
     return acc
   }, {})
   const spentPct = income > 0 ? Math.min(100, Math.round(expenses / income * 100)) : 0
-  const insight  = getInsight(income, expenses, surplus, catTotals)
+  const insight  = getInsight(tr, income, expenses, surplus, catTotals)
 
   const incomeEntries  = entries.filter(e => e.type === 'income')
   const expenseEntries = entries.filter(e => e.type === 'expense')
@@ -313,7 +331,7 @@ export default function Budget({ session }) {
 
           {entries.length > 0 && (
             <button
-              onClick={downloadCSV} title="Download CSV"
+              onClick={downloadCSV} title={tr.budget_csv_title}
               style={{ width:34, height:34, borderRadius:10, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.10)', color:'white', cursor:'pointer', fontSize:15, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}
             >⬇</button>
           )}
@@ -322,7 +340,7 @@ export default function Budget({ session }) {
         {/* Income headline */}
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:10, color:'rgba(255,255,255,0.42)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6 }}>
-            Monthly Income
+            {tr.budget_monthly_income}
           </div>
           <div style={{ fontSize:34, fontWeight:900, color:'#fff', letterSpacing:'-1px', marginBottom:4, lineHeight:1 }}>
             {loading
@@ -331,21 +349,23 @@ export default function Budget({ session }) {
             }
           </div>
           <div style={{ fontSize:12, color:'rgba(255,255,255,0.48)' }}>
-            {loading ? 'Loading…' : `${incomeEntries.length} income source${incomeEntries.length !== 1 ? 's' : ''} · ${expenseEntries.length} expense${expenseEntries.length !== 1 ? 's' : ''}`}
+            {loading ? tr.budget_loading : (incomeEntries.length === 1 && expenseEntries.length === 1
+              ? interpolate(tr.budget_income_sources_line, { ic: incomeEntries.length, ec: expenseEntries.length })
+              : interpolate(tr.budget_income_sources_line_pl, { ic: incomeEntries.length, ec: expenseEntries.length }))}
           </div>
         </div>
 
         {/* Spent / Surplus mini tiles */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <div style={{ background:'rgba(255,255,255,0.09)', borderRadius:12, padding:'13px 14px', border:'1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginBottom:5, letterSpacing:'0.07em', textTransform:'uppercase' }}>Spent</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginBottom:5, letterSpacing:'0.07em', textTransform:'uppercase' }}>{tr.budget_spent}</div>
             <div style={{ fontSize:20, fontWeight:800, color: expenses > income && income > 0 ? '#f7b8b8' : '#fff', letterSpacing:'-0.5px' }}>
               {sym}{fmt(expenses)}
             </div>
           </div>
           <div style={{ background: surplus >= 0 ? 'rgba(61,200,155,0.18)' : 'rgba(200,100,100,0.18)', borderRadius:12, padding:'13px 14px', border:`1px solid ${surplus >= 0 ? 'rgba(61,200,155,0.28)' : 'rgba(200,100,100,0.28)'}` }}>
             <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginBottom:5, letterSpacing:'0.07em', textTransform:'uppercase' }}>
-              {surplus >= 0 ? 'Surplus' : 'Over by'}
+              {surplus >= 0 ? tr.budget_surplus : tr.budget_over_by}
             </div>
             <div style={{ fontSize:20, fontWeight:800, color: surplus >= 0 ? '#76EDC5' : '#f7b8b8', letterSpacing:'-0.5px' }}>
               {surplus >= 0 ? '+' : '-'}{sym}{fmt(Math.abs(surplus))}
@@ -366,9 +386,9 @@ export default function Budget({ session }) {
             {income > 0 && (
               <>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text-muted)', marginBottom:7 }}>
-                  <span>{spentPct}% of income used</span>
+                  <span>{interpolate(tr.budget_pct_income_used, { pct: spentPct })}</span>
                   <span style={{ color: surplus >= 0 ? 'var(--green)' : 'var(--red)', fontWeight:600 }}>
-                    {surplus >= 0 ? `${sym}${fmt(surplus)} remaining` : `${sym}${fmt(Math.abs(surplus))} over`}
+                    {surplus >= 0 ? interpolate(tr.budget_remaining, { sym, amt: fmt(surplus) }) : interpolate(tr.budget_over_amt, { sym, amt: fmt(Math.abs(surplus)) })}
                   </span>
                 </div>
                 <div style={{ height:8, background:'var(--gray-light)', borderRadius:4, overflow:'hidden', marginBottom:insight ? 13 : 0 }}>
@@ -400,7 +420,7 @@ export default function Budget({ session }) {
         {expenses > 0 && (
           <div style={{ background:'var(--white)', borderRadius:16, padding:'17px 16px', marginBottom:14, border:'1px solid var(--border)', boxShadow:sh.shadow.sm }}>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', marginBottom:15, letterSpacing:'-0.2px' }}>
-              Spending by Category
+              {tr.budget_spending_by_cat}
             </div>
             {CATEGORIES
               .filter(cat => (catTotals[cat] || 0) > 0)
@@ -415,7 +435,7 @@ export default function Budget({ session }) {
                         <div style={{ width:30, height:30, borderRadius:9, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>
                           {meta.icon}
                         </div>
-                        <span style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{cat}</span>
+                        <span style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{budgetCatLabel(tr, cat)}</span>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <span style={{ fontSize:12, fontWeight:700, color:meta.color }}>{sym}{fmt(catTotals[cat])}</span>
@@ -443,17 +463,19 @@ export default function Budget({ session }) {
             <span style={{ fontSize:20 }}>🔄</span>
             <div style={{ flex:1 }}>
               <div style={{ fontWeight:700, fontSize:13, color:'var(--green)' }}>
-                {entries.length === 0 ? 'Apply recurring entries?' : 'Re-apply recurring entries'}
+                {entries.length === 0 ? tr.budget_recurring_apply_empty : tr.budget_recurring_apply_again}
               </div>
               <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:1 }}>
-                {templates.length} template{templates.length !== 1 ? 's' : ''} · {formatMonthLabel(monthYear)}
+                {templates.length === 1
+                  ? interpolate(tr.budget_template_count_one, { n: templates.length, month: formatMonthLabel(monthYear) })
+                  : interpolate(tr.budget_template_count_many, { n: templates.length, month: formatMonthLabel(monthYear) })}
               </div>
             </div>
             <button
               onClick={applyRecurring} disabled={applying}
               style={{ padding:'8px 15px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}
             >
-              {applying ? '…' : '✓ Apply'}
+              {applying ? tr.budget_applying : tr.budget_apply}
             </button>
           </div>
         )}
@@ -466,14 +488,14 @@ export default function Budget({ session }) {
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <div style={{ width:3, height:18, borderRadius:2, background:'var(--green)', flexShrink:0 }}/>
               <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', letterSpacing:'-0.25px' }}>
-                {tr.income || 'Income'}
+                {tr.income}
               </div>
             </div>
             <button
               onClick={() => { setEditingId(null); setNewRow({ type:'income', label:'', amount:'' }) }}
               style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 13px', background:'var(--green-light)', color:'var(--green-dark)', border:'1px solid rgba(29,140,106,0.18)', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer' }}
             >
-              + Add income
+              {tr.budget_add_income_btn}
             </button>
           </div>
 
@@ -483,8 +505,8 @@ export default function Budget({ session }) {
             {incomeEntries.length === 0 && !newRow && (
               <div style={{ padding:'24px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:28, marginBottom:8, opacity:0.5 }}>💵</div>
-                <div style={{ fontSize:13, color:'var(--text-muted)' }}>No income logged yet</div>
-                <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:3 }}>Tap "+ Add income" to get started</div>
+                <div style={{ fontSize:13, color:'var(--text-muted)' }}>{tr.budget_no_income_title}</div>
+                <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:3 }}>{tr.budget_no_income_hint}</div>
               </div>
             )}
 
@@ -498,7 +520,7 @@ export default function Budget({ session }) {
                         value={e.label}
                         onChange={ev => updateEntry(e.id, 'label', ev.target.value)}
                         style={{ ...inputStyle, flex:1 }}
-                        placeholder="Description"
+                        placeholder={tr.budget_placeholder_desc}
                       />
                       <input
                         type="number"
@@ -513,7 +535,7 @@ export default function Budget({ session }) {
                         onClick={() => setEditingId(null)}
                         style={{ padding:'8px 18px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer' }}
                       >
-                        Done ✓
+                        {tr.budget_done_btn}
                       </button>
                     </div>
                   </div>
@@ -532,9 +554,9 @@ export default function Budget({ session }) {
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {e.label || 'Unnamed'}
+                        {e.label || tr.budget_unnamed}
                       </div>
-                      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:1 }}>Tap to edit</div>
+                      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:1 }}>{tr.budget_tap_edit}</div>
                     </div>
                     <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', flexShrink:0 }}>
                       {sym}{fmt(e.amount)}
@@ -555,7 +577,7 @@ export default function Budget({ session }) {
                   <input
                     value={newRow.label}
                     onChange={e => setNewRow(r => ({ ...r, label:e.target.value }))}
-                    placeholder="e.g. Salary, Freelance…"
+                    placeholder={tr.budget_placeholder_income_example}
                     style={{ ...inputStyle, flex:1 }}
                     autoFocus
                   />
@@ -570,14 +592,14 @@ export default function Budget({ session }) {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text-muted)', cursor:'pointer' }}>
                     <input type="checkbox" checked={!!newRow.saveAsRecurring} onChange={e => setNewRow(r => ({ ...r, saveAsRecurring:e.target.checked }))}/>
-                    Repeat monthly
+                    {tr.budget_repeat_monthly}
                   </label>
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => setNewRow(null)} style={{ padding:'8px 14px', border:'1px solid var(--border)', background:'transparent', borderRadius:8, fontSize:12, cursor:'pointer', color:'var(--text-muted)' }}>
-                      Cancel
+                      {tr.budget_cancel}
                     </button>
                     <button onClick={saveNewRow} disabled={saving} style={{ padding:'8px 18px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', opacity:saving?0.7:1 }}>
-                      {saving ? '…' : 'Save'}
+                      {saving ? '…' : tr.budget_save}
                     </button>
                   </div>
                 </div>
@@ -606,7 +628,7 @@ export default function Budget({ session }) {
               style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'12px 16px', background:'var(--white)', border:'1px solid var(--border)', borderRadius: showTemplates ? '14px 14px 0 0' : 14, cursor:'pointer', fontWeight:700, fontSize:13, color:'var(--text)', boxShadow:sh.shadow.xs }}
             >
               <span>🔄</span>
-              <span style={{ flex:1, textAlign:'left' }}>Recurring Templates ({templates.length})</span>
+              <span style={{ flex:1, textAlign:'left' }}>{interpolate(tr.budget_recurring_templates, { n: templates.length })}</span>
               <span style={{ color:'var(--text-faint)', fontSize:13 }}>{showTemplates ? '▲' : '▼'}</span>
             </button>
 
@@ -619,17 +641,17 @@ export default function Budget({ session }) {
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.label}</div>
-                      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:1 }}>{t.type}{t.category ? ` · ${t.category}` : ''}</div>
+                      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:1 }}>{budgetEntryTypeLabel(tr, t.type)}{t.category ? ` · ${budgetCatLabel(tr, t.category)}` : ''}</div>
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color: t.type === 'income' ? 'var(--green)' : 'var(--red)', flexShrink:0 }}>
-                      {sym}{Number(t.amount).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}
+                      {sym}{Number(t.amount).toLocaleString(LANG_LOCALES[getLang()] || 'en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}
                     </div>
                     <button onClick={() => deleteTemplate(t.id)} style={{ fontSize:15, color:'var(--text-faint)', background:'none', border:'none', cursor:'pointer', padding:'4px 2px', lineHeight:1, flexShrink:0 }}>×</button>
                   </div>
                 ))}
                 <div style={{ padding:'12px 16px', background:'var(--bg)', borderTop:'1px solid var(--border)' }}>
                   <button onClick={applyRecurring} disabled={applying} style={{ width:'100%', padding:'11px', background:'var(--green)', color:'white', border:'none', borderRadius:9, fontWeight:700, fontSize:13, cursor:'pointer' }}>
-                    {applying ? 'Applying…' : `✓ Apply all to ${formatMonthLabel(monthYear)}`}
+                    {applying ? tr.budget_applying : interpolate(tr.budget_apply_all_month, { month: formatMonthLabel(monthYear) })}
                   </button>
                 </div>
               </div>
@@ -645,14 +667,14 @@ export default function Budget({ session }) {
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <div style={{ width:3, height:18, borderRadius:2, background:'var(--red)', flexShrink:0 }}/>
               <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', letterSpacing:'-0.25px' }}>
-                {tr.expenses || 'Expenses'}
+                {tr.expenses}
               </div>
             </div>
             <button
               onClick={() => { setEditingId(null); setNewRow({ type:'expense', category:'Needs', label:'', amount:'' }) }}
               style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 13px', background:'var(--red-light)', color:'var(--red)', border:'1px solid rgba(140,64,64,0.18)', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer' }}
             >
-              + Add expense
+              {tr.budget_add_expense_btn}
             </button>
           </div>
 
@@ -661,8 +683,8 @@ export default function Budget({ session }) {
             {expenseEntries.length === 0 && !newRow && (
               <div style={{ padding:'24px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:28, marginBottom:8, opacity:0.5 }}>💳</div>
-                <div style={{ fontSize:13, color:'var(--text-muted)' }}>No expenses logged yet</div>
-                <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:3 }}>Tap "+ Add expense" to get started</div>
+                <div style={{ fontSize:13, color:'var(--text-muted)' }}>{tr.budget_no_expense_title}</div>
+                <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:3 }}>{tr.budget_no_expense_hint}</div>
               </div>
             )}
 
@@ -679,7 +701,7 @@ export default function Budget({ session }) {
                           value={e.label}
                           onChange={ev => updateEntry(e.id, 'label', ev.target.value)}
                           style={{ ...inputStyle, flex:1 }}
-                          placeholder="Description"
+                          placeholder={tr.budget_placeholder_desc}
                         />
                         <input
                           type="number"
@@ -695,13 +717,13 @@ export default function Budget({ session }) {
                           onChange={ev => updateEntry(e.id, 'category', ev.target.value)}
                           style={{ ...selectStyle, flex:1, fontSize:12 }}
                         >
-                          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                          {CATEGORIES.map(c => <option key={c} value={c}>{budgetCatLabel(tr, c)}</option>)}
                         </select>
                         <button
                           onClick={() => setEditingId(null)}
                           style={{ padding:'10px 18px', background:'var(--red)', color:'white', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', flexShrink:0 }}
                         >
-                          Done ✓
+                          {tr.budget_done_btn}
                         </button>
                       </div>
                     </div>
@@ -720,11 +742,11 @@ export default function Budget({ session }) {
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {e.label || 'Unnamed'}
+                          {e.label || tr.budget_unnamed}
                         </div>
                         {e.category && (
                           <div style={{ fontSize:9, fontWeight:800, color:meta.color, marginTop:2, letterSpacing:'0.07em', textTransform:'uppercase' }}>
-                            {e.category}
+                            {budgetCatLabel(tr, e.category)}
                           </div>
                         )}
                       </div>
@@ -748,7 +770,7 @@ export default function Budget({ session }) {
                   <input
                     value={newRow.label}
                     onChange={e => setNewRow(r => ({ ...r, label:e.target.value, category:smartCategory(e.target.value) }))}
-                    placeholder="e.g. Rent, Coffee, Netflix…"
+                    placeholder={tr.budget_placeholder_expense_example}
                     style={{ ...inputStyle, flex:1 }}
                     autoFocus
                   />
@@ -766,20 +788,20 @@ export default function Budget({ session }) {
                     onChange={e => setNewRow(r => ({ ...r, category:e.target.value }))}
                     style={{ ...selectStyle }}
                   >
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{budgetCatLabel(tr, c)}</option>)}
                   </select>
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text-muted)', cursor:'pointer' }}>
                     <input type="checkbox" checked={!!newRow.saveAsRecurring} onChange={e => setNewRow(r => ({ ...r, saveAsRecurring:e.target.checked }))}/>
-                    Repeat monthly
+                    {tr.budget_repeat_monthly}
                   </label>
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => setNewRow(null)} style={{ padding:'8px 14px', border:'1px solid var(--border)', background:'transparent', borderRadius:8, fontSize:12, cursor:'pointer', color:'var(--text-muted)' }}>
-                      Cancel
+                      {tr.budget_cancel}
                     </button>
                     <button onClick={saveNewRow} disabled={saving} style={{ padding:'8px 18px', background:'var(--red)', color:'white', border:'none', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', opacity:saving?0.7:1 }}>
-                      {saving ? '…' : 'Save'}
+                      {saving ? '…' : tr.budget_save}
                     </button>
                   </div>
                 </div>
@@ -797,7 +819,7 @@ export default function Budget({ session }) {
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between', padding:'12px 16px', background: surplus >= 0 ? 'rgba(29,140,106,0.05)' : 'rgba(140,64,64,0.05)', borderTop:'1px solid var(--border)', borderRadius:'0 0 16px 16px' }}>
                   <span style={{ fontSize:11, fontWeight:700, color: surplus >= 0 ? 'var(--green)' : 'var(--red)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
-                    {surplus >= 0 ? (tr.netSurplus || 'Net Surplus') : 'Over Budget'}
+                    {surplus >= 0 ? (tr.netSurplus || tr.budget_surplus) : tr.budget_net_over_label}
                   </span>
                   <span style={{ fontSize:15, fontWeight:800, color: surplus >= 0 ? 'var(--green)' : 'var(--red)' }}>
                     {surplus >= 0 ? '+' : '-'}{sym}{fmt(Math.abs(surplus))}

@@ -53,7 +53,7 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
     const { error } = await supabase.from('users').update({ full_name:profile.full_name, currency:profile.currency, avatar:profile.avatar, bio:profile.bio }).eq('id', userId)
     setSaving(false)
     if (error) {
-      alert('Failed to save profile. Please try again.')
+      alert(tr.settings_failed_save)
     } else {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -63,8 +63,8 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
   async function handleSignOut() { await hardLocalLogout(supabase) }
 
   async function handleDeleteAccount() {
-    if (!window.confirm('Delete your account? This will permanently erase all your budget, loans, investments, and progress.')) return
-    if (!window.confirm('Last warning — this cannot be undone. Click OK to permanently delete your account.')) return
+    if (!window.confirm(tr.settings_delete_confirm_1)) return
+    if (!window.confirm(tr.settings_delete_confirm_2)) return
     try {
       await supabase.from('budget_entries').delete().eq('user_id', userId)
       await supabase.from('loans').delete().eq('user_id', userId)
@@ -99,7 +99,7 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
         <div style={{ flex:1 }}>
           <div style={{ fontWeight:700, fontSize:17 }}>{profile.full_name || (tr.yourName||'Your Name')}</div>
           <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:2 }}>{session.user.email}</div>
-          {isPremium && <div style={{ fontSize:11, marginTop:4, padding:'3px 8px', background:'linear-gradient(135deg, #BA7517, #7A4D0F)', color:'white', borderRadius:10, display:'inline-block', fontWeight:700, marginBottom:4 }}>👑 Premium Member</div>}
+          {isPremium && <div style={{ fontSize:11, marginTop:4, padding:'3px 8px', background:'linear-gradient(135deg, #BA7517, #7A4D0F)', color:'white', borderRadius:10, display:'inline-block', fontWeight:700, marginBottom:4 }}>{tr.settings_premium_badge}</div>}
           <div style={{ fontSize:11, marginTop:4, padding:'3px 8px', background:'var(--green-light)', color:'var(--green-dark)', borderRadius:10, display:'inline-block', fontWeight:600 }}>
             {LANGUAGES[lang]?.flag} {LANGUAGES[lang]?.name} · {CURRENCIES.find(c=>c.code===profile.currency)?.symbol} {profile.currency}
           </div>
@@ -151,7 +151,7 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
 
           <div className="form-group" style={{ marginBottom:14 }}>
             <label>{tr.bioOpt||'Bio (optional)'}</label>
-            <textarea placeholder="A little about you and your financial goals…" value={profile.bio} onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} rows={3}
+            <textarea placeholder={tr.settings_bio_placeholder} value={profile.bio} onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} rows={3}
               style={{ padding:'10px 14px', border:'1px solid var(--border)', borderRadius:8, fontSize:14, background:'var(--bg)', color:'var(--text)', resize:'none', width:'100%', outline:'none' }}/>
           </div>
 
@@ -176,10 +176,10 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
                 <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>
-                  {theme === 'dark' ? '🌙' : '☀️'} {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                  {theme === 'dark' ? '🌙' : '☀️'} {theme === 'dark' ? tr.settings_theme_dark : tr.settings_theme_light}
                 </div>
                 <div style={{ fontSize:12, color:'var(--text-muted)' }}>
-                  {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                  {theme === 'dark' ? tr.settings_theme_hint_dark : tr.settings_theme_hint_light}
                 </div>
               </div>
               {/* Toggle switch */}
@@ -191,7 +191,7 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
                   position:'relative', transition:'background 0.25s', flexShrink:0,
                   padding:0,
                 }}
-                aria-label="Toggle dark mode"
+                aria-label={tr.settings_toggle_dark_aria}
               >
                 <span style={{
                   position:'absolute', top:3,
@@ -273,18 +273,18 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
         <div className="card" style={{ marginTop:12 }}>
           <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>🧭 {tr.moreFeatures||'More Features'}</div>
           {[
-            { to:'/coach', icon:'🤖', label:'AI Financial Coach', desc:'Chat with Claude for financial advice' },
-            { to:'/currency', icon:'💱', label:'Currency Converter', desc:'Live exchange rates for 20+ currencies' },
-            { to:'/receipts', icon:'📸', label:'Receipt Scanner', desc:'Scan and store all your receipts' },
-            { to:'/premium', icon:'👑', label:'Go Premium', desc:'Unlock multi-currency, receipts & more' },
-            { to:'/savings', icon:'💰', label:'Savings Goals', desc:'Set and track your savings goals' },
-            { to:'/giving', icon:'🎁', label:'Giving & Tithe', desc:'Track your generosity journey' },
-            { to:'/bills', icon:'🔔', label:'Bill Reminders', desc:'Never miss a payment again' },
-            { to:'/realestate', icon:'🏠', label:'Real Estate Guide', desc:'Home buying checklist & home types' },
-            { to:'/challenge', icon:'⭐', label:'$100 Challenge', desc:'30-day financial transformation' },
-            { to:'/faith', icon:'✦', label:'Faith & Stewardship', desc:'Biblical wisdom for your finances' },
-            { to:'/report', icon:'📄', label:'Budget Report', desc:'Print or download your budget PDF' },
-            { to:'/howtouse', icon:'❓', label:'App Guide', desc:'Interactive walkthrough of all features' },
+            { to:'/coach', icon:'🤖', label: tr.settings_link_coach_t, desc: tr.settings_link_coach_d },
+            { to:'/currency', icon:'💱', label: tr.settings_link_currency_t, desc: tr.settings_link_currency_d },
+            { to:'/receipts', icon:'📸', label: tr.settings_link_receipts_t, desc: tr.settings_link_receipts_d },
+            { to:'/premium', icon:'👑', label: tr.settings_link_premium_t, desc: tr.settings_link_premium_d },
+            { to:'/savings', icon:'💰', label: tr.settings_link_savings_t, desc: tr.settings_link_savings_d },
+            { to:'/giving', icon:'🎁', label: tr.settings_link_giving_t, desc: tr.settings_link_giving_d },
+            { to:'/bills', icon:'🔔', label: tr.settings_link_bills_t, desc: tr.settings_link_bills_d },
+            { to:'/realestate', icon:'🏠', label: tr.settings_link_realestate_t, desc: tr.settings_link_realestate_d },
+            { to:'/challenge', icon:'⭐', label: tr.settings_link_challenge_t, desc: tr.settings_link_challenge_d },
+            { to:'/faith', icon:'✦', label: tr.settings_link_faith_t, desc: tr.settings_link_faith_d },
+            { to:'/report', icon:'📄', label: tr.settings_link_report_t, desc: tr.settings_link_report_d },
+            { to:'/howtouse', icon:'❓', label: tr.settings_link_guide_t, desc: tr.settings_link_guide_d },
           ].map((item,i,arr) => (
             <Link key={item.to} to={item.to} style={{ textDecoration:'none' }}>
               <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none' }}>
@@ -306,8 +306,8 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
           <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{tr.installAppTitle||'📱 Install App'}</div>
           <div style={{ fontSize:13, opacity:0.85, marginBottom:12 }}>{tr.installDesc||'Add Stewardship Hub to your home screen for the best experience!'}</div>
           <div style={{ fontSize:12, opacity:0.8, marginBottom:8 }}>
-            <div style={{ marginBottom:4 }}>📱 <strong>iPhone:</strong> Tap Share → "Add to Home Screen"</div>
-            <div>🤖 <strong>Android:</strong> Tap Menu → "Add to Home Screen"</div>
+            <div style={{ marginBottom:4 }}><strong>{tr.settings_install_iphone}</strong> {tr.settings_install_iphone_steps}</div>
+            <div><strong>{tr.settings_install_android}</strong> {tr.settings_install_android_steps}</div>
           </div>
         </div>
       )}
@@ -319,11 +319,11 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
             <div style={{ fontSize:52, marginBottom:12 }}>✦</div>
             <div style={{ fontSize:22, fontWeight:800, color:'var(--green-dark)' }}>Stewardship Hub</div>
             <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>Faith-based financial freedom</div>
-            <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:8 }}>Version 1.0.0</div>
+            <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:8 }}>{tr.settings_about_version}</div>
           </div>
           <div className="card" style={{ marginBottom:12 }}>
             <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>{tr.featuresTitle||'✅ Features'}</div>
-            {['Budget Tracker','Investment Tracker','Loan Tracker','$100 Challenge','Real Estate Guide','Faith Devotionals','Community','Budget Reports','15 Languages'].map((f,i) => (
+            {[tr.settings_feature_budget, tr.settings_feature_invest, tr.settings_feature_loan, tr.settings_feature_challenge, tr.settings_feature_realestate, tr.settings_feature_faith, tr.settings_feature_community, tr.settings_feature_report, tr.settings_feature_langs].map((f,i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:i<8?'1px solid var(--border)':'none' }}>
                 <span style={{ color:'var(--green)', fontSize:14 }}>✓</span>
                 <span style={{ fontSize:13 }}>{f}</span>
@@ -333,10 +333,10 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
           <div className="card">
             <div style={{ fontWeight:700, fontSize:14, marginBottom:8 }}>{tr.ourMissionTitle||'📖 Our Mission'}</div>
             <div style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.7 }}>
-              Stewardship Hub exists to equip faith communities with practical tools to manage money with wisdom, generosity, and purpose — so every person can experience the freedom God intended.
+              {tr.settings_mission_body}
             </div>
             <div style={{ marginTop:14, padding:'12px 14px', background:'var(--green-light)', borderRadius:8, fontSize:13, color:'var(--green-dark)', fontStyle:'italic', lineHeight:1.6 }}>
-              "The plans of the diligent lead to profit." — Proverbs 21:5
+              {tr.settings_mission_quote}
             </div>
           </div>
         </div>

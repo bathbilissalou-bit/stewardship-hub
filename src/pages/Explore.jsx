@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useT } from '../lib/i18n'
+import { useT, getLang, LANG_LOCALES } from '../lib/i18n'
+import { getExploreDailyVerse } from '../lib/exploreDailyVerses'
 import VideoCard from '../components/VideoCard'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,49 +26,13 @@ function saveRecent(to) {
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTEXTUAL DATA  ·  Greeting · Date · Verse · Suggestion
 // ─────────────────────────────────────────────────────────────────────────────
-const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-function getDateStr() {
-  const d = new Date()
-  return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`
+function getSuggestionRoute(h) {
+  if (h < 12) return '/budget'
+  if (h < 17) return '/receipts'
+  if (h < 21) return '/savings'
+  return '/giving'
 }
 
-function getTimeContext() {
-  const h = new Date().getHours()
-  if (h < 12) return {
-    greeting:   'Good morning',
-    tagline:    'Start your day with clarity and intention.',
-    suggestion: { to: '/budget',   reason: 'Review this month\'s budget to stay on track' },
-  }
-  if (h < 17) return {
-    greeting:   'Good afternoon',
-    tagline:    'Every decision today shapes tomorrow\'s freedom.',
-    suggestion: { to: '/receipts', reason: 'Log recent purchases while they\'re still fresh' },
-  }
-  if (h < 21) return {
-    greeting:   'Good evening',
-    tagline:    'A moment to reflect — you\'re building something lasting.',
-    suggestion: { to: '/savings',  reason: 'Check your progress toward your goals' },
-  }
-  return {
-    greeting:   'Good night',
-    tagline:    'Rest well. Faithful stewardship pays off over time.',
-    suggestion: { to: '/giving',   reason: 'Reflect on today\'s generosity' },
-  }
-}
-
-// One verse per day of the week (0 = Sunday)
-const DAILY_VERSES = [
-  { ref: 'Proverbs 3:9',     text: 'Honour the Lord with your wealth and with the firstfruits of all your produce.' },
-  { ref: 'Luke 16:10',       text: 'Whoever is faithful in very little is also faithful in much.' },
-  { ref: 'Matthew 6:21',     text: 'For where your treasure is, there your heart will be also.' },
-  { ref: 'Proverbs 22:7',    text: 'The borrower is servant to the lender.' },
-  { ref: 'Deuteronomy 8:18', text: 'Remember the Lord your God, for it is he who gives you the ability to produce wealth.' },
-  { ref: '1 Timothy 6:6',    text: 'Godliness with contentment is great gain.' },
-  { ref: 'Malachi 3:10',     text: 'Bring the whole tithe into the storehouse, that there may be food in my house.' },
-]
-const getDailyVerse = () => DAILY_VERSES[new Date().getDay()]
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEATURE REGISTRY  ·  5-family palette
@@ -94,6 +59,91 @@ const F = {
   '/howtouse':      { icon:'📖', label:'App Guide',           short:'Guide',      desc:'Learn every feature',               c:'#706B65', bg:'rgba(112,107,101,0.10)'},
   '/premium':       { icon:'👑', label:'Go Premium',          short:'Premium',    desc:'Unlock all features',               c:'#C28A35', bg:'rgba(194,138,53,0.10)' },
   '/coach':         { icon:'🤖', label:'AI Coach',            short:'Coach',      desc:'Personalised financial advice',     c:'#1A6878', bg:'rgba(26,104,120,0.10)' },
+}
+
+// Maps route → tr key for translated feature descriptions
+const FEAT_TR_KEY = {
+  '/budget':        'featBudgetDesc',
+  '/savings':       'featSavingsDesc',
+  '/bills':         'featBillsDesc',
+  '/family':        'featFamilyDesc',
+  '/giving':        'featGivingDesc',
+  '/nutrition':     'featNutritionDesc',
+  '/challenge':     'featChallengeDesc',
+  '/networth':      'featNetworthDesc',
+  '/debtplanner':   'featDebtDesc',
+  '/subscriptions': 'featSubsDesc',
+  '/travel':        'featTravelDesc',
+  '/faith':         'featFaithDesc',
+  '/community':     'featCommunityDesc',
+  '/birthdays':     'featBirthdaysDesc',
+  '/currency':      'featCurrencyDesc',
+  '/receipts':      'featReceiptsDesc',
+  '/report':        'featReportDesc',
+  '/search':        'featSearchDesc',
+  '/howtouse':      'featGuideDesc',
+  '/premium':       'featPremiumDesc',
+  '/coach':         'featCoachDesc',
+}
+
+const ROUTE_TO_TITLE_KEY = {
+  '/budget':        'budget',
+  '/savings':       'savingsGoalsTitle',
+  '/bills':         'billReminders',
+  '/family':        'familyBudgetCardTitle',
+  '/giving':        'givingTithe',
+  '/nutrition':     'nutritionCardTitle',
+  '/challenge':     'challengeTitle',
+  '/networth':      'netWorthCardTitle',
+  '/debtplanner':   'debtPlannerCardTitle',
+  '/subscriptions': 'subscriptionsCardTitle',
+  '/travel':        'travelCardTitle',
+  '/faith':         'faithTitle',
+  '/community':     'communityTitle2',
+  '/birthdays':     'birthdaysCardTitle',
+  '/currency':      'currencyCardTitle',
+  '/receipts':      'receiptsCardTitle',
+  '/report':        'budgetReportCardTitle',
+  '/search':        'searchCardTitle',
+  '/howtouse':      'appGuideCardTitle',
+  '/premium':       'goPremiumCardTitle',
+  '/coach':         'aiCoachHeroTitle',
+}
+
+const ROUTE_TO_SHORT_KEY = {
+  '/budget':        'budget',
+  '/savings':       'exploreShortSavings',
+  '/bills':         'exploreShortBills',
+  '/family':        'exploreShortFamily',
+  '/giving':        'exploreShortGiving',
+  '/nutrition':     'exploreShortNutrition',
+  '/challenge':     'exploreShortChallenge',
+  '/networth':      'exploreShortNetworth',
+  '/debtplanner':   'exploreShortDebt',
+  '/subscriptions': 'exploreShortSubs',
+  '/travel':        'exploreShortTravel',
+  '/faith':         'exploreShortFaith',
+  '/community':     'exploreShortCommunity',
+  '/birthdays':     'exploreShortBirthdays',
+  '/currency':      'exploreShortCurrency',
+  '/receipts':      'exploreShortReceipts',
+  '/report':        'exploreShortReport',
+  '/search':        'exploreShortSearch',
+  '/howtouse':      'exploreShortGuide',
+  '/premium':       'exploreShortPremium',
+  '/coach':         'exploreShortCoach',
+}
+
+function featTitle(to, tr) {
+  const k = ROUTE_TO_TITLE_KEY[to]
+  const v = k ? tr[k] : null
+  return v || F[to]?.label || ''
+}
+
+function featShort(to, tr) {
+  const k = ROUTE_TO_SHORT_KEY[to]
+  const v = k ? tr[k] : null
+  return v || F[to]?.short || ''
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,6 +222,7 @@ function FlagshipCard({ to, eyebrow, title, desc }) {
  * Most important feature per section. Full-width, tinted, with mood label + CTA.
  */
 function FeaturedCard({ to, cta, mood }) {
+  const tr = useT()
   const f = F[to] || {}
   const washBg     = f.bg?.replace('0.10)', '0.06)') || 'rgba(29,140,106,0.06)'
   const borderCol  = f.bg?.replace('0.10)', '0.15)') || 'rgba(29,140,106,0.15)'
@@ -203,10 +254,10 @@ function FeaturedCard({ to, cta, mood }) {
             </div>
           )}
           <div style={{ fontSize:15, fontWeight:800, color:f.c, letterSpacing:'-0.25px', marginBottom:4, lineHeight:1.25 }}>
-            {f.label}
+            {featTitle(to, tr)}
           </div>
           <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.6 }}>
-            {f.desc}
+            {tr[FEAT_TR_KEY[to]] || f.desc}
           </div>
           {cta && (
             <div style={{ fontSize:11, fontWeight:700, color:f.c, marginTop:9, opacity:0.85 }}>
@@ -231,6 +282,7 @@ function FeaturedCard({ to, cta, mood }) {
  * Half-width vertical card. Standard workhorse for most features.
  */
 function GridCard({ to }) {
+  const tr = useT()
   const f = F[to] || {}
   return (
     <Link to={to} onClick={() => saveRecent(to)} style={{ textDecoration:'none', display:'flex', flex:1 }}>
@@ -247,10 +299,10 @@ function GridCard({ to }) {
         </div>
         <div>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', lineHeight:1.3, marginBottom:3 }}>
-            {f.label}
+            {featTitle(to, tr)}
           </div>
           <div style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.55 }}>
-            {f.desc}
+            {tr[FEAT_TR_KEY[to]] || f.desc}
           </div>
         </div>
       </div>
@@ -263,6 +315,7 @@ function GridCard({ to }) {
  * Compact 3-col. Icon + short label, no description. Utility zone only.
  */
 function ToolCard({ to }) {
+  const tr = useT()
   const f = F[to] || {}
   return (
     <Link to={to} onClick={() => saveRecent(to)} style={{ textDecoration:'none' }}>
@@ -278,7 +331,7 @@ function ToolCard({ to }) {
           {f.icon}
         </div>
         <div style={{ fontSize:10, fontWeight:700, color:'var(--text)', textAlign:'center', lineHeight:1.35 }}>
-          {f.short}
+          {featShort(to, tr)}
         </div>
       </div>
     </Link>
@@ -288,7 +341,8 @@ function ToolCard({ to }) {
 /**
  * SuggestedCard — single guided action, changes by time of day.
  */
-function SuggestedCard({ to, reason }) {
+function SuggestedCard({ to, reason, label }) {
+  const tr = useT()
   const f = F[to] || {}
   return (
     <Link to={to} onClick={() => saveRecent(to)} style={{ textDecoration:'none', display:'block' }}>
@@ -308,10 +362,10 @@ function SuggestedCard({ to, reason }) {
             fontSize:9, fontWeight:800, color:'var(--text-faint)',
             letterSpacing:'0.11em', textTransform:'uppercase', marginBottom:4,
           }}>
-            Suggested for you
+            {label || tr.suggestedFor}
           </div>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:2 }}>
-            {f.label}
+            {featTitle(to, tr)}
           </div>
           <div style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.5 }}>
             {reason}
@@ -356,6 +410,7 @@ function DailyVerseCard({ verse }) {
  * RecentChip — compact pill in the continue-where-you-left-off strip.
  */
 function RecentChip({ to }) {
+  const tr = useT()
   const f = F[to] || {}
   return (
     <Link to={to} onClick={() => saveRecent(to)} style={{ textDecoration:'none', flexShrink:0 }}>
@@ -372,7 +427,7 @@ function RecentChip({ to }) {
           {f.icon}
         </div>
         <span style={{ fontSize:12, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap' }}>
-          {f.short}
+          {featShort(to, tr)}
         </span>
       </div>
     </Link>
@@ -428,9 +483,29 @@ function Divider() {
 export default function Explore() {
   const tr    = useT()
   const [recent,  setRecent]  = useState([])
-  const [ctx]     = useState(getTimeContext)
-  const [dateStr] = useState(getDateStr)
-  const [verse]   = useState(getDailyVerse)
+  const verse = useMemo(() => getExploreDailyVerse(getLang()), [])
+  const lang      = getLang()
+  const locale    = LANG_LOCALES[lang] || 'en-US'
+  const dateStr   = useMemo(
+    () => new Date().toLocaleDateString(locale, { weekday:'long', month:'long', day:'numeric' }),
+    [locale, lang]
+  )
+
+  // Time-of-day context — computed using tr so greetings respect the selected language
+  const h              = new Date().getHours()
+  const greeting       = h < 12 ? (tr.goodMorning   || 'Good morning')   :
+                         h < 17 ? (tr.goodAfternoon  || 'Good afternoon') :
+                         h < 21 ? (tr.goodEvening    || 'Good evening')   :
+                                  (tr.goodNight      || 'Good night')
+  const tagline        = h < 12 ? (tr.taglineMorning   || 'Start your day with clarity and intention.')      :
+                         h < 17 ? (tr.taglineAfternoon  || "Every decision today shapes tomorrow's freedom.") :
+                         h < 21 ? (tr.taglineEvening    || "A moment to reflect — you're building something lasting.") :
+                                  (tr.taglineNight      || 'Rest well. Faithful stewardship pays off over time.')
+  const suggestionTo     = getSuggestionRoute(h)
+  const suggestionReason = h < 12 ? (tr.suggestBudget   || "Review this month's budget to stay on track")   :
+                           h < 17 ? (tr.suggestReceipts  || "Log recent purchases while they're still fresh") :
+                           h < 21 ? (tr.suggestSavings   || 'Check your progress toward your goals')          :
+                                    (tr.suggestGiving    || "Reflect on today's generosity")
 
   useEffect(() => { setRecent(getRecent()) }, [])
 
@@ -458,7 +533,7 @@ export default function Explore() {
           fontSize:28, fontWeight:900, color:'#fff',
           letterSpacing:'-0.6px', lineHeight:1.15, marginBottom:7,
         }}>
-          {ctx.greeting},<br />Steward
+          {greeting},<br />{tr.stewardRoleName}
         </div>
 
         {/* Tagline */}
@@ -466,17 +541,17 @@ export default function Explore() {
           fontSize:13, color:'rgba(255,255,255,0.56)',
           lineHeight:1.65, marginBottom:24,
         }}>
-          {ctx.tagline}
+          {tagline}
         </div>
 
         {/* Quick-action pills — frosted glass on dark */}
         <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:1, scrollbarWidth:'none' }}>
-          {['/budget', '/savings', '/bills', '/coach'].map(to => {
-            const f = F[to] || {}
+          {['/budget', '/savings', '/bills', '/coach'].map(path => {
+            const f = F[path] || {}
             return (
               <Link
-                key={to} to={to}
-                onClick={() => saveRecent(to)}
+                key={path} to={path}
+                onClick={() => saveRecent(path)}
                 style={{ textDecoration:'none', flexShrink:0 }}
               >
                 <div className="sh-tappable" style={{
@@ -489,7 +564,7 @@ export default function Explore() {
                 }}>
                   <span style={{ fontSize:15 }}>{f.icon}</span>
                   <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.88)', whiteSpace:'nowrap' }}>
-                    {f.short}
+                    {featShort(path, tr)}
                   </span>
                 </div>
               </Link>
@@ -519,7 +594,7 @@ export default function Explore() {
               fontSize:10, fontWeight:800, color:'var(--text-faint)',
               letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:11,
             }}>
-              Continue where you left off
+              {tr.continueWhere}
             </div>
             <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
               {recent.map(to => <RecentChip key={to} to={to} />)}
@@ -529,16 +604,16 @@ export default function Explore() {
 
         {/* ── Suggested for you ────────────────────────────────────────── */}
         <div className="sh-animate sh-animate-3" style={{ marginBottom:18 }}>
-          <SuggestedCard to={ctx.suggestion.to} reason={ctx.suggestion.reason} />
+          <SuggestedCard to={suggestionTo} reason={suggestionReason} label={tr.suggestedFor} />
         </div>
 
         {/* ── AI Coach — Flagship (Level 1) ────────────────────────────── */}
         <div className="sh-animate sh-animate-4">
           <FlagshipCard
             to="/coach"
-            eyebrow="Powered by Claude AI"
-            title="AI Financial Coach"
-            desc="Personalised advice on budgeting, debt, investing & intentional living"
+            eyebrow={tr.poweredByClaude}
+            title={tr.aiCoachHeroTitle}
+            desc={tr.aiCoachHeroDesc}
           />
         </div>
 
@@ -548,13 +623,13 @@ export default function Explore() {
             YOUR FINANCES  ·  Daily tools. Empowering, not overwhelming.
         ══════════════════════════════════════════════════════════════ */}
         <SectionHeader
-          title="Your Finances"
-          sub="Empowering tools for managing money with intention"
+          title={tr.sectionFinances}
+          sub={tr.sectionFinancesSub}
           accent="#1D8C6A"
         />
 
         {/* Savings Goals — Featured (Level 2) */}
-        <FeaturedCard to="/savings" mood="Goals & Growth" cta="See your progress" />
+        <FeaturedCard to="/savings" mood={tr.moodGoals} cta={tr.ctaSeeProgress} />
         <Gap />
 
         {/* 2-col: Bills + Family Budget */}
@@ -579,13 +654,13 @@ export default function Explore() {
       ══════════════════════════════════════════════════════════════════ */}
       <TintedSection tint="rgba(194,138,53,0.045)" border="rgba(194,138,53,0.12)">
         <SectionHeader
-          title="Discipline & Growth"
-          sub="Build lasting habits. Create the wealth that matters."
+          title={tr.sectionGrowth}
+          sub={tr.sectionGrowthSub}
           accent="#C28A35"
         />
 
         {/* $100 Challenge — Featured (Level 2) */}
-        <FeaturedCard to="/challenge" mood="30-Day Journey" cta="Begin your reset" />
+        <FeaturedCard to="/challenge" mood={tr.moodJourney} cta={tr.ctaBeginReset} />
         <Gap />
 
         {/* 2-col: Net Worth + Debt Planner */}
@@ -611,13 +686,13 @@ export default function Explore() {
       ══════════════════════════════════════════════════════════════════ */}
       <TintedSection tint="rgba(29,140,106,0.044)" border="rgba(29,140,106,0.12)">
         <SectionHeader
-          title="Faith & Community"
-          sub="Grounded in wisdom. Growing in generosity and purpose."
+          title={tr.sectionFaithComm}
+          sub={tr.sectionFaithCommSub}
           accent="#1D8C6A"
         />
 
         {/* Faith & Stewardship — Featured (Level 2) */}
-        <FeaturedCard to="/faith" mood="Wisdom & Purpose" cta="Explore biblical wisdom" />
+        <FeaturedCard to="/faith" mood={tr.moodWisdom} cta={tr.ctaExploreFaith} />
         <Gap />
 
         {/* 2-col: Community + Birthdays */}
@@ -634,8 +709,8 @@ export default function Explore() {
         <Divider />
 
         <SectionHeader
-          title="Quick Tools"
-          sub="Helpful utilities — always within reach"
+          title={tr.sectionTools}
+          sub={tr.sectionToolsSub}
           accent="#ABA79F"
         />
 
@@ -667,7 +742,7 @@ export default function Explore() {
                 {tr.settings || 'Settings'}
               </div>
               <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:2 }}>
-                {tr.settingsSubtitle || 'Profile, currency, language & more'}
+                {tr.settingsSubtitle}
               </div>
             </div>
             <span style={{ fontSize:20, color:'var(--text-faint)' }}>›</span>
@@ -680,12 +755,12 @@ export default function Explore() {
             fontSize:10, fontWeight:700, color:'var(--text-faint)',
             letterSpacing:'0.09em', textTransform:'uppercase', marginBottom:11,
           }}>
-            Watch App Tour
+            {tr.watchTour}
           </div>
           <div style={{ borderRadius:sh.radius.md+2, overflow:'hidden', border:'1px solid var(--border)' }}>
             <VideoCard
-              title="See Stewardship Hub in Action"
-              subtitle="A quick walkthrough of every feature"
+              title={tr.videoTourMainTitle}
+              subtitle={tr.videoTourSubTitle}
             />
           </div>
         </div>
