@@ -317,8 +317,8 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
         <div>
           <div className="card" style={{ textAlign:'center', marginBottom:12 }}>
             <div style={{ fontSize:52, marginBottom:12 }}>✦</div>
-            <div style={{ fontSize:22, fontWeight:800, color:'var(--green-dark)' }}>Stewardship Hub</div>
-            <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>Faith-based financial freedom</div>
+            <div style={{ fontSize:22, fontWeight:800, color:'var(--green-dark)' }}>{tr.settings_brand_name || 'Stewardship Hub'}</div>
+            <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>{tr.settings_about_tagline || 'Faith-based financial freedom'}</div>
             <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:8 }}>{tr.settings_about_version}</div>
           </div>
           <div className="card" style={{ marginBottom:12 }}>

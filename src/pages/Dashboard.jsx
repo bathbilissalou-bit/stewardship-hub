@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useT, getLang, LANG_LOCALES } from '../lib/i18n'
+import { useT, getLang, LANG_LOCALES, interpolate } from '../lib/i18n'
 import { getDailyVerse } from '../lib/verses'
 
 // ── Lazy charts: recharts (411 kB) only fetched when charts render ─────────────
@@ -164,8 +164,15 @@ export default function Dashboard({ session, lang }) {
   const spentPct      = income > 0 ? Math.min(100, Math.round(expenses/income*100)) : 0
   const savedPct      = income > 0 ? Math.max(0, Math.round((income-expenses)/income*100)) : 0
 
+  const CAT_LABELS = {
+    Needs: tr.budget_cat_needs || 'Needs',
+    Wants: tr.budget_cat_wants || 'Wants',
+    Giving: tr.budget_cat_giving || 'Giving',
+    Savings: tr.budget_cat_savings || 'Savings',
+    Investments: tr.budget_cat_investments || 'Invest',
+  }
   const catData = Object.entries(CAT_CONFIG).map(([cat,cfg]) => ({
-    name:cat, label:cfg.label, icon:cfg.icon, color:cfg.color,
+    name:cat, label:CAT_LABELS[cat] || cfg.label, icon:cfg.icon, color:cfg.color,
     value:entries.filter(e=>e.type==='expense'&&e.category===cat).reduce((s,e)=>s+Number(e.amount),0),
   })).filter(d=>d.value>0)
 
@@ -187,7 +194,7 @@ export default function Dashboard({ session, lang }) {
           {now.toLocaleDateString(locale,{ weekday:'long', month:'long', day:'numeric' })}
         </div>
         {refreshing && (
-          <div style={{ fontSize:10, color:'#9ca3af', marginTop:3 }}>↻ Refreshing…</div>
+          <div style={{ fontSize:10, color:'#9ca3af', marginTop:3 }}>{tr.refreshing}</div>
         )}
       </div>
 
@@ -196,7 +203,7 @@ export default function Dashboard({ session, lang }) {
         <div style={{ background:'linear-gradient(135deg,#1D9E75,#0F6E56)', borderRadius:14,
           padding:'12px 16px', marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:2 }}>✦ New here? Start with the guide →</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:2 }}>{tr.newHereBanner}</div>
             <div style={{ fontSize:14, fontWeight:600, color:'white' }}>{tr.exploreFeatures||'Explore all features →'}</div>
           </div>
           <div style={{ fontSize:24 }}>🧭</div>
@@ -232,8 +239,8 @@ export default function Dashboard({ session, lang }) {
             </div>
             <div style={{ fontSize:11, opacity:0.7, marginTop:4 }}>
               {loading
-                ? '⏳ Loading your data…'
-                : `Portfolio ${fmt(totalInvested,sym)} − Loans ${fmt(totalDebt,sym)}`}
+                ? tr.loadingYourData
+                : interpolate(tr.dashPortfolioLoansFmt, { inv: fmt(totalInvested, sym), loans: fmt(totalDebt, sym) })}
             </div>
           </div>
 
@@ -258,7 +265,7 @@ export default function Dashboard({ session, lang }) {
                   ) : (
                     <div style={{ width:150, height:150, borderRadius:'50%', background:'#f3f4f6',
                       display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <div style={{ textAlign:'center', fontSize:12, color:'var(--text-muted)' }}>No<br/>expenses</div>
+                      <div style={{ textAlign:'center', fontSize:12, color:'var(--text-muted)' }}>{tr.noExpensesBreak}</div>
                     </div>
                   )}
 
@@ -344,13 +351,13 @@ export default function Dashboard({ session, lang }) {
 
           {/* 6-month trend — recharts loads lazily here */}
           {trendData.some(d=>d.Income>0||d.Expenses>0) && (
-            <div className="card" style={{ marginBottom:16, padding:'16px' }}>
-              <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>📊 6-Month Trend</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:12 }}>Income vs Expenses</div>
+              <div className="card" style={{ marginBottom:16, padding:'16px' }}>
+              <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{tr.sixMonthTrend}</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:12 }}>{tr.incomeVsExpenses}</div>
               <Suspense fallback={
                 <div style={{ height:170, background:'#f9fafb', borderRadius:10,
                   display:'flex', alignItems:'center', justifyContent:'center', color:'#9ca3af', fontSize:12 }}>
-                  Loading chart…
+                  {tr.loadingChart}
                 </div>
               }>
                 <LazyTrend data={trendData} symbol={sym} />
@@ -364,14 +371,14 @@ export default function Dashboard({ session, lang }) {
               <div style={{ background:'#FCEBEB', borderRadius:14, padding:'14px 16px' }}>
                 <div style={{ fontSize:11, color:'#A32D2D', fontWeight:600, marginBottom:6 }}>🏦 {tr.totalDebt||'Total Debt'}</div>
                 <div style={{ fontSize:20, fontWeight:800, color:'#A32D2D' }}>{fmt(totalDebt,sym)}</div>
-                <div style={{ fontSize:11, color:'#A32D2D', opacity:0.7, marginTop:2 }}>{loans.length} {tr.loans||'loans'}</div>
+                <div style={{ fontSize:11, color:'#A32D2D', opacity:0.7, marginTop:2 }}>{loans.length} {loans.length === 1 ? tr.loanSingular : tr.loanPlural}</div>
               </div>
             </Link>
             <Link to="/investments" style={{ textDecoration:'none' }}>
               <div style={{ background:'#EAF3DE', borderRadius:14, padding:'14px 16px' }}>
                 <div style={{ fontSize:11, color:'#3B6D11', fontWeight:600, marginBottom:6 }}>📈 {tr.portfolio||'Portfolio'}</div>
                 <div style={{ fontSize:20, fontWeight:800, color:'#3B6D11' }}>{fmt(totalInvested,sym)}</div>
-                <div style={{ fontSize:11, color:'#3B6D11', opacity:0.7, marginTop:2 }}>{investments.length} {tr.invest||'investments'}</div>
+                <div style={{ fontSize:11, color:'#3B6D11', opacity:0.7, marginTop:2 }}>{investments.length} {investments.length === 1 ? tr.investmentSingular : tr.investmentPlural}</div>
               </div>
             </Link>
           </div>

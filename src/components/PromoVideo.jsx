@@ -1,96 +1,105 @@
 import { useState, useEffect, useRef } from 'react'
+import { useT } from '../lib/i18n'
 
 const SLIDE_DURATION = 4500 // ms per slide
 
-const SLIDES = [
+function buildSlides(tr) {
+  return [
   {
     bg: 'linear-gradient(135deg, #0F6E56 0%, #1D9E75 60%, #185FA5 100%)',
     icon: '✦',
     iconSize: 64,
-    tag: 'WELCOME',
-    title: 'Stewardship Hub',
-    desc: 'Manage your money with faith-based principles — in 15 languages, for families worldwide.',
-    visual: <IntroVisual />,
+    tag: tr.promo0_tag,
+    title: tr.promo0_title,
+    desc: tr.promo0_desc,
+    visual: <IntroVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #185FA5, #0d3f70)',
     icon: '💳',
-    tag: 'BUDGET TRACKER',
-    title: 'Know Where Every Dollar Goes',
-    desc: 'Track income and expenses by category. See your net surplus instantly — and never overspend again.',
-    visual: <BudgetVisual />,
+    tag: tr.promo1_tag,
+    title: tr.promo1_title,
+    desc: tr.promo1_desc,
+    visual: <BudgetVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #3B6D11, #1D9E75)',
     icon: '📈',
-    tag: 'INVESTMENT TRACKER',
-    title: 'Watch Your Wealth Grow',
-    desc: 'Track stocks, crypto, real estate & more — with live market prices updated in real time.',
-    visual: <InvestVisual />,
+    tag: tr.promo2_tag,
+    title: tr.promo2_title,
+    desc: tr.promo2_desc,
+    visual: <InvestVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #A32D2D, #7B1C1C)',
     icon: '🏦',
-    tag: 'LOAN TRACKER',
-    title: 'Crush Your Debt Faster',
-    desc: 'See your full amortization schedule. Know exactly when you\'ll be debt-free.',
-    visual: <LoanVisual />,
+    tag: tr.promo3_tag,
+    title: tr.promo3_title,
+    desc: tr.promo3_desc,
+    visual: <LoanVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #BA7517, #7A4D0F)',
     icon: '⭐',
-    tag: '$100 CHALLENGE',
-    title: '30 Days to New Habits',
-    desc: 'Build financial discipline one day at a time. Save $100 in 30 days with daily tasks.',
-    visual: <ChallengeVisual />,
+    tag: tr.promo4_tag,
+    title: tr.promo4_title,
+    desc: tr.promo4_desc,
+    visual: <ChallengeVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #E64A19, #BF360C)',
     icon: '🔔',
-    tag: 'BILL REMINDERS',
-    title: 'Never Miss a Payment',
-    desc: 'Set monthly or one-time bill reminders with push notifications — and track what\'s paid.',
-    visual: <BillVisual />,
+    tag: tr.promo5_tag,
+    title: tr.promo5_title,
+    desc: tr.promo5_desc,
+    visual: <BillVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #1D9E75, #0F6E56)',
     icon: '💰',
-    tag: 'SAVINGS GOALS',
-    title: 'Save With Purpose',
-    desc: 'Set goals for emergencies, vacations, homes. Watch the progress bar fill up month by month.',
-    visual: <SavingsVisual />,
+    tag: tr.promo6_tag,
+    title: tr.promo6_title,
+    desc: tr.promo6_desc,
+    visual: <SavingsVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #185FA5, #534AB7)',
     icon: '🤖',
-    tag: 'AI FINANCIAL COACH',
-    title: 'Your Personal Coach',
-    desc: 'Chat with Claude — a powerful AI — for personalized advice on budgeting, investing, and debt.',
-    visual: <CoachVisual />,
+    tag: tr.promo7_tag,
+    title: tr.promo7_title,
+    desc: tr.promo7_desc,
+    visual: <CoachVisual tr={tr} />,
   },
   {
     bg: 'linear-gradient(135deg, #0F6E56, #1D9E75)',
     icon: '✦',
-    tag: 'GET STARTED',
-    title: 'Start Your Journey Today',
-    desc: 'Free to use. Faith-based. Built for families everywhere. Join Stewardship Hub now.',
-    visual: <CtaVisual />,
+    tag: tr.promo8_tag,
+    title: tr.promo8_title,
+    desc: tr.promo8_desc,
+    visual: <CtaVisual tr={tr} />,
   },
-]
+  ]
+}
 
 // ── Slide visuals ─────────────────────────────────────────────────────────────
-function IntroVisual() {
+function IntroVisual({ tr }) {
+  const pills = [tr.budget, tr.invest, tr.loans, tr.giving, tr.community, tr.faith]
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center' }}>
-      {['Budget','Invest','Loans','Giving','Community','Faith'].map((f,i) => (
-        <div key={f} style={{ padding:'5px 18px', background:'rgba(255,255,255,0.15)', borderRadius:20, fontSize:12, color:'white', fontWeight:600, animation:`fadeSlideUp 0.4s ${i*0.1+0.3}s both` }}>{f}</div>
+      {pills.map((f, i) => (
+        <div key={i} style={{ padding:'5px 18px', background:'rgba(255,255,255,0.15)', borderRadius:20, fontSize:12, color:'white', fontWeight:600, animation:`fadeSlideUp 0.4s ${i*0.1+0.3}s both` }}>{f}</div>
       ))}
     </div>
   )
 }
 
-function BudgetVisual() {
-  const rows = [['Salary','$3,000'],['Rent','-$1,200'],['Food','-$400'],['Savings','-$600']]
+function BudgetVisual({ tr }) {
+  const rows = [
+    [tr.promo_vis_budget_salary, '$3,000'],
+    [tr.promo_vis_budget_rent, '-$1,200'],
+    [tr.promo_vis_budget_food, '-$400'],
+    [tr.promo_vis_budget_savings_line, '-$600'],
+  ]
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
       {rows.map(([l,v],i) => (
@@ -99,16 +108,21 @@ function BudgetVisual() {
         </div>
       ))}
       <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, fontSize:12, color:'white', fontWeight:800 }}>
-        <span>Surplus</span><span style={{ color:'#7fffcf' }}>+$800</span>
+        <span>{tr.promo_vis_budget_surplus}</span><span style={{ color:'#7fffcf' }}>+$800</span>
       </div>
     </div>
   )
 }
 
-function InvestVisual() {
+function InvestVisual({ tr }) {
+  const demo = [
+    [tr.promo_vis_demo_sp500, '$10,000', '+12%'],
+    [tr.promo_vis_demo_bitcoin, '$2,000', '+34%'],
+    [tr.promo_vis_demo_apple, '$5,000', '+8%'],
+  ]
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
-      {[['S&P 500','$10,000','+12%'],['Bitcoin','$2,000','+34%'],['Apple','$5,000','+8%']].map(([n,a,r],i) => (
+      {demo.map(([n,a,r],i) => (
         <div key={n} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.1)', animation:`fadeSlideUp 0.3s ${i*0.12+0.2}s both` }}>
           <span style={{ fontSize:10, color:'white', fontWeight:600 }}>{n}</span>
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.7)' }}>{a}</span>
@@ -120,15 +134,19 @@ function InvestVisual() {
           {[['59%','#7fffcf'],['12%','#aaa7ff'],['29%','#ffc87f']].map(([w,c]) => <div key={c} style={{ width:w, background:c }} />)}
         </div>
       </div>
-      <div style={{ fontSize:9, color:'rgba(255,255,255,0.6)', marginTop:3 }}>Portfolio ROI: +15.4%</div>
+      <div style={{ fontSize:9, color:'rgba(255,255,255,0.6)', marginTop:3 }}>{tr.promo_vis_demo_roi}</div>
     </div>
   )
 }
 
-function LoanVisual() {
+function LoanVisual({ tr }) {
+  const bars = [
+    [tr.promo_vis_demo_car_loan, '$18,500', '38%'],
+    [tr.promo_vis_demo_student, '$24,000', '22%'],
+  ]
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
-      {[['Car Loan','$18,500','38%'],['Student','$24,000','22%']].map(([n,a,p],i) => (
+      {bars.map(([n,a,p],i) => (
         <div key={n} style={{ marginBottom:8, animation:`fadeSlideUp 0.3s ${i*0.2+0.2}s both` }}>
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'white', fontWeight:600, marginBottom:3 }}>
             <span>{n}</span><span style={{ color:'#ff8a8a' }}>{a}</span>
@@ -138,16 +156,16 @@ function LoanVisual() {
           </div>
         </div>
       ))}
-      <div style={{ fontSize:10, color:'#7fffcf', fontWeight:700, marginTop:4 }}>🎯 Debt-free in 4.5 years</div>
+      <div style={{ fontSize:10, color:'#7fffcf', fontWeight:700, marginTop:4 }}>{tr.promo_vis_demo_debt_free}</div>
     </div>
   )
 }
 
-function ChallengeVisual() {
+function ChallengeVisual({ tr }) {
   const days = Array.from({length:30},(_,i)=>i+1)
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:8, width:160 }}>
-      <div style={{ fontSize:11, color:'white', fontWeight:700, marginBottom:6, textAlign:'center' }}>Day 14 · $47 saved</div>
+      <div style={{ fontSize:11, color:'white', fontWeight:700, marginBottom:6, textAlign:'center' }}>{tr.promo_vis_challenge_head}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:2 }}>
         {days.map(d => (
           <div key={d} style={{ height:14, borderRadius:3, background: d<=14 ? 'rgba(255,255,255,0.8)' : d===15 ? 'transparent' : 'rgba(255,255,255,0.15)', border: d===15 ? '1.5px solid rgba(255,255,255,0.6)' : 'none', display:'flex', alignItems:'center', justifyContent:'center', fontSize:6, color: d<=14 ? '#7A4D0F' : 'rgba(255,255,255,0.4)', fontWeight:700 }}>
@@ -159,27 +177,42 @@ function ChallengeVisual() {
   )
 }
 
-function BillVisual() {
+function BillVisual({ tr }) {
+  const rows = [
+    { ic: '🏠', n: tr.promo_vis_bill_rent, d: tr.promo_vis_bill_d1, s: tr.promo_vis_bill_st_paid, tone: 'paid' },
+    { ic: '💡', n: tr.promo_vis_bill_electric, d: tr.promo_vis_bill_d2, s: tr.promo_vis_bill_st_days, tone: 'urgent' },
+    { ic: '📱', n: tr.promo_vis_bill_netflix, d: tr.promo_vis_bill_d3, s: tr.promo_vis_bill_st_ok, tone: 'muted' },
+  ]
+  const toneColor = (tone) => {
+    if (tone === 'paid') return '#7fffcf'
+    if (tone === 'urgent') return '#ff8a8a'
+    return 'rgba(255,255,255,0.5)'
+  }
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
-      {[['🏠','Rent','May 1','paid'],['💡','Electric','Apr 30','3 days!'],['📱','Netflix','May 5','ok']].map(([ic,n,d,s],i) => (
+      {rows.map(({ ic, n, d, s, tone }, i) => (
         <div key={n} style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.1)', animation:`fadeSlideUp 0.3s ${i*0.12+0.2}s both` }}>
           <span style={{ fontSize:14 }}>{ic}</span>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:10, color:'white', fontWeight:600 }}>{n}</div>
             <div style={{ fontSize:8, color:'rgba(255,255,255,0.6)' }}>{d}</div>
           </div>
-          <span style={{ fontSize:9, fontWeight:700, color: s==='paid' ? '#7fffcf' : s.includes('day') ? '#ff8a8a' : 'rgba(255,255,255,0.5)' }}>{s}</span>
+          <span style={{ fontSize:9, fontWeight:700, color: toneColor(tone) }}>{s}</span>
         </div>
       ))}
     </div>
   )
 }
 
-function SavingsVisual() {
+function SavingsVisual({ tr }) {
+  const rows = [
+    [tr.promo_vis_sav_emergency, '$3,200', '$5,000', '64%'],
+    [tr.promo_vis_sav_vacation, '$800', '$2,000', '40%'],
+    [tr.promo_vis_sav_car, '$500', '$10,000', '5%'],
+  ]
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
-      {[['Emergency Fund','$3,200','$5,000','64%'],['Vacation','$800','$2,000','40%'],['New Car','$500','$10,000','5%']].map(([n,s,t,p],i) => (
+      {rows.map(([n,s,t,p],i) => (
         <div key={n} style={{ marginBottom:7, animation:`fadeSlideUp 0.3s ${i*0.15+0.2}s both` }}>
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:9, color:'white', marginBottom:2 }}>
             <span style={{ fontWeight:600 }}>{n}</span><span style={{ color:'rgba(255,255,255,0.7)' }}>{s} / {t}</span>
@@ -193,15 +226,16 @@ function SavingsVisual() {
   )
 }
 
-function CoachVisual() {
+function CoachVisual({ tr }) {
+  const msgs = [
+    { text: tr.promo_vis_coach_q1, me:true },
+    { text: tr.promo_vis_coach_a1, me:false },
+    { text: tr.promo_vis_coach_q2, me:true },
+    { text: tr.promo_vis_coach_a2, me:false },
+  ]
   return (
     <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:12, padding:10, width:160 }}>
-      {[
-        { text:'How do I pay off debt faster?', me:true },
-        { text:'Use the debt snowball! Pay the smallest loan first, then roll that payment to the next.', me:false },
-        { text:'Which index fund is best?', me:true },
-        { text:'For beginners, VOO or VTI are excellent — low cost, broad market exposure.', me:false },
-      ].map((m,i) => (
+      {msgs.map((m,i) => (
         <div key={i} style={{ display:'flex', justifyContent: m.me ? 'flex-end' : 'flex-start', marginBottom:5, animation:`fadeSlideUp 0.3s ${i*0.18+0.2}s both` }}>
           <div style={{ maxWidth:'80%', padding:'4px 8px', borderRadius: m.me ? '10px 10px 2px 10px' : '10px 10px 10px 2px', background: m.me ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)', fontSize:8, color: m.me ? '#185FA5' : 'white', fontWeight: m.me ? 600 : 400, lineHeight:1.4 }}>
             {m.text}
@@ -212,10 +246,17 @@ function CoachVisual() {
   )
 }
 
-function CtaVisual() {
+function CtaVisual({ tr }) {
+  const rows = [
+    [tr.promo_vis_cta_free, '✓'],
+    [tr.promo_vis_cta_langs, '🌍'],
+    [tr.promo_vis_cta_faith, '✦'],
+    [tr.promo_vis_cta_ai, '🤖'],
+    [tr.promo_vis_cta_markets, '📈'],
+  ]
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:8, alignItems:'center' }}>
-      {[['Free to use','✓'],['15 Languages','🌍'],['Faith-based','✦'],['AI Coach','🤖'],['Live Markets','📈']].map(([l,ic],i) => (
+      {rows.map(([l,ic],i) => (
         <div key={l} style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 16px', background:'rgba(255,255,255,0.15)', borderRadius:20, animation:`fadeSlideUp 0.4s ${i*0.1+0.2}s both` }}>
           <span style={{ fontSize:13 }}>{ic}</span>
           <span style={{ fontSize:11, color:'white', fontWeight:600 }}>{l}</span>
@@ -227,6 +268,8 @@ function CtaVisual() {
 
 // ── Main PromoVideo component ─────────────────────────────────────────────────
 export default function PromoVideo({ onClose }) {
+  const tr = useT()
+  const SLIDES = buildSlides(tr)
   const [current, setCurrent]   = useState(0)
   const [paused, setPaused]     = useState(false)
   const [progress, setProgress] = useState(0)
@@ -302,10 +345,10 @@ export default function PromoVideo({ onClose }) {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 14px 12px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <span style={{ fontSize:14, color:'white', fontWeight:800 }}>✦</span>
-          <span style={{ fontSize:12, color:'rgba(255,255,255,0.85)', fontWeight:600 }}>Stewardship Hub</span>
+          <span style={{ fontSize:12, color:'rgba(255,255,255,0.85)', fontWeight:600 }}>{tr.promo_brand}</span>
         </div>
-        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.2)', border:'none', borderRadius:20, color:'white', fontSize:12, padding:'4px 12px', cursor:'pointer', fontWeight:600 }}>
-          ✕ Skip
+        <button type="button" onClick={onClose} style={{ background:'rgba(255,255,255,0.2)', border:'none', borderRadius:20, color:'white', fontSize:12, padding:'4px 12px', cursor:'pointer', fontWeight:600 }}>
+          {tr.promo_skip}
         </button>
       </div>
 
@@ -340,7 +383,7 @@ export default function PromoVideo({ onClose }) {
         </button>
         <button onClick={togglePause}
           style={{ flex:1, height:44, borderRadius:22, background:'rgba(255,255,255,0.2)', border:'2px solid rgba(255,255,255,0.4)', color:'white', fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-          {paused ? '▶  Resume' : '⏸  Pause'}
+          {paused ? tr.promo_resume : tr.promo_pause}
         </button>
         <button onClick={next} disabled={current===SLIDES.length-1}
           style={{ width:44, height:44, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'none', color:'white', fontSize:18, cursor: current===SLIDES.length-1 ? 'not-allowed' : 'pointer', opacity: current===SLIDES.length-1 ? 0.4 : 1 }}>

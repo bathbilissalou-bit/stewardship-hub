@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT, interpolate, getLang, LANG_LOCALES } from '../lib/i18n'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
@@ -8,40 +9,26 @@ import {
 
 const SYMBOLS = { USD:'$',EUR:'€',GBP:'£',CAD:'C$',AUD:'A$',NGN:'₦',KES:'KSh',GHS:'₵',ZAR:'R',XOF:'CFA',XAF:'FCFA',INR:'₹',BRL:'R$',MXN:'MX$',CNY:'¥',JPY:'¥',KRW:'₩',RUB:'₽' }
 const TYPE_ICONS = { mortgage:'🏠', car:'🚗', student:'🎓', personal:'👤', credit_card:'💳', other:'📋' }
-const TYPE_LABELS = { mortgage:'Mortgage', car:'Car Loan', student:'Student Loan', personal:'Personal Loan', credit_card:'Credit Card', other:'Other' }
 
-const fmt  = (n, sym='$') => `${sym}${Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}`
-const fmtD = (n, sym='$') => `${sym}${Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`
-
-function monthsToStr(m) {
-  if (!m || m >= 600) return '50+ yrs'
-  const yrs = Math.floor(m / 12)
-  const mos = m % 12
-  if (yrs === 0) return `${mos}mo`
-  if (mos === 0) return `${yrs}yr`
-  return `${yrs}yr ${mos}mo`
-}
-
-function addMonths(n) {
-  const d = new Date()
-  d.setMonth(d.getMonth() + (n || 0))
-  return d.toLocaleDateString('en-US', { month:'short', year:'numeric' })
+function loanDisplayName(l, tr) {
+  const raw = String(l.loan_type || 'other').replace(/[^a-z0-9_]/gi, '')
+  const k = `debt_type_${raw}`
+  return l.lender_name || tr[k] || tr.debt_loan_fallback
 }
 
 // ── Core simulation ────────────────────────────────────────────────────────────
-function simulate(loansInput, extraMonthly, strategy) {
+function simulate(loansInput, extraMonthly, strategy, tr) {
   if (!loansInput.length) return { months:0, totalInterest:0, order:[] }
 
   let loans = loansInput.map(l => ({
     id:         l.id,
-    name:       l.lender_name || TYPE_LABELS[l.loan_type] || 'Loan',
+    name:       loanDisplayName(l, tr),
     balance:    Number(l.remaining_balance || l.principal || 0),
-    monthlyRate: Number(l.interest_rate || 0) / 12,   // stored as decimal e.g. 0.05
+    monthlyRate: Number(l.interest_rate || 0) / 12,
     minPayment: Number(l.monthly_payment || 0),
     paidOffMonth: null,
   }))
 
-  // Sort by strategy
   if (strategy === 'snowball')  loans.sort((a, b) => a.balance - b.balance)
   else                          loans.sort((a, b) => b.monthlyRate - a.monthlyRate)
 
@@ -51,23 +38,19 @@ function simulate(loansInput, extraMonthly, strategy) {
 
   while (loans.some(l => l.balance > 0.01) && months < 600) {
     months++
-    // Target = first loan still with balance
     const targetIdx = loans.findIndex(l => l.balance > 0.01)
 
     for (let i = 0; i < loans.length; i++) {
       if (loans[i].balance <= 0.01) continue
 
-      // Accrue interest
       const interest = loans[i].balance * loans[i].monthlyRate
       totalInterest += interest
       loans[i].balance += interest
 
-      // Payment = min + extra (only to target)
       let payment = loans[i].minPayment + (i === targetIdx ? rollingExtra : 0)
       payment = Math.min(payment, loans[i].balance)
       loans[i].balance -= payment
 
-      // Paid off — roll its minimum into extra
       if (loans[i].balance < 0.01) {
         loans[i].balance = 0
         loans[i].paidOffMonth = months
@@ -84,12 +67,31 @@ function simulate(loansInput, extraMonthly, strategy) {
 }
 
 export default function DebtPlanner({ session }) {
+  const tr = useT()
+  const loc = LANG_LOCALES[getLang()] || 'en-US'
   const userId = session.user.id
   const [symbol,  setSymbol]  = useState('$')
   const [loans,   setLoans]   = useState([])
   const [loading, setLoading] = useState(true)
   const [extra,   setExtra]   = useState('100')
-  const [method,  setMethod]  = useState('both') // 'both' | 'snowball' | 'avalanche'
+
+  const fmt  = (n, sym='$') => `${sym}${Number(n||0).toLocaleString(loc,{minimumFractionDigits:0,maximumFractionDigits:0})}`
+  const fmtD = (n, sym='$') => `${sym}${Number(n||0).toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+
+  function monthsToStr(m) {
+    if (!m || m >= 600) return tr.debt_months_long
+    const yrs = Math.floor(m / 12)
+    const mos = m % 12
+    if (yrs === 0) return interpolate(tr.debt_months_mo, { n: mos })
+    if (mos === 0) return interpolate(tr.debt_months_yr, { n: yrs })
+    return interpolate(tr.debt_months_yr_mo, { y: yrs, m: mos })
+  }
+
+  function addMonthsLabel(n) {
+    const d = new Date()
+    d.setMonth(d.getMonth() + (n || 0))
+    return d.toLocaleDateString(loc, { month:'short', year:'numeric' })
+  }
 
   useEffect(() => {
     supabase.from('users').select('currency').eq('id', userId).single()
@@ -102,35 +104,33 @@ export default function DebtPlanner({ session }) {
   const totalDebt  = loans.reduce((s,l) => s + Number(l.remaining_balance || l.principal || 0), 0)
   const totalMin   = loans.reduce((s,l) => s + Number(l.monthly_payment || 0), 0)
 
-  // Without extra
-  const baseSnow = simulate(loans, 0, 'snowball')
-  const baseAval = simulate(loans, 0, 'avalanche')
+  const baseSnow = useMemo(() => simulate(loans, 0, 'snowball', tr), [loans, tr])
+  const baseAval = useMemo(() => simulate(loans, 0, 'avalanche', tr), [loans, tr])
+  const snow = useMemo(() => simulate(loans, extraNum, 'snowball', tr), [loans, extraNum, tr])
+  const aval = useMemo(() => simulate(loans, extraNum, 'avalanche', tr), [loans, extraNum, tr])
 
-  // With extra
-  const snow = simulate(loans, extraNum, 'snowball')
-  const aval = simulate(loans, extraNum, 'avalanche')
-
-  // Winner
   const avalWins   = aval.totalInterest < snow.totalInterest
   const interestSaved = Math.abs(snow.totalInterest - aval.totalInterest)
 
-  // Chart data — months saved & interest saved per method vs baseline
-  const chartData = [
+  const chartSnowKey = tr.debt_chart_series_snowball
+  const chartAvalKey = tr.debt_chart_series_avalanche
+
+  const chartData = useMemo(() => [
     {
-      name: 'No Extra',
-      Snowball:  Math.round(baseSnow.totalInterest),
-      Avalanche: Math.round(baseAval.totalInterest),
+      name: tr.debt_chart_no_extra,
+      [chartSnowKey]:  Math.round(baseSnow.totalInterest),
+      [chartAvalKey]: Math.round(baseAval.totalInterest),
     },
     {
-      name: `+${symbol}${extraNum}/mo`,
-      Snowball:  Math.round(snow.totalInterest),
-      Avalanche: Math.round(aval.totalInterest),
+      name: interpolate(tr.debt_chart_with_extra, { sym: symbol, n: extraNum }),
+      [chartSnowKey]:  Math.round(snow.totalInterest),
+      [chartAvalKey]: Math.round(aval.totalInterest),
     },
-  ]
+  ], [tr, symbol, extraNum, baseSnow, baseAval, snow, aval, chartSnowKey, chartAvalKey])
 
   if (loading) return (
     <div style={{ paddingTop:60, textAlign:'center' }}>
-      <div className="spinner" />
+      <div className="spinner" aria-label={tr.nw_empty_loading} />
     </div>
   )
 
@@ -138,16 +138,16 @@ export default function DebtPlanner({ session }) {
     <div style={{ paddingBottom:100 }}>
       <div style={{ background:'linear-gradient(135deg,#A32D2D,#7B1C1C)', borderRadius:'16px 16px 0 0', padding:'20px 16px 32px', marginBottom:'-16px', color:'white' }}>
         <div style={{ fontSize:28, marginBottom:4 }}>📉</div>
-        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Debt Payoff Planner</h2>
-        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>Snowball vs Avalanche calculator</p>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>{tr.debt_title}</h2>
+        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>{tr.debt_subtitle}</p>
       </div>
       <div style={{ textAlign:'center', padding:'60px 24px' }}>
         <div style={{ fontSize:48, marginBottom:12 }}>🎉</div>
-        <div style={{ fontSize:18, fontWeight:800, color:'#1D9E75', marginBottom:8 }}>No active loans!</div>
-        <div style={{ fontSize:14, color:'#9ca3af', marginBottom:24 }}>Add loans in the Loans page to use the planner.</div>
+        <div style={{ fontSize:18, fontWeight:800, color:'#1D9E75', marginBottom:8 }}>{tr.debt_no_loans_title}</div>
+        <div style={{ fontSize:14, color:'#9ca3af', marginBottom:24 }}>{tr.debt_no_loans_sub}</div>
         <Link to="/loans">
           <button style={{ padding:'13px 28px', background:'linear-gradient(135deg,#A32D2D,#7B1C1C)', color:'white', border:'none', borderRadius:12, fontWeight:700, fontSize:14, cursor:'pointer' }}>
-            Go to Loans →
+            {tr.debt_go_loans}
           </button>
         </Link>
       </div>
@@ -156,31 +156,30 @@ export default function DebtPlanner({ session }) {
 
   return (
     <div style={{ paddingBottom:100 }}>
-      {/* Header */}
       <div style={{ background:'linear-gradient(135deg,#A32D2D,#7B1C1C)', borderRadius:'16px 16px 0 0', padding:'20px 16px 32px', marginBottom:'-16px', color:'white' }}>
         <div style={{ fontSize:28, marginBottom:4 }}>📉</div>
-        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Debt Payoff Planner</h2>
-        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>Snowball vs Avalanche — find your fastest path to debt-free</p>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>{tr.debt_title}</h2>
+        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>{tr.debt_subtitle_full}</p>
       </div>
 
-      {/* Debt summary */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, margin:'24px 0 16px' }}>
         <div style={{ background:'#FCEBEB', borderRadius:14, padding:'14px 16px' }}>
-          <div style={{ fontSize:11, color:'#A32D2D', fontWeight:600, marginBottom:4 }}>💳 Total Debt</div>
+          <div style={{ fontSize:11, color:'#A32D2D', fontWeight:600, marginBottom:4 }}>{tr.debt_total_debt}</div>
           <div style={{ fontSize:22, fontWeight:800, color:'#A32D2D' }}>{fmt(totalDebt, symbol)}</div>
-          <div style={{ fontSize:10, color:'#A32D2D', opacity:0.7, marginTop:2 }}>{loans.length} active loan{loans.length!==1?'s':''}</div>
+          <div style={{ fontSize:10, color:'#A32D2D', opacity:0.7, marginTop:2 }}>
+            {loans.length === 1 ? tr.debt_active_loans_one : interpolate(tr.debt_active_loans_many, { n: loans.length })}
+          </div>
         </div>
         <div style={{ background:'#f3f4f6', borderRadius:14, padding:'14px 16px' }}>
-          <div style={{ fontSize:11, color:'#5F5E5A', fontWeight:600, marginBottom:4 }}>📅 Min Monthly</div>
+          <div style={{ fontSize:11, color:'#5F5E5A', fontWeight:600, marginBottom:4 }}>{tr.debt_min_monthly}</div>
           <div style={{ fontSize:22, fontWeight:800, color:'#374151' }}>{fmt(totalMin, symbol)}</div>
-          <div style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>required payments</div>
+          <div style={{ fontSize:10, color:'#9ca3af', marginTop:2 }}>{tr.debt_required_payments}</div>
         </div>
       </div>
 
-      {/* Extra payment slider */}
       <div style={{ background:'white', borderRadius:16, padding:'16px', marginBottom:16, border:'1px solid #e5e7eb' }}>
-        <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>⚡ Extra Monthly Payment</div>
-        <div style={{ fontSize:12, color:'#9ca3af', marginBottom:12 }}>How much extra can you put toward debt each month?</div>
+        <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{tr.debt_extra_title}</div>
+        <div style={{ fontSize:12, color:'#9ca3af', marginBottom:12 }}>{tr.debt_extra_hint}</div>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
           <div style={{ flex:1, display:'flex', alignItems:'center', gap:8, padding:'12px 14px', border:'2px solid #A32D2D', borderRadius:12 }}>
             <span style={{ fontSize:18, fontWeight:700, color:'#A32D2D' }}>{symbol}</span>
@@ -190,12 +189,11 @@ export default function DebtPlanner({ session }) {
               style={{ flex:1, border:'none', outline:'none', fontSize:22, fontWeight:700, color:'#A32D2D', width:0 }}
             />
           </div>
-          <span style={{ fontSize:12, color:'#9ca3af' }}>/ month</span>
+          <span style={{ fontSize:12, color:'#9ca3af' }}>{tr.debt_per_month}</span>
         </div>
-        {/* Quick presets */}
         <div style={{ display:'flex', gap:6 }}>
           {[50,100,200,500].map(n => (
-            <button key={n} onClick={() => setExtra(String(n))}
+            <button key={n} type="button" onClick={() => setExtra(String(n))}
               style={{ flex:1, padding:'7px 4px', borderRadius:8, border:`1.5px solid ${extraNum===n?'#A32D2D':'#e5e7eb'}`, background:extraNum===n?'#FCEBEB':'white', color:extraNum===n?'#A32D2D':'#6b7280', fontSize:12, fontWeight:700, cursor:'pointer' }}>
               +{symbol}{n}
             </button>
@@ -203,88 +201,88 @@ export default function DebtPlanner({ session }) {
         </div>
       </div>
 
-      {/* Results comparison */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
-        {/* Snowball */}
         <div style={{ background: !avalWins ? '#FFF3CD' : 'white', borderRadius:16, padding:'16px', border:`2px solid ${!avalWins?'#BA7517':'#e5e7eb'}` }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-            <div style={{ fontSize:13, fontWeight:800, color:'#BA7517' }}>❄️ Snowball</div>
-            {!avalWins && <div style={{ fontSize:9, fontWeight:700, background:'#BA7517', color:'white', padding:'2px 7px', borderRadius:10 }}>BEST</div>}
+            <div style={{ fontSize:13, fontWeight:800, color:'#BA7517' }}>{tr.debt_snowball}</div>
+            {!avalWins && <div style={{ fontSize:9, fontWeight:700, background:'#BA7517', color:'white', padding:'2px 7px', borderRadius:10 }}>{tr.debt_best}</div>}
           </div>
-          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:10, lineHeight:1.5 }}>Lowest balance first. Fast wins, great motivation.</div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:10, lineHeight:1.5 }}>{tr.debt_snowball_desc}</div>
           <div style={{ marginBottom:8 }}>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>Debt-free in</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{tr.debt_debt_free_in}</div>
             <div style={{ fontSize:20, fontWeight:800, color:'#374151' }}>{monthsToStr(snow.months)}</div>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>{addMonths(snow.months)}</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{addMonthsLabel(snow.months)}</div>
           </div>
           <div style={{ borderTop:'1px solid #f3f4f6', paddingTop:8 }}>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>Total interest</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{tr.debt_total_interest}</div>
             <div style={{ fontSize:16, fontWeight:800, color:'#A32D2D' }}>{fmt(snow.totalInterest, symbol)}</div>
           </div>
           {extraNum > 0 && baseSnow.months > snow.months && (
             <div style={{ marginTop:8, background:'#E1F5EE', borderRadius:8, padding:'6px 10px', fontSize:11, color:'#0F6E56', fontWeight:600 }}>
-              💚 Save {monthsToStr(baseSnow.months - snow.months)} & {fmt(baseSnow.totalInterest - snow.totalInterest, symbol)}
+              {interpolate(tr.debt_save_time_money, {
+                time: monthsToStr(baseSnow.months - snow.months),
+                amount: fmt(baseSnow.totalInterest - snow.totalInterest, symbol),
+              })}
             </div>
           )}
         </div>
 
-        {/* Avalanche */}
         <div style={{ background: avalWins ? '#FFF3CD' : 'white', borderRadius:16, padding:'16px', border:`2px solid ${avalWins?'#BA7517':'#e5e7eb'}` }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-            <div style={{ fontSize:13, fontWeight:800, color:'#185FA5' }}>🌊 Avalanche</div>
-            {avalWins && <div style={{ fontSize:9, fontWeight:700, background:'#BA7517', color:'white', padding:'2px 7px', borderRadius:10 }}>BEST</div>}
+            <div style={{ fontSize:13, fontWeight:800, color:'#185FA5' }}>{tr.debt_avalanche}</div>
+            {avalWins && <div style={{ fontSize:9, fontWeight:700, background:'#BA7517', color:'white', padding:'2px 7px', borderRadius:10 }}>{tr.debt_best}</div>}
           </div>
-          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:10, lineHeight:1.5 }}>Highest interest first. Saves the most money.</div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:10, lineHeight:1.5 }}>{tr.debt_avalanche_desc}</div>
           <div style={{ marginBottom:8 }}>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>Debt-free in</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{tr.debt_debt_free_in}</div>
             <div style={{ fontSize:20, fontWeight:800, color:'#374151' }}>{monthsToStr(aval.months)}</div>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>{addMonths(aval.months)}</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{addMonthsLabel(aval.months)}</div>
           </div>
           <div style={{ borderTop:'1px solid #f3f4f6', paddingTop:8 }}>
-            <div style={{ fontSize:10, color:'#9ca3af' }}>Total interest</div>
+            <div style={{ fontSize:10, color:'#9ca3af' }}>{tr.debt_total_interest}</div>
             <div style={{ fontSize:16, fontWeight:800, color:'#A32D2D' }}>{fmt(aval.totalInterest, symbol)}</div>
           </div>
           {extraNum > 0 && baseAval.months > aval.months && (
             <div style={{ marginTop:8, background:'#E1F5EE', borderRadius:8, padding:'6px 10px', fontSize:11, color:'#0F6E56', fontWeight:600 }}>
-              💚 Save {monthsToStr(baseAval.months - aval.months)} & {fmt(baseAval.totalInterest - aval.totalInterest, symbol)}
+              {interpolate(tr.debt_save_time_money, {
+                time: monthsToStr(baseAval.months - aval.months),
+                amount: fmt(baseAval.totalInterest - aval.totalInterest, symbol),
+              })}
             </div>
           )}
         </div>
       </div>
 
-      {/* Interest comparison tip */}
       {interestSaved > 1 && (
         <div style={{ background: avalWins ? '#EBF4FB' : '#FFF3CD', border:`1px solid ${avalWins?'#185FA5':'#BA7517'}`, borderRadius:12, padding:'12px 14px', marginBottom:16, fontSize:13, color: avalWins?'#185FA5':'#7A4D0F', fontWeight:600 }}>
           {avalWins
-            ? `🌊 Avalanche saves you ${fmt(interestSaved, symbol)} more in interest than Snowball.`
-            : `❄️ Both methods save similarly — Snowball gives faster psychological wins.`}
+            ? interpolate(tr.debt_tip_avalanche_wins, { amount: fmt(interestSaved, symbol) })
+            : tr.debt_tip_similar}
         </div>
       )}
 
-      {/* Interest chart */}
       {extraNum > 0 && (
         <div style={{ background:'white', borderRadius:16, padding:'16px', marginBottom:16, border:'1px solid #e5e7eb' }}>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>📊 Interest Paid Comparison</div>
-          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:14 }}>With vs without extra {symbol}{extraNum}/mo</div>
+          <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>{tr.debt_chart_title}</div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginBottom:14 }}>{interpolate(tr.debt_chart_sub, { sym: symbol, n: extraNum })}</div>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={chartData} barCategoryGap="40%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize:9, fill:'#9ca3af' }} axisLine={false} tickLine={false} width={40}
-                tickFormatter={v => `${symbol}${v>=1000?`${(v/1000).toFixed(0)}k`:v}`} />
-              <Tooltip formatter={(v, name) => [`${symbol}${Number(v).toLocaleString()}`, name]}
+                tickFormatter={v => `${symbol}${v>=1000?`${(v/1000).toLocaleString(loc,{ maximumFractionDigits:0 })}k`:v}`} />
+              <Tooltip formatter={(v, name) => [`${symbol}${Number(v).toLocaleString(loc)}`, name]}
                 contentStyle={{ fontSize:11, borderRadius:10, border:'1px solid #e5e7eb' }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11 }} />
-              <Bar dataKey="Snowball"  fill="#BA7517" radius={[4,4,0,0]} />
-              <Bar dataKey="Avalanche" fill="#185FA5" radius={[4,4,0,0]} />
+              <Bar dataKey={chartSnowKey} fill="#BA7517" radius={[4,4,0,0]} />
+              <Bar dataKey={chartAvalKey} fill="#185FA5" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Payoff order — Snowball */}
       <div style={{ background:'white', borderRadius:16, padding:'16px', marginBottom:12, border:'1px solid #e5e7eb' }}>
-        <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>❄️ Snowball Payoff Order</div>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>{tr.debt_order_snowball}</div>
         {snow.order.map((item, i) => (
           <div key={i} style={{ display:'flex', alignItems:'center', gap:12, marginBottom: i < snow.order.length-1 ? 10 : 0 }}>
             <div style={{ width:24, height:24, borderRadius:'50%', background:'#BA751718', border:'2px solid #BA7517', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#BA7517', flexShrink:0 }}>
@@ -292,16 +290,19 @@ export default function DebtPlanner({ session }) {
             </div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:13, fontWeight:600 }}>{item.name}</div>
-              <div style={{ fontSize:10, color:'#9ca3af' }}>Paid off {item.paidOffMonth ? addMonths(item.paidOffMonth) : '—'}</div>
+              <div style={{ fontSize:10, color:'#9ca3af' }}>
+                {item.paidOffMonth
+                  ? interpolate(tr.debt_paid_off_line, { date: addMonthsLabel(item.paidOffMonth) })
+                  : tr.debt_paid_off_dash}
+              </div>
             </div>
             <div style={{ fontSize:11, color:'#9ca3af' }}>{monthsToStr(item.paidOffMonth)}</div>
           </div>
         ))}
       </div>
 
-      {/* Payoff order — Avalanche */}
       <div style={{ background:'white', borderRadius:16, padding:'16px', marginBottom:16, border:'1px solid #e5e7eb' }}>
-        <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>🌊 Avalanche Payoff Order</div>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>{tr.debt_order_avalanche}</div>
         {aval.order.map((item, i) => (
           <div key={i} style={{ display:'flex', alignItems:'center', gap:12, marginBottom: i < aval.order.length-1 ? 10 : 0 }}>
             <div style={{ width:24, height:24, borderRadius:'50%', background:'#185FA518', border:'2px solid #185FA5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:'#185FA5', flexShrink:0 }}>
@@ -309,15 +310,18 @@ export default function DebtPlanner({ session }) {
             </div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:13, fontWeight:600 }}>{item.name}</div>
-              <div style={{ fontSize:10, color:'#9ca3af' }}>Paid off {item.paidOffMonth ? addMonths(item.paidOffMonth) : '—'}</div>
+              <div style={{ fontSize:10, color:'#9ca3af' }}>
+                {item.paidOffMonth
+                  ? interpolate(tr.debt_paid_off_line, { date: addMonthsLabel(item.paidOffMonth) })
+                  : tr.debt_paid_off_dash}
+              </div>
             </div>
             <div style={{ fontSize:11, color:'#9ca3af' }}>{monthsToStr(item.paidOffMonth)}</div>
           </div>
         ))}
       </div>
 
-      {/* Your loans */}
-      <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>Your Active Loans</div>
+      <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>{tr.debt_your_loans}</div>
       {loans.map(loan => {
         const bal = Number(loan.remaining_balance || loan.principal || 0)
         const rate = Number(loan.interest_rate || 0) * 100
@@ -325,8 +329,10 @@ export default function DebtPlanner({ session }) {
           <div key={loan.id} style={{ display:'flex', alignItems:'center', gap:12, background:'white', borderRadius:12, padding:'12px 14px', marginBottom:8, border:'1px solid #e5e7eb' }}>
             <span style={{ fontSize:22 }}>{TYPE_ICONS[loan.loan_type] || '📋'}</span>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:600, fontSize:13 }}>{loan.lender_name || TYPE_LABELS[loan.loan_type]}</div>
-              <div style={{ fontSize:10, color:'#9ca3af' }}>{rate.toFixed(1)}% APR · {fmtD(loan.monthly_payment, symbol)}/mo min</div>
+              <div style={{ fontWeight:600, fontSize:13 }}>{loanDisplayName(loan, tr)}</div>
+              <div style={{ fontSize:10, color:'#9ca3af' }}>
+                {interpolate(tr.debt_apr_min, { rate: rate.toFixed(1), min: fmtD(loan.monthly_payment, symbol) })}
+              </div>
             </div>
             <div style={{ fontWeight:700, color:'#A32D2D', fontSize:14 }}>{fmt(bal, symbol)}</div>
           </div>
@@ -335,7 +341,7 @@ export default function DebtPlanner({ session }) {
 
       <div style={{ marginTop:12, textAlign:'center' }}>
         <Link to="/loans" style={{ fontSize:13, color:'#9ca3af', textDecoration:'none' }}>
-          Manage loans → Loans page
+          {tr.debt_manage_link}
         </Link>
       </div>
     </div>

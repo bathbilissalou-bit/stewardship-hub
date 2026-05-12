@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { useT } from '../lib/i18n'
+import { useT, interpolate } from '../lib/i18n'
 
-const POST_TYPES = ['update','testimony','question','prayer','milestone']
-const TYPE_STYLES = {
-  update:{ bg:'#E6F1FB', color:'#185FA5', label:'Update' },
-  testimony:{ bg:'#EAF3DE', color:'#3B6D11', label:'Testimony' },
-  question:{ bg:'#FAEEDA', color:'#BA7517', label:'Question' },
-  prayer:{ bg:'#EEEDFE', color:'#534AB7', label:'Prayer' },
-  milestone:{ bg:'#E1F5EE', color:'#0F6E56', label:'Milestone' },
+const POST_TYPES = ['update', 'testimony', 'question', 'prayer', 'milestone']
+
+function typeStyles(tr) {
+  return {
+    update: { bg: '#E6F1FB', color: '#185FA5', label: tr.comm_type_update },
+    testimony: { bg: '#EAF3DE', color: '#3B6D11', label: tr.comm_type_testimony },
+    question: { bg: '#FAEEDA', color: '#BA7517', label: tr.comm_type_question },
+    prayer: { bg: '#EEEDFE', color: '#534AB7', label: tr.comm_type_prayer },
+    milestone: { bg: '#E1F5EE', color: '#0F6E56', label: tr.comm_type_milestone },
+  }
 }
 
-function timeAgo(ts) {
-  const diff=Math.floor((Date.now()-new Date(ts))/1000)
-  if(diff<60) return 'just now'
-  if(diff<3600) return `${Math.floor(diff/60)}m ago`
-  if(diff<86400) return `${Math.floor(diff/3600)}h ago`
-  return `${Math.floor(diff/86400)}d ago`
+function timeAgo(ts, tr) {
+  const diff = Math.floor((Date.now() - new Date(ts)) / 1000)
+  if (diff < 60) return tr.comm_time_now
+  if (diff < 3600) return interpolate(tr.comm_time_m, { n: Math.floor(diff / 60) })
+  if (diff < 86400) return interpolate(tr.comm_time_h, { n: Math.floor(diff / 3600) })
+  return interpolate(tr.comm_time_d, { n: Math.floor(diff / 86400) })
 }
 
 function Avatar({ name, size=36 }) {
@@ -39,7 +42,7 @@ export default function Community({ session }) {
   const [savingComment, setSavingComment] = useState(false)
   const [filter, setFilter] = useState('all')
   const userId = session.user.id
-  const userName = session?.user?.user_metadata?.full_name || 'Community member'
+  const userName = session?.user?.user_metadata?.full_name || tr.comm_member
 
   async function fetchPosts() {
     setLoading(true)
@@ -95,23 +98,23 @@ export default function Community({ session }) {
       <div style={{ background:'var(--green-dark)', borderRadius:12, padding:16, color:'white', marginBottom:16 }}>
         <div style={{ fontSize:11, opacity:0.8, marginBottom:4 }}>✦ {tr.weeklyCheckin||'Weekly check-in'}</div>
         <div style={{ fontSize:14, fontWeight:600, marginBottom:10 }}>{tr.howDidYouDo||'How did you do with money this week?'}</div>
-        <button onClick={()=>{setForm({content:'This week I ',post_type:'update'});setShowModal(true)}} style={{ padding:'8px 16px', background:'white', color:'var(--green-dark)', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
+        <button onClick={()=>{setForm({content: tr.comm_preset_week, post_type:'update'});setShowModal(true)}} style={{ padding:'8px 16px', background:'white', color:'var(--green-dark)', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
           {tr.shareUpdate||'Share your update →'}
         </button>
       </div>
       <div style={{ display:'flex', gap:6, overflowX:'auto', marginBottom:16, paddingBottom:4 }}>
-        <button onClick={()=>setFilter('all')} style={{ padding:'6px 14px', borderRadius:20, border:'1px solid', borderColor:filter==='all'?'var(--green)':'var(--border)', background:filter==='all'?'var(--green-light)':'var(--bg)', color:filter==='all'?'var(--green-dark)':'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>All</button>
+        <button type="button" onClick={()=>setFilter('all')} style={{ padding:'6px 14px', borderRadius:20, border:'1px solid', borderColor:filter==='all'?'var(--green)':'var(--border)', background:filter==='all'?'var(--green-light)':'var(--bg)', color:filter==='all'?'var(--green-dark)':'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>{tr.comm_filter_all}</button>
         {POST_TYPES.map(type=>(
-          <button key={type} onClick={()=>setFilter(type)} style={{ padding:'6px 14px', borderRadius:20, border:'1px solid', borderColor:filter===type?'var(--green)':'var(--border)', background:filter===type?'var(--green-light)':'var(--bg)', color:filter===type?'var(--green-dark)':'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap', textTransform:'capitalize' }}>{type}</button>
+          <button key={type} type="button" onClick={()=>setFilter(type)} style={{ padding:'6px 14px', borderRadius:20, border:'1px solid', borderColor:filter===type?'var(--green)':'var(--border)', background:filter===type?'var(--green-light)':'var(--bg)', color:filter===type?'var(--green-dark)':'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>{tr[`comm_type_${type}`]}</button>
         ))}
       </div>
       {loading&&<div className="spinner"/>}
       {!loading&&filtered.length===0&&<div className="empty-state"><div className="icon">👥</div><p>{tr.noPosts||'No posts yet.'}</p><p style={{marginTop:8}}>{tr.beFirst||'Be the first to share your journey!'}</p></div>}
       {!loading&&filtered.map(post=>{
-        const typeStyle=TYPE_STYLES[post.post_type]||TYPE_STYLES.update
+        const typeStyle=typeStyles(tr)[post.post_type]||typeStyles(tr).update
         const isExpanded=expandedPost===post.id
         const postComments=comments[post.id]||[]
-        const authorName=post.users?.full_name||'Community member'
+        const authorName=post.users?.full_name||tr.comm_member
         const isOwn=post.user_id===userId
         return (
           <div key={post.id} className="card" style={{ marginBottom:10, padding:0, overflow:'hidden' }}>
@@ -120,8 +123,8 @@ export default function Community({ session }) {
                 <Avatar name={authorName}/>
                 <div style={{ flex:1 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div style={{ fontWeight:600, fontSize:14 }}>{isOwn?'You':authorName}</div>
-                    <div style={{ fontSize:11, color:'var(--text-muted)' }}>{timeAgo(post.created_at)}</div>
+                    <div style={{ fontWeight:600, fontSize:14 }}>{isOwn?tr.comm_you:authorName}</div>
+                    <div style={{ fontSize:11, color:'var(--text-muted)' }}>{timeAgo(post.created_at, tr)}</div>
                   </div>
                   <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:typeStyle.bg, color:typeStyle.color, fontWeight:500 }}>{typeStyle.label}</span>
                 </div>
@@ -139,7 +142,7 @@ export default function Community({ session }) {
                 {postComments.map((c,i)=>(
                   <div key={i} style={{ display:'flex', gap:8, padding:'10px 16px', borderBottom:'1px solid #f3f4f6' }}>
                     <Avatar name={c.users?.full_name||'?'} size={28}/>
-                    <div><div style={{fontSize:12,fontWeight:600}}>{c.user_id===userId?'You':c.users?.full_name||'Member'}</div><div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{c.content}</div></div>
+                    <div><div style={{fontSize:12,fontWeight:600}}>{c.user_id===userId?tr.comm_you:c.users?.full_name||tr.comm_author_member}</div><div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{c.content}</div></div>
                   </div>
                 ))}
                 <div style={{ display:'flex', gap:8, padding:'10px 16px', alignItems:'center' }}>
@@ -162,8 +165,8 @@ export default function Community({ session }) {
               <label>{tr.postType||'Post type'}</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
                 {POST_TYPES.map(type=>{
-                  const s=TYPE_STYLES[type]
-                  return <button key={type} onClick={()=>setForm(f=>({...f,post_type:type}))} style={{ padding:'6px 12px', borderRadius:20, border:'1px solid', borderColor:form.post_type===type?s.color:'var(--border)', background:form.post_type===type?s.bg:'var(--bg)', color:form.post_type===type?s.color:'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer', textTransform:'capitalize' }}>{type}</button>
+                  const s=typeStyles(tr)[type]
+                  return <button key={type} type="button" onClick={()=>setForm(f=>({...f,post_type:type}))} style={{ padding:'6px 12px', borderRadius:20, border:'1px solid', borderColor:form.post_type===type?s.color:'var(--border)', background:form.post_type===type?s.bg:'var(--bg)', color:form.post_type===type?s.color:'var(--text-muted)', fontSize:12, fontWeight:500, cursor:'pointer' }}>{tr[`comm_type_${type}`]}</button>
                 })}
               </div>
             </div>

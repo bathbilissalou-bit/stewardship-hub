@@ -480,11 +480,11 @@ function Divider() {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Explore() {
+export default function Explore({ lang: langProp }) {
   const tr    = useT()
   const [recent,  setRecent]  = useState([])
-  const verse = useMemo(() => getExploreDailyVerse(getLang()), [])
-  const lang      = getLang()
+  const lang      = langProp || getLang()
+  const verse = useMemo(() => getExploreDailyVerse(lang), [lang])
   const locale    = LANG_LOCALES[lang] || 'en-US'
   const dateStr   = useMemo(
     () => new Date().toLocaleDateString(locale, { weekday:'long', month:'long', day:'numeric' }),

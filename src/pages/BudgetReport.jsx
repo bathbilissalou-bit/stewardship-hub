@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { supabase } from '../lib/supabase'
-import { useT } from '../lib/i18n'
+import { useT, interpolate, getLang, LANG_LOCALES } from '../lib/i18n'
 
 function getMonthYear(offset=0) {
   const d = new Date(); d.setMonth(d.getMonth()+offset)
@@ -88,14 +88,37 @@ function matchAmount(label, keywords, entries) {
   return matched.reduce((s,e) => s+Number(e.amount||0), 0)
 }
 
+function reportBudgetCat(tr, c) {
+  const m = {
+    Needs: tr.report_cat_needs,
+    Wants: tr.report_cat_wants,
+    Giving: tr.report_cat_giving,
+    Savings: tr.report_cat_savings,
+    Investments: tr.report_cat_investments,
+  }
+  return m[c] || c
+}
+
 export default function BudgetReport({ session }) {
   const tr = useT()
+  const loc = LANG_LOCALES[getLang()] || 'en-US'
   const [entries, setEntries] = useState([])
   const [month, setMonth] = useState(getMonthYear(0))
   const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const userId = session.user.id
+
+  const months = useMemo(() => {
+    const y = new Date().getFullYear()
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(y, i, 1)
+      return {
+        value: `${y}-${String(i + 1).padStart(2, '0')}`,
+        label: d.toLocaleDateString(loc, { month: 'long', year: 'numeric' }),
+      }
+    })
+  }, [loc])
 
   useEffect(() => {
     async function load() {
@@ -113,7 +136,7 @@ export default function BudgetReport({ session }) {
   const expenseEntries = entries.filter(e => e.type==='expense')
   const totalIncome = incomeEntries.reduce((s,e)=>s+Number(e.amount),0)
   const totalExpenses = expenseEntries.reduce((s,e)=>s+Number(e.amount),0)
-  const fmt = n => n > 0 ? `$${Number(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : '$0'
+  const fmt = n => n > 0 ? `$${Number(n).toLocaleString(loc,{minimumFractionDigits:0,maximumFractionDigits:0})}` : '$0'
 
   function handlePrint() { window.print() }
 
@@ -124,38 +147,38 @@ export default function BudgetReport({ session }) {
 
     // Income sheet
     const incomeData = [
-      ['INCOME', 'Amount', 'Category', 'Notes'],
-      ...incomeEntries.map(e => [e.label, Number(e.amount), e.category||'Income', e.notes||''])
+      [tr.report_excel_income_hdr, tr.report_tool_amount, tr.category, tr.report_th_notes],
+      ...incomeEntries.map(e => [e.label, Number(e.amount), e.category||tr.income, e.notes||''])
     ]
     const incomeSheet = XLSX.utils.aoa_to_sheet(incomeData)
-    XLSX.utils.book_append_sheet(wb, incomeSheet, 'Income')
+    XLSX.utils.book_append_sheet(wb, incomeSheet, tr.report_sheet_income)
 
     // Expenses sheet
     const expenseData = [
-      ['EXPENSES', 'Amount', 'Category', 'Notes'],
-      ...expenseEntries.map(e => [e.label, Number(e.amount), e.category||'Expense', e.notes||''])
+      [tr.report_excel_expense_hdr, tr.report_tool_amount, tr.category, tr.report_th_notes],
+      ...expenseEntries.map(e => [e.label, Number(e.amount), e.category||tr.expenses, e.notes||''])
     ]
     const expenseSheet = XLSX.utils.aoa_to_sheet(expenseData)
-    XLSX.utils.book_append_sheet(wb, expenseSheet, 'Expenses')
+    XLSX.utils.book_append_sheet(wb, expenseSheet, tr.report_sheet_expenses)
 
     // Summary sheet
     const summaryData = [
-      ['SUMMARY', ''],
-      ['Month', monthYear],
-      ['Total Income', totalIncome],
-      ['Total Expenses', totalExpenses],
-      ['Net Surplus', totalIncome - totalExpenses],
+      [tr.report_th_summary, ''],
+      [tr.report_month_label, month],
+      [tr.report_th_total_income, totalIncome],
+      [tr.report_th_total_expenses, totalExpenses],
+      [tr.report_th_net_surplus, totalIncome - totalExpenses],
       [''],
-      ['SPENDING BY CATEGORY', ''],
+      [tr.report_excel_sum_category, ''],
       ...['Needs','Wants','Giving','Savings','Investments'].map(cat => {
         const amt = expenseEntries.filter(e=>e.category===cat).reduce((s,e)=>s+Number(e.amount),0)
-        return [cat, amt]
+        return [reportBudgetCat(tr, cat), amt]
       }).filter(r => r[1] > 0)
     ]
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
+    XLSX.utils.book_append_sheet(wb, summarySheet, tr.report_sheet_summary)
 
-    XLSX.writeFile(wb, `Budget-Report-${monthYear}.xlsx`)
+    XLSX.writeFile(wb, `Budget-Report-${month}.xlsx`)
   }
 
   async function handleDownloadPDF() {
@@ -185,17 +208,10 @@ export default function BudgetReport({ session }) {
         heightLeft -= pageHeight
       }
       const monthLabel = months.find(m=>m.value===month)?.label || month
-      pdf.save(`Budget-Report-${monthLabel.replace(' ','-')}.pdf`)
-    } catch(e) { alert('PDF generation failed. Please try again.') }
+      pdf.save(`Budget-Report-${monthLabel.replace(/\s+/g,'-')}.pdf`)
+    } catch(e) { alert(tr.report_pdf_fail) }
     setDownloading(false)
   }
-
-  const months = Array.from({length:12},(_,i)=>{
-    const d = new Date(); d.setMonth(i)
-    const y = new Date().getFullYear()
-    const m = String(i+1).padStart(2,'0')
-    return { value:`${y}-${m}`, label:d.toLocaleDateString('en-US',{month:'long',year:'numeric'}) }
-  })
 
   return (
     <div>
@@ -238,7 +254,7 @@ export default function BudgetReport({ session }) {
             const cats = ['Needs','Wants','Giving','Savings','Investments']
             const COLORS = ['#185FA5','#BA7517','#1D9E75','#5F5E5A','#3B6D11']
             const data = cats.map((cat,i) => ({
-              name: cat,
+              name: reportBudgetCat(tr, cat),
               amount: expenseEntries.filter(e=>e.category===cat).reduce((s,e)=>s+Number(e.amount),0),
               color: COLORS[i]
             })).filter(d => d.amount > 0).sort((a,b) => b.amount-a.amount)
@@ -246,7 +262,7 @@ export default function BudgetReport({ session }) {
             if (data.length === 0) return null
 
             const topItem = data[0]
-            const fmt2 = n => `$${Number(n).toLocaleString('en-US',{maximumFractionDigits:0})}`
+            const fmt2 = n => `$${Number(n).toLocaleString(loc,{maximumFractionDigits:0})}`
 
             return (
               <div className="card" style={{ marginBottom:16, padding:'16px' }}>
@@ -258,7 +274,7 @@ export default function BudgetReport({ session }) {
                   <BarChart data={data} layout="vertical" margin={{ top:0, right:40, left:60, bottom:0 }}>
                     <XAxis type="number" tick={{ fontSize:10 }} tickFormatter={v=>`$${v>=1000?Math.round(v/1000)+'k':v}`} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize:12 }} axisLine={false} tickLine={false} width={70} />
-                    <Tooltip formatter={v=>[`$${Number(v).toLocaleString()}`, 'Amount']} contentStyle={{ fontSize:12, borderRadius:8 }} />
+                    <Tooltip formatter={v=>[`$${Number(v).toLocaleString(loc)}`, tr.report_tool_amount]} contentStyle={{ fontSize:12, borderRadius:8 }} />
                     <Bar dataKey="amount" radius={[0,6,6,0]}>
                       {data.map((entry,i) => <Cell key={i} fill={entry.color} />)}
                     </Bar>
@@ -282,7 +298,7 @@ export default function BudgetReport({ session }) {
           {(() => {
             const top5 = [...expenseEntries].sort((a,b)=>Number(b.amount)-Number(a.amount)).slice(0,5)
             if (top5.length === 0) return null
-            const fmt2 = n => `$${Number(n).toLocaleString('en-US',{maximumFractionDigits:0})}`
+            const fmt2 = n => `$${Number(n).toLocaleString(loc,{maximumFractionDigits:0})}`
             const CAT_COLORS = { Needs:'#185FA5', Wants:'#BA7517', Giving:'#1D9E75', Savings:'#5F5E5A', Investments:'#3B6D11' }
             return (
               <div className="card" style={{ marginBottom:16 }}>
@@ -296,7 +312,7 @@ export default function BudgetReport({ session }) {
                     </div>
                     <div style={{ textAlign:'right' }}>
                       <div style={{ fontSize:13, fontWeight:700, color:'#A32D2D' }}>{fmt2(e.amount)}</div>
-                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>{Math.round(Number(e.amount)/totalExpenses*100)}% of expenses</div>
+                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>{interpolate(tr.report_pct_of_exp, { n: Math.round(Number(e.amount)/totalExpenses*100) })}</div>
                     </div>
                   </div>
                 ))}
@@ -310,18 +326,18 @@ export default function BudgetReport({ session }) {
               <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>{tr.incomeVsExpenses||'💰 Income vs Expenses'}</div>
               <div style={{ display:'flex', gap:12, marginBottom:10 }}>
                 <div style={{ flex:1, padding:'10px 14px', background:'#E1F5EE', borderRadius:10 }}>
-                  <div style={{ fontSize:11, color:'var(--green-dark)', marginBottom:2 }}>Income</div>
+                  <div style={{ fontSize:11, color:'var(--green-dark)', marginBottom:2 }}>{tr.income}</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--green)' }}>${fmt(totalIncome)}</div>
                 </div>
                 <div style={{ flex:1, padding:'10px 14px', background:'#FCEBEB', borderRadius:10 }}>
-                  <div style={{ fontSize:11, color:'#A32D2D', marginBottom:2 }}>Expenses</div>
+                  <div style={{ fontSize:11, color:'#A32D2D', marginBottom:2 }}>{tr.expenses}</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'#A32D2D' }}>${fmt(totalExpenses)}</div>
                 </div>
               </div>
               <div style={{ marginBottom:6 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>
-                  <span>Spent {Math.round(totalExpenses/totalIncome*100)}% of income</span>
-                  <span>Saved {Math.round((totalIncome-totalExpenses)/totalIncome*100)}%</span>
+                  <span>{interpolate(tr.report_spent_pct_income, { n: Math.round(totalExpenses/totalIncome*100) })}</span>
+                  <span>{interpolate(tr.report_saved_pct, { n: Math.round((totalIncome-totalExpenses)/totalIncome*100) })}</span>
                 </div>
                 <div style={{ height:10, background:'#f3f4f6', borderRadius:5, overflow:'hidden' }}>
                   <div style={{ width:`${Math.min(100,Math.round(totalExpenses/totalIncome*100))}%`, height:'100%', background: totalExpenses/totalIncome > 0.9 ? '#A32D2D' : totalExpenses/totalIncome > 0.7 ? '#BA7517' : '#1D9E75', borderRadius:5, transition:'width 0.5s' }}/>
@@ -340,27 +356,27 @@ export default function BudgetReport({ session }) {
         {/* Header */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'3px solid #2e7d32', paddingBottom:8, marginBottom:12 }}>
           <div>
-            <div style={{ fontSize:20, fontWeight:800, color:'#2e7d32' }}>✦ STEWARDSHIP HUB</div>
-            <div style={{ fontSize:10, color:'#666' }}>Faith-based Financial Management</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'#2e7d32' }}>{tr.report_brand}</div>
+            <div style={{ fontSize:10, color:'#666' }}>{tr.report_brand_sub}</div>
           </div>
           <div style={{ textAlign:'right', fontSize:10, color:'#666' }}>
-            <div>{new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+            <div>{new Date().toLocaleDateString(loc,{month:'long',day:'numeric',year:'numeric'})}</div>
             <div>{months.find(m=>m.value===month)?.label}</div>
           </div>
         </div>
 
         <div style={{ fontSize:16, fontWeight:700, marginBottom:12 }}>
-          Budget Report — {userName && <span style={{ color:'#2e7d32' }}>{userName}</span>}
+          {interpolate(tr.report_heading, { name: userName || '' })}
         </div>
 
         {/* Summary bar */}
         <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:14, border:'1px solid #ddd' }}>
           <thead>
             <tr style={{ background:'#f5f5f5' }}>
-              <th style={{ padding:'6px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700 }}>SUMMARY</th>
-              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>Total Income</th>
-              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>Total Expenses</th>
-              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>Net Surplus</th>
+              <th style={{ padding:'6px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700 }}>{tr.report_th_summary}</th>
+              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_th_total_income}</th>
+              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_th_total_expenses}</th>
+              <th style={{ padding:'6px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_th_net_surplus}</th>
             </tr>
           </thead>
           <tbody>
@@ -387,15 +403,15 @@ export default function BudgetReport({ session }) {
             <table key={si} style={{ width:'100%', borderCollapse:'collapse', marginBottom:10, border:'1px solid #ddd' }}>
               <thead>
                 <tr style={{ background:'#f5f5f5' }}>
-                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700, width:'45%' }}>{section.section}</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>Current</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>Proposed</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>Difference</th>
-                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:10, fontWeight:600, width:'10%' }}>Notes</th>
+                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700, width:'45%' }}>{interpolate(tr.report_th_section, { section: section.section })}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>{tr.report_th_current}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>{tr.report_th_proposed}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:10, fontWeight:600, width:'15%' }}>{tr.report_th_difference}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:10, fontWeight:600, width:'10%' }}>{tr.report_th_notes}</th>
                 </tr>
                 <tr style={{ background:'#fafafa', borderBottom:'1px solid #ddd' }}>
                   <td style={{ padding:'4px 10px', fontSize:11, fontWeight:600 }}>
-                    {isIncome ? 'Monthly Income' : `${section.section} Total`}
+                    {isIncome ? tr.report_row_monthly_income : interpolate(tr.report_row_section_total, { section: section.section })}
                   </td>
                   <td style={{ padding:'4px 10px', textAlign:'right', fontSize:11, fontWeight:600, color: isIncome?'#2e7d32':'#c62828' }}>{fmt(sectionTotal)}</td>
                   <td style={{ padding:'4px 10px', textAlign:'right', fontSize:10, color:'#999' }}>$</td>
@@ -425,14 +441,14 @@ export default function BudgetReport({ session }) {
         {/* Spending Summary for print */}
         {expenseEntries.length > 0 && (
           <div style={{ marginTop:16, borderTop:'2px solid #2e7d32', paddingTop:12 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:'#2e7d32', marginBottom:8 }}>SPENDING ANALYSIS</div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#2e7d32', marginBottom:8 }}>{tr.report_spending_analysis}</div>
             <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:10, border:'1px solid #ddd' }}>
               <thead>
                 <tr style={{ background:'#f5f5f5' }}>
-                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700 }}>Category</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>Amount</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>% of Expenses</th>
-                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, fontWeight:600 }}>Visual</th>
+                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, color:'#e65100', fontWeight:700 }}>{tr.category}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_tool_amount}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_th_pct_expenses}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, fontWeight:600 }}>{tr.report_th_visual}</th>
                 </tr>
               </thead>
               <tbody>
@@ -443,7 +459,7 @@ export default function BudgetReport({ session }) {
                   const colors = ['#185FA5','#BA7517','#1D9E75','#5F5E5A','#3B6D11']
                   return (
                     <tr key={cat} style={{ borderBottom:'1px solid #f0f0f0' }}>
-                      <td style={{ padding:'5px 10px', fontSize:11, fontWeight:600 }}>{cat}</td>
+                      <td style={{ padding:'5px 10px', fontSize:11, fontWeight:600 }}>{reportBudgetCat(tr, cat)}</td>
                       <td style={{ padding:'5px 10px', textAlign:'right', fontSize:11, color:colors[i], fontWeight:700 }}>${Number(amt).toLocaleString()}</td>
                       <td style={{ padding:'5px 10px', textAlign:'right', fontSize:11 }}>{pct}%</td>
                       <td style={{ padding:'5px 10px' }}>
@@ -454,14 +470,14 @@ export default function BudgetReport({ session }) {
                 })}
               </tbody>
             </table>
-            <div style={{ fontSize:11, fontWeight:700, color:'#2e7d32', marginBottom:6 }}>TOP 5 EXPENSES</div>
+            <div style={{ fontSize:11, fontWeight:700, color:'#2e7d32', marginBottom:6 }}>{tr.top5Expenses}</div>
             <table style={{ width:'100%', borderCollapse:'collapse', border:'1px solid #ddd' }}>
               <thead>
                 <tr style={{ background:'#f5f5f5' }}>
                   <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, fontWeight:600 }}>#</th>
-                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, fontWeight:600 }}>Description</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>Amount</th>
-                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>% of Expenses</th>
+                  <th style={{ padding:'5px 10px', textAlign:'left', fontSize:11, fontWeight:600 }}>{tr.report_th_description}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_tool_amount}</th>
+                  <th style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:600 }}>{tr.report_th_pct_expenses}</th>
                 </tr>
               </thead>
               <tbody>
@@ -470,7 +486,7 @@ export default function BudgetReport({ session }) {
                     <td style={{ padding:'5px 10px', fontSize:11, fontWeight:700, color:'#999' }}>{i+1}</td>
                     <td style={{ padding:'5px 10px', fontSize:11 }}>{e.label}</td>
                     <td style={{ padding:'5px 10px', textAlign:'right', fontSize:11, fontWeight:700, color:'#c62828' }}>${Number(e.amount).toLocaleString()}</td>
-                    <td style={{ padding:'5px 10px', textAlign:'right', fontSize:11 }}>{Math.round(Number(e.amount)/totalExpenses*100)}%</td>
+                    <td style={{ padding:'5px 10px', textAlign:'right', fontSize:11 }}>{interpolate(tr.report_pct_of_exp, { n: Math.round(Number(e.amount)/totalExpenses*100) })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -480,8 +496,8 @@ export default function BudgetReport({ session }) {
 
         {/* Footer */}
         <div style={{ borderTop:'2px solid #2e7d32', paddingTop:8, marginTop:8, display:'flex', justifyContent:'space-between', fontSize:9, color:'#999' }}>
-          <span>Generated by Stewardship Hub · stewardship-hub-tau.vercel.app</span>
-          <span>{new Date().toLocaleDateString()}</span>
+          <span>{tr.report_footer_app}</span>
+          <span>{new Date().toLocaleDateString(loc)}</span>
         </div>
       </div>
 

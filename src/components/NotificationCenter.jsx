@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT, getActiveTranslations, interpolate, getLang } from '../lib/i18n'
 
 const SYMBOLS = { USD:'$',EUR:'€',GBP:'£',CAD:'C$',AUD:'A$',NGN:'₦',KES:'KSh',GHS:'₵',ZAR:'R',XOF:'CFA',XAF:'FCFA',INR:'₹',BRL:'R$',MXN:'MX$',CNY:'¥',JPY:'¥',KRW:'₩',RUB:'₽' }
 const fmt = n => Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -29,11 +30,11 @@ function urgencyColor(days) {
   return '#1D9E75'
 }
 
-function urgencyLabel(days) {
-  if (days < 0)  return 'Overdue'
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Tomorrow'
-  return `In ${days} days`
+function urgencyDaysLabel(days, tr) {
+  if (days < 0) return tr.urgencyOverdue
+  if (days === 0) return tr.urgencyToday
+  if (days === 1) return tr.urgencyTomorrow
+  return interpolate(tr.urgencyInDays, { days: String(days) })
 }
 
 // ── Browser Notification helpers ─────────────────────────────────────────────
@@ -57,9 +58,11 @@ let _cachedAlerts = null
 let _cachedSymbol = '$'
 let _cacheUserId  = null
 let _cacheTime    = 0
+let _cacheLang    = null
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function NotificationCenter({ userId }) {
+  const tr = useT()
   const [open,        setOpen]        = useState(false)
   const [alerts,      setAlerts]      = useState([])
   const [dismissed,   setDismissed]   = useState(() => {
@@ -70,10 +73,12 @@ export default function NotificationCenter({ userId }) {
 
   const loadAlerts = useCallback(async (force = false) => {
     if (!userId) return
+    const trn = getActiveTranslations()
+    const langNow = getLang()
 
     // Return cached data if fresh and same user — avoids 4 DB queries on every page nav
     const now = Date.now()
-    if (!force && _cacheUserId === userId && _cachedAlerts && (now - _cacheTime) < CACHE_TTL) {
+    if (!force && _cacheUserId === userId && _cachedAlerts && _cacheLang === langNow && (now - _cacheTime) < CACHE_TTL) {
       setAlerts(_cachedAlerts)
       setSymbol(_cachedSymbol)
       return
@@ -100,12 +105,13 @@ export default function NotificationCenter({ userId }) {
       const due  = nextBillDate(bill.due_day, bill.due_month)
       const days = daysUntil(due)
       if (days <= 7) {
+        const amt = `${SYMBOLS[userRow?.currency] || '$'}${fmt(bill.amount)}`
         newAlerts.push({
           id:    `bill-${bill.id}`,
           type:  'bill',
           icon:  '🔔',
           title: bill.name,
-          body:  `${SYMBOLS[userRow?.currency]||'$'}${fmt(bill.amount)} due`,
+          body:  interpolate(trn.billDueBody, { amount: amt }),
           days,
           link:  '/bills',
         })
@@ -117,12 +123,13 @@ export default function NotificationCenter({ userId }) {
       if (!sub.next_billing_date) return
       const days = daysUntil(sub.next_billing_date)
       if (days <= 7) {
+        const amt = `${SYMBOLS[userRow?.currency] || '$'}${fmt(sub.amount)}`
         newAlerts.push({
           id:    `sub-${sub.id}`,
           type:  'subscription',
           icon:  sub.icon || '🔄',
           title: sub.name,
-          body:  `${SYMBOLS[userRow?.currency]||'$'}${fmt(sub.amount)} renewing`,
+          body:  interpolate(trn.subRenewing, { amount: amt }),
           days,
           link:  '/subscriptions',
         })
@@ -140,7 +147,7 @@ export default function NotificationCenter({ userId }) {
           type:  'goal',
           icon:  goal.icon || '🎯',
           title: goal.name,
-          body:  `${pct}% of goal reached!`,
+          body:  interpolate(trn.goalPctReached, { pct: String(pct) }),
           days:  null,
           link:  '/savings',
           pct,
@@ -159,6 +166,7 @@ export default function NotificationCenter({ userId }) {
     _cachedAlerts = newAlerts
     _cachedSymbol = userRow?.currency ? (SYMBOLS[userRow.currency] || '$') : '$'
     _cacheUserId  = userId
+    _cacheLang    = langNow
     _cacheTime    = Date.now()
 
     setAlerts(newAlerts)
@@ -168,9 +176,13 @@ export default function NotificationCenter({ userId }) {
       newAlerts
         .filter(a => a.days !== null && a.days <= 1)
         .forEach(a => {
+          const suf =
+            a.days === 0 ? trn.browserSuffixToday
+            : a.days < 0 ? trn.browserSuffixOverdue
+            : trn.browserSuffixTomorrow
           fireBrowserNotification(
             `${a.icon} ${a.title}`,
-            a.body + (a.days === 0 ? ' — TODAY' : a.days < 0 ? ' — OVERDUE' : ' — Tomorrow'),
+            a.body + suf,
             a.id
           )
         })
@@ -219,7 +231,7 @@ export default function NotificationCenter({ userId }) {
           alignItems:'center', justifyContent:'center', fontSize:18,
           color: badgeCount > 0 ? '#A32D2D' : 'var(--green-dark)',
         }}
-        aria-label="Notifications"
+        aria-label={tr.ariaNotifications}
       >
         🔔
         {badgeCount > 0 && (
@@ -257,14 +269,14 @@ export default function NotificationCenter({ userId }) {
             {/* Header */}
             <div style={{ padding:'18px 18px 14px', borderBottom:'1px solid #f3f4f6' }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <div style={{ fontSize:17, fontWeight:800 }}>🔔 Notifications</div>
+                <div style={{ fontSize:17, fontWeight:800 }}>{tr.notificationsHeading}</div>
                 <button onClick={() => setOpen(false)}
                   style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#9ca3af', lineHeight:1 }}>✕</button>
               </div>
               {badgeCount > 0 && (
                 <button onClick={clearAll}
                   style={{ marginTop:8, fontSize:12, color:'#9ca3af', background:'none', border:'none', cursor:'pointer', padding:0, textDecoration:'underline' }}>
-                  Dismiss all
+                  {tr.dismissAll}
                 </button>
               )}
             </div>
@@ -272,11 +284,11 @@ export default function NotificationCenter({ userId }) {
             {/* Browser permission prompt */}
             {!permGranted && (
               <div style={{ margin:'12px 16px 0', background:'#EBF4FB', borderRadius:12, padding:'12px 14px', border:'1px solid #185FA5' }}>
-                <div style={{ fontSize:13, fontWeight:700, color:'#185FA5', marginBottom:4 }}>Enable push alerts</div>
-                <div style={{ fontSize:12, color:'#374151', marginBottom:10 }}>Get notified about bills and subscriptions even when the app is closed.</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'#185FA5', marginBottom:4 }}>{tr.enablePushTitle}</div>
+                <div style={{ fontSize:12, color:'#374151', marginBottom:10 }}>{tr.enablePushBody}</div>
                 <button onClick={enableNotifications}
                   style={{ padding:'8px 16px', background:'#185FA5', color:'white', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-                  Allow Notifications
+                  {tr.allowNotifications}
                 </button>
               </div>
             )}
@@ -286,8 +298,8 @@ export default function NotificationCenter({ userId }) {
               {visible.length === 0 ? (
                 <div style={{ textAlign:'center', padding:'48px 16px', color:'#9ca3af' }}>
                   <div style={{ fontSize:40, marginBottom:10 }}>✅</div>
-                  <div style={{ fontWeight:700, color:'#374151', marginBottom:4 }}>All clear!</div>
-                  <div style={{ fontSize:13 }}>No upcoming bills or alerts</div>
+                  <div style={{ fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.allClearTitle}</div>
+                  <div style={{ fontSize:13 }}>{tr.noUpcomingAlerts}</div>
                 </div>
               ) : (
                 visible.map(alert => {
@@ -319,7 +331,7 @@ export default function NotificationCenter({ userId }) {
                             fontSize:11, fontWeight:700, color,
                             background:`${color}15`, padding:'2px 8px', borderRadius:8,
                           }}>
-                            {urgencyLabel(alert.days)}
+                            {urgencyDaysLabel(alert.days, tr)}
                           </div>
                         )}
                         {alert.pct !== undefined && (
@@ -327,12 +339,12 @@ export default function NotificationCenter({ userId }) {
                             <div style={{ height:5, background:'#f3f4f6', borderRadius:3, overflow:'hidden' }}>
                               <div style={{ height:'100%', width:`${alert.pct}%`, background:'#1D9E75', borderRadius:3 }} />
                             </div>
-                            <div style={{ fontSize:10, color:'#1D9E75', marginTop:2, fontWeight:600 }}>{alert.pct}% complete</div>
+                            <div style={{ fontSize:10, color:'#1D9E75', marginTop:2, fontWeight:600 }}>{interpolate(tr.goalPctComplete, { pct: String(alert.pct) })}</div>
                           </div>
                         )}
                         <Link to={alert.link} onClick={() => setOpen(false)}
                           style={{ fontSize:11, color:'#185FA5', textDecoration:'none', fontWeight:600, display:'inline-block', marginTop:6 }}>
-                          View →
+                          {tr.viewAlertLink}
                         </Link>
                       </div>
 
@@ -349,7 +361,7 @@ export default function NotificationCenter({ userId }) {
 
             {/* Footer */}
             <div style={{ padding:'14px 16px', borderTop:'1px solid #f3f4f6', fontSize:12, color:'#9ca3af', textAlign:'center' }}>
-              Alerts for bills, subscriptions & savings goals
+              {tr.alertsFooterNote}
             </div>
           </div>
         </>

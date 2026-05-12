@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
-import { getLang, RTL_LANGS } from './lib/i18n-core'
+import { getLang, RTL_LANGS, getLoadingUi } from './lib/i18n-core'
 import { hardLocalLogout } from './lib/logout'
 import Layout from './components/Layout'
 
@@ -191,10 +191,11 @@ function App() {
   }, [])
 
   if (loading) {
+    const lt = getLoadingUi(lang)
     return (
       <div className="loading-screen">
         <div className="loading-logo">✦</div>
-        <p>Stewardship Hub</p>
+        <p>{lt.loadingAppName}</p>
       </div>
     )
   }
@@ -243,7 +244,7 @@ function App() {
             <Route path="networth"        element={<NetWorth        session={session} />} />
             <Route path="debtplanner"     element={<DebtPlanner     session={session} />} />
             <Route path="search"          element={<Search          session={session} />} />
-            <Route path="explore"         element={<Explore />} />
+            <Route path="explore"         element={<Explore lang={lang} />} />
           </Route>
         </Routes>
       </Suspense>

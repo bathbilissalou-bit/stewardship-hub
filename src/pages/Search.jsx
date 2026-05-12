@@ -1,15 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT, interpolate, getLang, LANG_LOCALES } from '../lib/i18n'
 
-const RESULT_TYPES = {
-  budget:       { icon:'📊', label:'Budget Entry',   route:'/budget' },
-  bill:         { icon:'📋', label:'Bill',            route:'/bills' },
-  subscription: { icon:'🔄', label:'Subscription',   route:'/subscriptions' },
-  loan:         { icon:'🏦', label:'Loan',            route:'/loans' },
-  investment:   { icon:'📈', label:'Investment',      route:'/investments' },
-  savings:      { icon:'🎯', label:'Savings Goal',    route:'/savings' },
-  networth:     { icon:'💎', label:'Net Worth Item',  route:'/networth' },
+function buildResultTypes(tr) {
+  return {
+    budget:       { icon:'📊', label: tr.search_type_budget,       route:'/budget' },
+    bill:         { icon:'📋', label: tr.search_type_bill,           route:'/bills' },
+    subscription: { icon:'🔄', label: tr.search_type_subscription, route:'/subscriptions' },
+    loan:         { icon:'🏦', label: tr.search_type_loan,           route:'/loans' },
+    investment:   { icon:'📈', label: tr.search_type_investment,    route:'/investments' },
+    savings:      { icon:'🎯', label: tr.search_type_savings,       route:'/savings' },
+    networth:     { icon:'💎', label: tr.search_type_networth,       route:'/networth' },
+  }
 }
 
 function highlight(text = '', query = '') {
@@ -23,12 +26,15 @@ function highlight(text = '', query = '') {
 }
 
 export default function Search({ session }) {
+  const tr = useT()
+  const RESULT_TYPES = useMemo(() => buildResultTypes(tr), [tr])
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState([])
   const [loading, setLoading]   = useState(false)
   const [searched, setSearched] = useState(false)
   const navigate = useNavigate()
   const userId = session?.user?.id
+  const numLocale = LANG_LOCALES[getLang()] || 'en-US'
 
   const doSearch = useCallback(async (q) => {
     if (!q.trim() || !userId) { setResults([]); setSearched(false); return }
@@ -38,7 +44,6 @@ export default function Search({ session }) {
     const term = q.trim().toLowerCase()
     const hits = []
 
-    // ── Budget entries ──────────────────────────────────────────────────────
     const { data: budget } = await supabase
       .from('budget_entries')
       .select('id, label, amount, type, category, month_year')
@@ -49,12 +54,11 @@ export default function Search({ session }) {
       type: 'budget',
       id: r.id,
       title: r.label,
-      subtitle: `${r.type === 'income' ? '💚' : '🔴'} ${r.type} · ${r.month_year}`,
+      subtitle: `${r.type === 'income' ? tr.search_sub_income : tr.search_sub_expense} · ${r.month_year}`,
       amount: r.amount,
       amountColor: r.type === 'income' ? '#1D9E75' : '#A32D2D',
     }))
 
-    // ── Bills ───────────────────────────────────────────────────────────────
     const { data: bills } = await supabase
       .from('bills')
       .select('id, name, amount, status, due_date, category')
@@ -65,12 +69,11 @@ export default function Search({ session }) {
       type: 'bill',
       id: r.id,
       title: r.name,
-      subtitle: `Due ${r.due_date || '—'} · ${r.status === 'paid' ? '✅ Paid' : '⏳ Unpaid'}`,
+      subtitle: `${tr.search_due} ${r.due_date || '—'} · ${r.status === 'paid' ? tr.search_paid : tr.search_unpaid}`,
       amount: r.amount,
       amountColor: '#6366f1',
     }))
 
-    // ── Subscriptions ───────────────────────────────────────────────────────
     const { data: subs } = await supabase
       .from('subscriptions')
       .select('id, name, amount, billing_cycle, category, next_billing_date')
@@ -81,12 +84,11 @@ export default function Search({ session }) {
       type: 'subscription',
       id: r.id,
       title: r.name,
-      subtitle: `${r.billing_cycle} · next ${r.next_billing_date || '—'}`,
+      subtitle: `${r.billing_cycle} · ${tr.search_next} ${r.next_billing_date || '—'}`,
       amount: r.amount,
       amountColor: '#7c3aed',
     }))
 
-    // ── Loans ───────────────────────────────────────────────────────────────
     const { data: loans } = await supabase
       .from('loans')
       .select('id, name, balance, interest_rate, monthly_payment')
@@ -97,12 +99,14 @@ export default function Search({ session }) {
       type: 'loan',
       id: r.id,
       title: r.name,
-      subtitle: `${(Number(r.interest_rate)*100).toFixed(2)}% APR · $${Number(r.monthly_payment||0).toFixed(0)}/mo`,
+      subtitle: interpolate(tr.search_apr, {
+        rate: (Number(r.interest_rate) * 100).toFixed(2),
+        pay: `$${Number(r.monthly_payment || 0).toFixed(0)}`,
+      }),
       amount: r.balance,
       amountColor: '#A32D2D',
     }))
 
-    // ── Investments ─────────────────────────────────────────────────────────
     const { data: investments } = await supabase
       .from('investments')
       .select('id, name, current_value, ticker')
@@ -113,12 +117,11 @@ export default function Search({ session }) {
       type: 'investment',
       id: r.id,
       title: r.name,
-      subtitle: r.ticker ? `Ticker: ${r.ticker}` : 'Investment',
+      subtitle: r.ticker ? interpolate(tr.search_ticker, { t: r.ticker }) : tr.search_investment,
       amount: r.current_value,
       amountColor: '#0ea5e9',
     }))
 
-    // ── Savings Goals ───────────────────────────────────────────────────────
     const { data: savings } = await supabase
       .from('savings_goals')
       .select('id, name, target_amount, current_amount')
@@ -129,12 +132,11 @@ export default function Search({ session }) {
       type: 'savings',
       id: r.id,
       title: r.name,
-      subtitle: `${Math.round((r.current_amount/r.target_amount)*100)}% funded`,
+      subtitle: interpolate(tr.search_funded, { pct: Math.round((r.current_amount / r.target_amount) * 100) }),
       amount: r.target_amount,
       amountColor: '#f59e0b',
     }))
 
-    // ── Net Worth Items ─────────────────────────────────────────────────────
     const { data: nwItems } = await supabase
       .from('net_worth_items')
       .select('id, name, amount, type, category')
@@ -145,16 +147,15 @@ export default function Search({ session }) {
       type: 'networth',
       id: r.id,
       title: r.name,
-      subtitle: `${r.type === 'asset' ? '💚 Asset' : '🔴 Liability'} · ${r.category || ''}`,
+      subtitle: `${r.type === 'asset' ? tr.search_asset : tr.search_liability} · ${r.category || ''}`,
       amount: r.amount,
       amountColor: r.type === 'asset' ? '#1D9E75' : '#A32D2D',
     }))
 
     setResults(hits)
     setLoading(false)
-  }, [userId])
+  }, [userId, tr])
 
-  // Debounce — fire search 350ms after user stops typing
   useEffect(() => {
     const t = setTimeout(() => doSearch(query), 350)
     return () => clearTimeout(t)
@@ -166,16 +167,17 @@ export default function Search({ session }) {
     grouped[r.type].push(r)
   })
 
+  const hints = [tr.search_hint_rent, tr.search_hint_netflix, tr.search_hint_student, tr.search_hint_savings, tr.search_hint_dividend]
+
   return (
     <div style={{ padding:'0 0 80px' }}>
-      {/* ── Search bar ── */}
       <div style={{ position:'sticky', top:0, zIndex:10, background:'var(--bg)', padding:'16px 16px 8px' }}>
         <div style={{ position:'relative' }}>
           <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', fontSize:18, color:'#9ca3af', pointerEvents:'none' }}>🔍</span>
           <input
             autoFocus
             type="text"
-            placeholder="Search budgets, bills, loans, investments…"
+            placeholder={tr.search_ph}
             value={query}
             onChange={e => setQuery(e.target.value)}
             style={{
@@ -186,7 +188,7 @@ export default function Search({ session }) {
             }}
           />
           {query && (
-            <button onClick={() => { setQuery(''); setResults([]); setSearched(false) }}
+            <button type="button" onClick={() => { setQuery(''); setResults([]); setSearched(false) }}
               style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:18, color:'#9ca3af' }}>
               ✕
             </button>
@@ -194,22 +196,23 @@ export default function Search({ session }) {
         </div>
         {results.length > 0 && (
           <div style={{ fontSize:12, color:'#9ca3af', marginTop:6, paddingLeft:4 }}>
-            {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+            {results.length === 1
+              ? interpolate(tr.search_results_one, { q: query })
+              : interpolate(tr.search_results_many, { n: results.length, q: query })}
           </div>
         )}
       </div>
 
-      {/* ── Empty / idle state ── */}
       {!query && (
         <div style={{ textAlign:'center', padding:'60px 24px 24px', color:'#9ca3af' }}>
           <div style={{ fontSize:48, marginBottom:12 }}>🔍</div>
-          <div style={{ fontSize:16, fontWeight:600, color:'var(--text)', marginBottom:8 }}>Search everything</div>
-          <div style={{ fontSize:13, lineHeight:1.6 }}>
-            Find budget entries, bills, subscriptions,<br/>loans, investments, savings goals & more
+          <div style={{ fontSize:16, fontWeight:600, color:'var(--text)', marginBottom:8 }}>{tr.search_empty_title}</div>
+          <div style={{ fontSize:13, lineHeight:1.6, whiteSpace:'pre-line' }}>
+            {tr.search_empty_sub}
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', gap:8, marginTop:20 }}>
-            {['Rent', 'Netflix', 'Student loan', 'Savings', 'Dividend'].map(hint => (
-              <button key={hint} onClick={() => setQuery(hint)}
+            {hints.map(hint => (
+              <button key={hint} type="button" onClick={() => setQuery(hint)}
                 style={{ padding:'6px 14px', borderRadius:20, border:'1.5px solid var(--border)', background:'var(--white)', color:'var(--text)', fontSize:12, cursor:'pointer', fontWeight:500 }}>
                 {hint}
               </button>
@@ -218,27 +221,25 @@ export default function Search({ session }) {
         </div>
       )}
 
-      {/* ── Loading ── */}
       {loading && (
-        <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Searching…</div>
+        <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>{tr.search_loading}</div>
       )}
 
-      {/* ── No results ── */}
       {!loading && searched && results.length === 0 && (
         <div style={{ textAlign:'center', padding:'48px 24px', color:'#9ca3af' }}>
           <div style={{ fontSize:40, marginBottom:12 }}>😶</div>
-          <div style={{ fontSize:15, fontWeight:600, color:'var(--text)' }}>No results for "{query}"</div>
-          <div style={{ fontSize:13, marginTop:6 }}>Try a different keyword</div>
+          <div style={{ fontSize:15, fontWeight:600, color:'var(--text)' }}>{interpolate(tr.search_no_results, { q: query })}</div>
+          <div style={{ fontSize:13, marginTop:6 }}>{tr.search_try_other}</div>
         </div>
       )}
 
-      {/* ── Results grouped by type ── */}
       {!loading && Object.entries(grouped).map(([type, items]) => {
         const meta = RESULT_TYPES[type]
+        if (!meta) return null
         return (
           <div key={type} style={{ padding:'0 16px', marginTop:12 }}>
             <div style={{ fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:0.8, marginBottom:8, paddingLeft:2 }}>
-              {meta.icon} {meta.label}{items.length > 1 ? 's' : ''}
+              {meta.icon} {meta.label}
             </div>
             {items.map(item => (
               <div key={item.id}
@@ -254,7 +255,7 @@ export default function Search({ session }) {
                   <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{item.subtitle}</div>
                 </div>
                 <div style={{ fontWeight:700, fontSize:14, color:item.amountColor, flexShrink:0 }}>
-                  ${Number(item.amount || 0).toLocaleString('en', { minimumFractionDigits:0, maximumFractionDigits:0 })}
+                  ${Number(item.amount || 0).toLocaleString(numLocale, { minimumFractionDigits:0, maximumFractionDigits:0 })}
                 </div>
               </div>
             ))}

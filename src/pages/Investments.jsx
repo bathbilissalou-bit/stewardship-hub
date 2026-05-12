@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { useT } from '../lib/i18n'
+import { useT, getLang, LANG_LOCALES, interpolate } from '../lib/i18n'
 
 const TYPES = ['stocks','index_funds','real_estate','business','crypto','bonds','other']
-const TYPE_LABELS = { stocks:'Stocks', index_funds:'Index funds', real_estate:'Real estate', business:'Business', crypto:'Crypto', bonds:'Bonds', other:'Other' }
 const SYMBOLS = { USD:'$', EUR:'€', GBP:'£', CAD:'C$', AUD:'A$', NGN:'₦', KES:'KSh', GHS:'₵', ZAR:'R', XOF:'CFA', XAF:'FCFA', INR:'₹', BRL:'R$', MXN:'MX$', CNY:'¥', JPY:'¥', KRW:'₩', RUB:'₽' }
-const fmt = n => Number(n||0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })
-const fmtShort = n => Number(n||0).toLocaleString('en-US', { maximumFractionDigits:0 })
 
 // ── Worldwide platforms ──────────────────────────────────────────────────────
 const PLATFORMS = [
@@ -115,12 +112,12 @@ function SelectCell({ value, onChange, options, labels }) {
   )
 }
 
-function PlatformCell({ value, onChange }) {
+function PlatformCell({ value, onChange, emptyLabel }) {
   return (
     <td style={INPUT_CELL}>
       <select value={value || ''} onChange={e => onChange(e.target.value)}
         style={{ width:'100%', padding:'8px 6px', border:'none', outline:'none', fontSize:11, background:'transparent', color: value ? '#1a1a1a' : '#9ca3af', appearance:'none' }}>
-        <option value="">— Select —</option>
+        <option value="">{emptyLabel}</option>
         {PLATFORMS.map(g => (
           <optgroup key={g.group} label={g.group}>
             {g.options.map(p => <option key={p} value={p}>{p}</option>)}
@@ -132,7 +129,8 @@ function PlatformCell({ value, onChange }) {
 }
 
 // ── Live price chip ──────────────────────────────────────────────────────────
-function PriceChip({ data, loading }) {
+function PriceChip({ data, loading, liveLabel, priceLocale }) {
+  const loc = priceLocale || 'en-US'
   if (loading) return <span style={{ fontSize:10, color:'#9ca3af' }}>…</span>
   if (!data) return null
   const change = data.change24h ?? (data.prev ? ((data.price - data.prev) / data.prev * 100) : null)
@@ -140,14 +138,14 @@ function PriceChip({ data, loading }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:1 }}>
       <span style={{ fontSize:11, fontWeight:700, color:'#185FA5' }}>
-        ${data.price?.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits: data.price < 1 ? 6 : 2 })}
+        ${data.price?.toLocaleString(loc, { minimumFractionDigits:2, maximumFractionDigits: data.price < 1 ? 6 : 2 })}
       </span>
       {change != null && (
         <span style={{ fontSize:10, fontWeight:600, color: up ? '#1D9E75' : '#A32D2D' }}>
           {up ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
         </span>
       )}
-      <span style={{ fontSize:9, color:'#9ca3af', letterSpacing:'0.02em' }}>LIVE</span>
+      <span style={{ fontSize:9, color:'#9ca3af', letterSpacing:'0.02em' }}>{liveLabel}</span>
     </div>
   )
 }
@@ -174,6 +172,18 @@ const WATCHLIST = [
 
 export default function Investments({ session, lang }) {
   const tr = useT()
+  const locale = LANG_LOCALES[getLang()] || 'en-US'
+  const fmt = n => Number(n || 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const fmtShort = n => Number(n || 0).toLocaleString(locale, { maximumFractionDigits: 0 })
+  const typeLabels = {
+    stocks: tr.inv_type_stocks,
+    index_funds: tr.inv_type_index_funds,
+    real_estate: tr.inv_type_real_estate,
+    business: tr.inv_type_business,
+    crypto: tr.inv_type_crypto,
+    bonds: tr.inv_type_bonds,
+    other: tr.inv_type_other,
+  }
   const [currencySymbol, setCurrencySymbol] = useState('$')
   const [investments, setInvestments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -329,7 +339,7 @@ export default function Investments({ session, lang }) {
   function roiColor(v) { return v > 0 ? '#1D9E75' : v < 0 ? '#A32D2D' : '#6b7280' }
 
   const byType = TYPES.map(type => ({
-    type, label: TYPE_LABELS[type],
+    type, label: typeLabels[type],
     value: investments.filter(i => i.type === type).reduce((s,i) => s + Number(i.current_value||i.amount_invested||0), 0),
   })).filter(g => g.value > 0)
 
@@ -348,12 +358,12 @@ export default function Investments({ session, lang }) {
           <button onClick={() => { fetchLivePrices(investments, tickerMap); if (showMarket) fetchWatchPrices() }}
             disabled={pricesLoading}
             style={{ padding:'6px 12px', background:'rgba(255,255,255,0.15)', color:'white', border:'1px solid rgba(255,255,255,0.3)', borderRadius:8, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
-            {pricesLoading ? '⟳' : '🔄'} {pricesLoading ? 'Updating…' : 'Refresh'}
+            {pricesLoading ? '⟳' : '🔄'} {pricesLoading ? tr.inv_updating : tr.inv_refresh}
           </button>
         </div>
         {lastUpdated && (
           <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)', marginTop:6 }}>
-            Live prices · updated {lastUpdated.toLocaleTimeString()}
+            {interpolate(tr.inv_live_prices_line, { time: lastUpdated.toLocaleTimeString(locale) })}
           </div>
         )}
       </div>
@@ -388,15 +398,15 @@ export default function Investments({ session, lang }) {
       {/* Market Prices toggle */}
       <button onClick={() => setShowMarket(v => !v)}
         style={{ width:'100%', marginBottom:12, padding:'10px 14px', background: showMarket ? '#EBF4FB' : 'white', border:`1px solid ${showMarket ? '#185FA5' : '#e5e7eb'}`, borderRadius:10, fontSize:13, fontWeight:600, color: showMarket ? '#185FA5' : '#374151', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <span>🌐 {showMarket ? 'Hide' : 'View'} Live Market Prices</span>
-        <span style={{ fontSize:11, color:'#9ca3af' }}>Stocks · Crypto · ETFs</span>
+        <span>🌐 {showMarket ? tr.inv_market_hide : tr.inv_market_view}</span>
+        <span style={{ fontSize:11, color:'#9ca3af' }}>{tr.inv_market_kinds}</span>
       </button>
 
       {/* Market watchlist */}
       {showMarket && (
         <div style={{ marginBottom:16, background:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden' }}>
           <div style={{ padding:'10px 14px', background:'#f8fafc', borderBottom:'1px solid #e5e7eb', fontSize:11, fontWeight:700, color:'#6b7280', display:'flex', justifyContent:'space-between' }}>
-            <span>ASSET</span><span>PRICE · 24H</span>
+            <span>{tr.inv_watch_asset}</span><span>{tr.inv_watch_price}</span>
           </div>
           {WATCHLIST.map(w => {
             const key = w.ticker || w.id
@@ -407,7 +417,7 @@ export default function Investments({ session, lang }) {
               <div key={key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid #f3f4f6' }}>
                 <div>
                   <div style={{ fontSize:13, fontWeight:600 }}>{w.label}</div>
-                  <div style={{ fontSize:10, color:'#9ca3af' }}>{key} · {w.type === 'crypto' ? 'Crypto' : 'ETF/Stock'}</div>
+                  <div style={{ fontSize:10, color:'#9ca3af' }}>{key} · {w.type === 'crypto' ? tr.inv_kind_crypto : tr.inv_kind_stock}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
                   {d ? (
@@ -421,7 +431,7 @@ export default function Investments({ session, lang }) {
                         </div>
                       )}
                     </>
-                  ) : <span style={{ fontSize:11, color:'#9ca3af' }}>Loading…</span>}
+                  ) : <span style={{ fontSize:11, color:'#9ca3af' }}>{tr.inv_loading_row}</span>}
                 </div>
               </div>
             )
@@ -442,14 +452,14 @@ export default function Investments({ session, lang }) {
             <table style={{ width:'100%', borderCollapse:'collapse', borderTop:'1px solid #e5e7eb', borderLeft:'1px solid #e5e7eb' }}>
               <thead>
                 <tr>
-                  <th style={HEAD}>Description</th>
-                  <th style={HEAD}>Type</th>
-                  <th style={HEAD}>Platform</th>
-                  <th style={HEAD}>Invested</th>
-                  <th style={HEAD}>Value</th>
-                  <th style={HEAD}>Live Price</th>
-                  <th style={HEAD}>ROI</th>
-                  <th style={HEAD}>Gain</th>
+                  <th style={HEAD}>{tr.inv_col_description}</th>
+                  <th style={HEAD}>{tr.inv_col_type}</th>
+                  <th style={HEAD}>{tr.inv_col_platform}</th>
+                  <th style={HEAD}>{tr.inv_col_invested}</th>
+                  <th style={HEAD}>{tr.inv_col_value}</th>
+                  <th style={HEAD}>{tr.inv_col_live_price}</th>
+                  <th style={HEAD}>{tr.inv_col_roi}</th>
+                  <th style={HEAD}>{tr.inv_col_gain}</th>
                   <th style={HEAD}></th>
                 </tr>
               </thead>
@@ -469,9 +479,9 @@ export default function Investments({ session, lang }) {
                     <tr key={inv.id} style={{ background: isEditing ? '#f0fdf4' : 'white', cursor:'pointer' }} onClick={() => setEditingId(inv.id)}>
                       {isEditing ? (
                         <>
-                          <EditableCell value={inv.name} onChange={v => updateInvestment(inv.id,'name',v)} placeholder="e.g. S&P 500" />
-                          <SelectCell value={inv.type} onChange={v => updateInvestment(inv.id,'type',v)} options={TYPES} labels={TYPE_LABELS} />
-                          <PlatformCell value={inv.platform||''} onChange={v => updateInvestment(inv.id,'platform',v)} />
+                          <EditableCell value={inv.name} onChange={v => updateInvestment(inv.id,'name',v)} placeholder={tr.inv_ph_name} />
+                          <SelectCell value={inv.type} onChange={v => updateInvestment(inv.id,'type',v)} options={TYPES} labels={typeLabels} />
+                          <PlatformCell value={inv.platform||''} onChange={v => updateInvestment(inv.id,'platform',v)} emptyLabel={tr.inv_select_platform} />
                           <EditableCell value={inv.amount_invested} onChange={v => updateInvestment(inv.id,'amount_invested',v)} type="number" placeholder="0.00" />
                           <EditableCell value={inv.current_value} onChange={v => updateInvestment(inv.id,'current_value',v)} type="number" placeholder="0.00" />
                           {/* Ticker override */}
@@ -479,8 +489,8 @@ export default function Investments({ session, lang }) {
                             <input
                               value={tickerOverride}
                               onChange={e => saveTicker(inv.id, e.target.value)}
-                              placeholder={autoKey || 'Ticker…'}
-                              title="Enter ticker (e.g. AAPL) or CoinGecko ID (e.g. bitcoin)"
+                              placeholder={autoKey || tr.inv_ph_ticker}
+                              title={tr.inv_ticker_help}
                               style={{ width:'100%', padding:'8px 8px', border:'none', outline:'none', fontSize:11, background:'transparent', color:'#185FA5', fontWeight:600, textTransform:'uppercase' }}
                             />
                           </td>
@@ -488,11 +498,11 @@ export default function Investments({ session, lang }) {
                       ) : (
                         <>
                           <td style={DESC_CELL} title={inv.name}>{inv.name}</td>
-                          <td style={CELL}><span style={{ fontSize:10, padding:'2px 6px', borderRadius:10, background:'#f3f4f6', color:'#6b7280' }}>{TYPE_LABELS[inv.type]||inv.type}</span></td>
+                          <td style={CELL}><span style={{ fontSize:10, padding:'2px 6px', borderRadius:10, background:'#f3f4f6', color:'#6b7280' }}>{typeLabels[inv.type]||inv.type}</span></td>
                           <td style={{ ...CELL, color:'#9ca3af', fontSize:11 }}>{inv.platform||'—'}</td>
                           <td style={CELL}>{currencySymbol}{fmt(invested)}</td>
                           <td style={{ ...CELL, fontWeight:600 }}>{currencySymbol}{fmt(value)}</td>
-                          <td style={CELL}><PriceChip data={liveData} loading={pricesLoading && !liveData} /></td>
+                          <td style={CELL}><PriceChip data={liveData} loading={pricesLoading && !liveData} liveLabel={tr.inv_live} priceLocale={locale} /></td>
                         </>
                       )}
                       <td style={{ ...CELL, fontWeight:600, color:roiColor(roi) }}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</td>
@@ -504,18 +514,18 @@ export default function Investments({ session, lang }) {
 
                 {newRow && (
                   <tr style={{ background:'#f0fdf4' }}>
-                    <EditableCell value={newRow.name} onChange={v => { const d = detectType(v); setNewRow(r => ({...r, name:v, ...(d ? {type:d} : {})})) }} placeholder="Investment name" />
-                    <SelectCell value={newRow.type} onChange={v => setNewRow(r => ({...r,type:v}))} options={TYPES} labels={TYPE_LABELS} />
-                    <PlatformCell value={newRow.platform} onChange={v => setNewRow(r => ({...r,platform:v}))} />
-                    <EditableCell value={newRow.amount_invested} onChange={v => setNewRow(r => ({...r,amount_invested:v}))} type="number" placeholder="Amount" />
-                    <EditableCell value={newRow.current_value} onChange={v => setNewRow(r => ({...r,current_value:v}))} type="number" placeholder="Current value" />
+                    <EditableCell value={newRow.name} onChange={v => { const d = detectType(v); setNewRow(r => ({...r, name:v, ...(d ? {type:d} : {})})) }} placeholder={tr.inv_ph_investment_name} />
+                    <SelectCell value={newRow.type} onChange={v => setNewRow(r => ({...r,type:v}))} options={TYPES} labels={typeLabels} />
+                    <PlatformCell value={newRow.platform} onChange={v => setNewRow(r => ({...r,platform:v}))} emptyLabel={tr.inv_select_platform} />
+                    <EditableCell value={newRow.amount_invested} onChange={v => setNewRow(r => ({...r,amount_invested:v}))} type="number" placeholder={tr.inv_ph_amount} />
+                    <EditableCell value={newRow.current_value} onChange={v => setNewRow(r => ({...r,current_value:v}))} type="number" placeholder={tr.inv_ph_current_value} />
                     <td style={CELL} />
                     <td style={CELL}>—</td>
                     <td style={CELL}>—</td>
                     <td style={{ ...CELL, textAlign:'center' }}>
                       <button onClick={saveNewRow} disabled={saving}
                         style={{ fontSize:11, padding:'3px 8px', background:'var(--green)', color:'white', border:'none', borderRadius:4, cursor:'pointer' }}>
-                        {saving ? 'Saving…' : tr.save||'Save'}
+                        {saving ? tr.inv_saving : tr.save||'Save'}
                       </button>
                     </td>
                   </tr>
@@ -535,7 +545,7 @@ export default function Investments({ session, lang }) {
 
                 {investments.length === 0 && !newRow && (
                   <tr><td colSpan={9} style={{ ...CELL, textAlign:'center', color:'#9ca3af', padding:'32px' }}>
-                    {loading ? '⏳ Loading…' : `${tr.noEntriesYet||'No investments yet'} — tap + Add row to start`}
+                    {loading ? `⏳ ${tr.inv_loading_row}` : interpolate(tr.inv_empty_cta, { base: tr.inv_no_investments_yet })}
                   </td></tr>
                 )}
               </tbody>
@@ -543,7 +553,7 @@ export default function Investments({ session, lang }) {
           </div>
 
           <div style={{ marginTop:8, fontSize:11, color:'#9ca3af', textAlign:'right' }}>
-            Tap any row to edit · click the ticker cell to set a custom ticker for live prices
+            {tr.inv_footer_hint}
           </div>
         </div>
     </div>

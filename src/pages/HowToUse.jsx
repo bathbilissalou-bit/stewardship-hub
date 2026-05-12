@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useT, getLang } from '../lib/i18n'
+import { useState, useMemo, useRef } from 'react'
+import { useT, interpolate } from '../lib/i18n'
 import { Link } from 'react-router-dom'
 import VideoCard from '../components/VideoCard'
 
@@ -26,27 +26,34 @@ function Phone({ children }) {
   )
 }
 
-// ── Per-module screen mockups ────────────────────────────────────────────────
-function MockDashboard() {
+// ── Per-module screen mockups (copy via PAGE_PATCH `howto_mock_*` + core `tr`) ─
+function MockDashboard({ tr }) {
+  const nav = [tr.budget, tr.invest, tr.loans]
+  const metrics = [
+    [tr.income, '$3,200'],
+    [tr.expenses, '$2,100'],
+    [tr.howto_mock_saved, '$1,100'],
+    [tr.inv_col_roi, '+4.2%'],
+  ]
   return (
     <div style={{ padding:8, background:'#f8f9fa', height:'100%' }}>
       <div style={{ background:'linear-gradient(135deg,#1D9E75,#0F6E56)', borderRadius:10, padding:'10px 8px', color:'white', marginBottom:6 }}>
-        <div style={{ fontSize:7, opacity:0.8 }}>Good morning</div>
-        <div style={{ fontSize:11, fontWeight:700 }}>Stewardship Hub</div>
+        <div style={{ fontSize:7, opacity:0.8 }}>{tr.howto_mock_good_morning}</div>
+        <div style={{ fontSize:11, fontWeight:700 }}>{tr.settings_brand_name}</div>
         <div style={{ display:'flex', gap:4, marginTop:4 }}>
-          {['Budget','Invest','Loans'].map(l => <div key={l} style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:4, padding:3, fontSize:6, textAlign:'center' }}>{l}</div>)}
+          {nav.map(l => <div key={l} style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:4, padding:3, fontSize:6, textAlign:'center' }}>{l}</div>)}
         </div>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:4 }}>
-        {[['Income','$3,200'],['Expenses','$2,100'],['Saved','$1,100'],['ROI','+4.2%']].map(([l,v]) => (
-          <div key={l} style={{ background:'white', borderRadius:6, padding:5, boxShadow:'0 1px 3px rgba(0,0,0,0.06)' }}>
+        {metrics.map(([l,v]) => (
+          <div key={String(l)} style={{ background:'white', borderRadius:6, padding:5, boxShadow:'0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize:6, color:'#9ca3af' }}>{l}</div>
             <div style={{ fontSize:9, fontWeight:700, color:'#1D9E75' }}>{v}</div>
           </div>
         ))}
       </div>
       <div style={{ background:'white', borderRadius:6, padding:5 }}>
-        <div style={{ fontSize:6, fontWeight:600, marginBottom:3 }}>Bottom navigation</div>
+        <div style={{ fontSize:6, fontWeight:600, marginBottom:3 }}>{tr.howto_mock_bottom_nav}</div>
         <div style={{ display:'flex', justifyContent:'space-around' }}>
           {['🏠','💳','📈','🏦','👥'].map(i => <div key={i} style={{ fontSize:10 }}>{i}</div>)}
         </div>
@@ -56,31 +63,39 @@ function MockDashboard() {
   )
 }
 
-function MockBudget({ step }) {
+function MockBudget({ tr, step }) {
+  const topCards = [
+    [tr.income, '$3,200', '#1D9E75'],
+    [tr.expenses, '$2,100', '#A32D2D'],
+  ]
+  const rows = [
+    [tr.howto_mock_salary, '$3,000'],
+    [tr.howto_mock_freelance, '$200'],
+  ]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#185FA5,#0d3f70)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>💳 Budget</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>April 2026</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_budget_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_month_sample}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:3, marginBottom:4 }}>
-          {[['Income','$3,200','#1D9E75'],['Expenses','$2,100','#A32D2D']].map(([l,v,c]) => (
-            <div key={l} style={{ background:'white', borderRadius:6, padding:4 }}>
+          {topCards.map(([l,v,c]) => (
+            <div key={String(l)} style={{ background:'white', borderRadius:6, padding:4 }}>
               <div style={{ fontSize:5, color:'#9ca3af' }}>{l}</div>
               <div style={{ fontSize:8, fontWeight:700, color:c }}>{v}</div>
             </div>
           ))}
         </div>
         <div style={{ background:'white', borderRadius:6, padding:4, marginBottom:3 }}>
-          <div style={{ fontSize:6, fontWeight:600, marginBottom:2, color:'#185FA5' }}>Income</div>
-          {[['Salary','$3,000'],['Freelance','$200']].map(([n,a]) => (
-            <div key={n} style={{ display:'flex', justifyContent:'space-between', fontSize:5.5, padding:'1.5px 0', borderBottom:'1px solid #f3f4f6' }}>
+          <div style={{ fontSize:6, fontWeight:600, marginBottom:2, color:'#185FA5' }}>{tr.income}</div>
+          {rows.map(([n,a]) => (
+            <div key={String(n)} style={{ display:'flex', justifyContent:'space-between', fontSize:5.5, padding:'1.5px 0', borderBottom:'1px solid #f3f4f6' }}>
               <span>{n}</span><span style={{ color:'#1D9E75' }}>{a}</span>
             </div>
           ))}
           <div style={{ display:'flex', alignItems:'center', gap:2, marginTop:2, color:'#185FA5', fontSize:5.5, fontWeight:600 }}>
-            <span>+</span><span>Add row</span>
+            <span>+</span><span>{tr.howto_mock_add_row}</span>
           </div>
         </div>
       </div>
@@ -89,17 +104,28 @@ function MockBudget({ step }) {
   )
 }
 
-function MockInvest() {
+function MockInvest({ tr }) {
+  const metrics = [
+    [tr.howto_mock_invested, '$21,000'],
+    [tr.howto_mock_value, '$22,500'],
+    [tr.howto_mock_gain, '+$1,500'],
+    [tr.inv_col_roi, '+7.1%'],
+  ]
+  const holdings = [
+    [tr.promo_vis_demo_sp500, '$10k', 'SPY', '+5.2%'],
+    [tr.promo_vis_demo_bitcoin, '$5k', 'BTC', '+12%'],
+    [tr.promo_vis_demo_apple, '$6k', 'AAPL', '+3%'],
+  ]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#3B6D11,#254508)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>📈 Investment Tracker</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>Watch your wealth grow</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_invest_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_invest_sub}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:3, marginBottom:4 }}>
-          {[['Invested','$21,000'],['Value','$22,500'],['Gain','+$1,500'],['ROI','+7.1%']].map(([l,v]) => (
-            <div key={l} style={{ background:'white', borderRadius:5, padding:3 }}>
+          {metrics.map(([l,v]) => (
+            <div key={String(l)} style={{ background:'white', borderRadius:5, padding:3 }}>
               <div style={{ fontSize:5, color:'#9ca3af' }}>{l}</div>
               <div style={{ fontSize:7, fontWeight:700, color:'#3B6D11' }}>{v}</div>
             </div>
@@ -109,8 +135,8 @@ function MockInvest() {
           <div style={{ display:'flex', height:5, borderRadius:3, overflow:'hidden', marginBottom:2 }}>
             {[['40%','#1D9E75'],['35%','#185FA5'],['25%','#BA7517']].map(([w,c]) => <div key={c} style={{ width:w, background:c }} />)}
           </div>
-          {[['S&P 500','$10k','SPY','+5.2%'],['Bitcoin','$5k','BTC','+12%'],['Apple','$6k','AAPL','+3%']].map(([n,a,t,r]) => (
-            <div key={n} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:5.5, padding:'2px 0', borderBottom:'1px solid #f3f4f6' }}>
+          {holdings.map(([n,a,t,r]) => (
+            <div key={String(n)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:5.5, padding:'2px 0', borderBottom:'1px solid #f3f4f6' }}>
               <span style={{ fontWeight:600 }}>{n}</span>
               <span style={{ color:'#9ca3af' }}>{t}</span>
               <span style={{ color:'#1D9E75', fontWeight:600 }}>{r}</span>
@@ -123,16 +149,20 @@ function MockInvest() {
   )
 }
 
-function MockLoans() {
+function MockLoans({ tr }) {
+  const loans = [
+    [tr.howto_mock_car_loan, tr.howto_mock_loan_lender1, '$18,500', tr.howto_mock_loan_pay1],
+    [tr.howto_mock_student_loan, tr.howto_mock_loan_lender2, '$24,000', tr.howto_mock_loan_pay2],
+  ]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#A32D2D,#7B1C1C)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>🏦 Loan Tracker</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>Total debt: $42,500</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_loans_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_total_debt}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        {[['Car Loan','Chase','$18,500','$342/mo'],['Student Loan','Navient','$24,000','$287/mo']].map(([n,l,a,m]) => (
-          <div key={n} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
+        {loans.map(([n,l,a,m]) => (
+          <div key={String(n)} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
               <span style={{ fontSize:6.5, fontWeight:700 }}>{n}</span>
               <span style={{ fontSize:6, color:'#A32D2D', fontWeight:600 }}>{a}</span>
@@ -144,8 +174,8 @@ function MockLoans() {
           </div>
         ))}
         <div style={{ background:'white', borderRadius:6, padding:5, border:'1px dashed #A32D2D44' }}>
-          <div style={{ fontSize:6, color:'#A32D2D', fontWeight:600 }}>📋 Amortization table →</div>
-          <div style={{ fontSize:5, color:'#9ca3af' }}>Tap any loan to expand</div>
+          <div style={{ fontSize:6, color:'#A32D2D', fontWeight:600 }}>{tr.howto_mock_amort_hint}</div>
+          <div style={{ fontSize:5, color:'#9ca3af' }}>{tr.howto_mock_tap_loan}</div>
         </div>
       </div>
       <TapDot x="50%" y="42%" color="#A32D2D" />
@@ -153,18 +183,18 @@ function MockLoans() {
   )
 }
 
-function MockChallenge({ step }) {
+function MockChallenge({ tr, step }) {
   const days = Array.from({length:30},(_,i)=>i+1)
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#BA7517,#7A4D0F)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>⭐ $100 Challenge</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>Day 12 of 30 · $42 saved</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_challenge_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_day_saved}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
         <div style={{ background:'white', borderRadius:6, padding:5, marginBottom:3, textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:800, color:'#BA7517' }}>$42</div>
-          <div style={{ fontSize:5.5, color:'#9ca3af' }}>of $100 goal</div>
+          <div style={{ fontSize:5.5, color:'#9ca3af' }}>{tr.howto_mock_of_goal}</div>
           <div style={{ height:4, background:'#f3f4f6', borderRadius:2, marginTop:3 }}>
             <div style={{ width:'42%', height:'100%', background:'#BA7517', borderRadius:2 }} />
           </div>
@@ -185,16 +215,22 @@ function MockChallenge({ step }) {
   )
 }
 
-function MockRealEstate() {
+function MockRealEstate({ tr }) {
+  const phases = [
+    [tr.howto_mock_phase_finprep, tr.howto_mock_status_done, '100%', '#1D9E75'],
+    [tr.howto_mock_phase_mortgage, tr.howto_mock_status_progress, '40%', '#BA7517'],
+    [tr.howto_mock_phase_search, tr.howto_mock_status_locked, '0%', '#9ca3af'],
+  ]
+  const tabs = [tr.howto_mock_tab_checklist, tr.howto_mock_tab_home_types]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#8B5E3C,#5C3D1E)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>🏠 Real Estate Guide</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>8 of 24 steps complete</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_re_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_steps_progress}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        {[['Financial Prep','Done','100%','#1D9E75'],['Mortgage Ready','In Progress','40%','#BA7517'],['House Search','Locked','0%','#9ca3af'],].map(([phase,status,pct,c]) => (
-          <div key={phase} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
+        {phases.map(([phase,status,pct,c]) => (
+          <div key={String(phase)} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
               <span style={{ fontSize:6.5, fontWeight:600 }}>{phase}</span>
               <span style={{ fontSize:5.5, color:c, fontWeight:600 }}>{status}</span>
@@ -205,8 +241,8 @@ function MockRealEstate() {
           </div>
         ))}
         <div style={{ display:'flex', gap:3 }}>
-          {['✅ Checklist','🏠 Home Types'].map((t,i) => (
-            <div key={t} style={{ flex:1, padding:4, background: i===0 ? '#8B5E3C' : 'white', color: i===0 ? 'white' : '#6b7280', borderRadius:5, fontSize:5.5, fontWeight:600, textAlign:'center', border:'1px solid #e5e7eb' }}>{t}</div>
+          {tabs.map((t,i) => (
+            <div key={String(t)} style={{ flex:1, padding:4, background: i===0 ? '#8B5E3C' : 'white', color: i===0 ? 'white' : '#6b7280', borderRadius:5, fontSize:5.5, fontWeight:600, textAlign:'center', border:'1px solid #e5e7eb' }}>{t}</div>
           ))}
         </div>
       </div>
@@ -215,16 +251,21 @@ function MockRealEstate() {
   )
 }
 
-function MockCommunity() {
+function MockCommunity({ tr }) {
+  const posts = [
+    ['Maria G.', '🎉', tr.howto_mock_comm_p1, tr.howto_mock_comm_time_2h, tr.howto_mock_comm_type_milestone],
+    ['James O.', '❓', tr.howto_mock_comm_p2, tr.howto_mock_comm_time_5h, tr.howto_mock_comm_type_question],
+    ['Sarah K.', '🙏', tr.howto_mock_comm_p3, tr.howto_mock_comm_time_1d, tr.howto_mock_comm_type_prayer],
+  ]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#185FA5,#0d3f70)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>👥 Community</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>48 members sharing</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_comm_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_comm_members}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        {[['Maria G.','🎉','Just paid off my car loan!','2h ago','Milestone'],['James O.','❓','Best index fund for beginners?','5h ago','Question'],['Sarah K.','🙏','Prayer for my new business','1d ago','Prayer']].map(([n,ic,txt,t,type]) => (
-          <div key={n} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
+        {posts.map(([n,ic,txt,t,type]) => (
+          <div key={String(n)} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
             <div style={{ display:'flex', alignItems:'center', gap:3, marginBottom:2 }}>
               <div style={{ width:12, height:12, borderRadius:'50%', background:'#E6F1FB', fontSize:7, display:'flex', alignItems:'center', justifyContent:'center' }}>{ic}</div>
               <div>
@@ -234,7 +275,7 @@ function MockCommunity() {
             </div>
             <div style={{ fontSize:5.5, color:'#374151', lineHeight:1.4 }}>{txt}</div>
             <div style={{ display:'flex', gap:6, marginTop:3, fontSize:5.5, color:'#9ca3af' }}>
-              <span>♥ Like</span><span>💬 Comment</span>
+              <span>{tr.howto_mock_like}</span><span>{tr.howto_mock_comment}</span>
             </div>
           </div>
         ))}
@@ -244,16 +285,22 @@ function MockCommunity() {
   )
 }
 
-function MockFaith() {
+function MockFaith({ tr }) {
+  const rows = [
+    [tr.howto_mock_faith_t1, tr.howto_mock_faith_v1, 'read'],
+    [tr.howto_mock_faith_t2, tr.howto_mock_faith_v2, 'read'],
+    [tr.howto_mock_faith_t3, tr.howto_mock_faith_v3, 'today'],
+    [tr.howto_mock_faith_t4, tr.howto_mock_faith_v4, 'locked'],
+  ]
   return (
     <div style={{ height:'100%', background:'#f8f9fa' }}>
       <div style={{ background:'linear-gradient(135deg,#0F6E56,#06402f)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>✦ Faith & Stewardship</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>Devotionals · Principles</div>
+        <div style={{ fontSize:8, fontWeight:700 }}>{tr.howto_mock_faith_title}</div>
+        <div style={{ fontSize:6, opacity:0.8 }}>{tr.howto_mock_faith_sub}</div>
       </div>
       <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        {[['Stewardship','Luke 16:10','read'],['Contentment','Phil 4:11','read'],['Diligence','Prov 21:5','today'],['Generosity','2 Cor 9:7','locked']].map(([t,v,s]) => (
-          <div key={t} style={{ background:'white', borderRadius:5, padding:4, marginBottom:3, display:'flex', alignItems:'center', gap:4 }}>
+        {rows.map(([t,v,s]) => (
+          <div key={String(t)} style={{ background:'white', borderRadius:5, padding:4, marginBottom:3, display:'flex', alignItems:'center', gap:4 }}>
             <div style={{ width:16, height:16, borderRadius:4, background: s==='read' ? '#E1F5EE' : s==='today' ? '#0F6E56' : '#f3f4f6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8 }}>
               {s==='read' ? '✓' : s==='today' ? '✦' : '🔒'}
             </div>
@@ -261,12 +308,12 @@ function MockFaith() {
               <div style={{ fontSize:6, fontWeight:700 }}>{t}</div>
               <div style={{ fontSize:5, color:'#9ca3af' }}>{v}</div>
             </div>
-            {s==='today' && <span style={{ fontSize:5, color:'#0F6E56', fontWeight:700 }}>READ →</span>}
+            {s==='today' && <span style={{ fontSize:5, color:'#0F6E56', fontWeight:700 }}>{tr.howto_mock_read_arrow}</span>}
           </div>
         ))}
         <div style={{ background:'linear-gradient(135deg,#0F6E56,#1D9E75)', borderRadius:5, padding:5, color:'white' }}>
-          <div style={{ fontSize:6, fontWeight:700 }}>The 6 Principles</div>
-          <div style={{ fontSize:5, opacity:0.8 }}>Earn · Save · Give · Invest · Budget · Be Free</div>
+          <div style={{ fontSize:6, fontWeight:700 }}>{tr.howto_mock_six_principles}</div>
+          <div style={{ fontSize:5, opacity:0.8 }}>{tr.howto_mock_six_pillars}</div>
         </div>
       </div>
       <TapDot x="50%" y="52%" color="#0F6E56" />
@@ -274,119 +321,49 @@ function MockFaith() {
   )
 }
 
-function MockBills() {
-  return (
-    <div style={{ height:'100%', background:'#f8f9fa' }}>
-      <div style={{ background:'linear-gradient(135deg,#E64A19,#BF360C)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>🔔 Bill Reminders</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>Never miss a payment</div>
-      </div>
-      <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        <div style={{ background:'#FCEBEB', borderRadius:5, padding:4, marginBottom:3, fontSize:5.5, color:'#A32D2D', fontWeight:600 }}>⚠️ Electricity due in 3 days!</div>
-        {[['🏠','Rent','$1,500','May 1','paid'],['💡','Electricity','$130','Apr 30','due!'],['📱','Netflix','$18','May 5','ok']].map(([ic,n,a,d,s]) => (
-          <div key={n} style={{ background:'white', borderRadius:5, padding:4, marginBottom:2, display:'flex', alignItems:'center', gap:3 }}>
-            <span style={{ fontSize:8 }}>{ic}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:6, fontWeight:700 }}>{n}</div>
-              <div style={{ fontSize:5, color:'#9ca3af' }}>Due {d}</div>
-            </div>
-            <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:6.5, fontWeight:700 }}>{a}</div>
-              <div style={{ fontSize:5, color: s==='paid' ? '#1D9E75' : s==='due!' ? '#A32D2D' : '#9ca3af', fontWeight:600 }}>{s}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <TapDot x="82%" y="88%" color="#E64A19" />
-    </div>
-  )
+function buildMockupComponents(tr) {
+  return [
+    (step) => <MockDashboard tr={tr} />,
+    (step) => <MockBudget tr={tr} step={step} />,
+    (step) => <MockInvest tr={tr} />,
+    (step) => <MockLoans tr={tr} />,
+    (step) => <MockChallenge tr={tr} step={step} />,
+    (step) => <MockRealEstate tr={tr} />,
+    (step) => <MockCommunity tr={tr} />,
+    (step) => <MockFaith tr={tr} />,
+  ]
 }
 
-function MockSavings() {
-  return (
-    <div style={{ height:'100%', background:'#f8f9fa' }}>
-      <div style={{ background:'linear-gradient(135deg,#1D9E75,#0F6E56)', padding:'8px 8px 14px', color:'white' }}>
-        <div style={{ fontSize:8, fontWeight:700 }}>💰 Savings Goals</div>
-        <div style={{ fontSize:6, opacity:0.8 }}>3 goals · $4,200 saved</div>
-      </div>
-      <div style={{ padding:'4px 6px', marginTop:-8 }}>
-        {[['Emergency Fund','$5,000','$3,200','64%'],['Vacation','$2,000','$800','40%'],['New Car','$10,000','$200','2%']].map(([n,t,s,p]) => (
-          <div key={n} style={{ background:'white', borderRadius:6, padding:5, marginBottom:3 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
-              <span style={{ fontSize:6.5, fontWeight:700 }}>{n}</span>
-              <span style={{ fontSize:6, color:'#1D9E75', fontWeight:700 }}>{p}</span>
-            </div>
-            <div style={{ fontSize:5, color:'#9ca3af', marginBottom:2 }}>{s} of {t}</div>
-            <div style={{ height:4, background:'#f3f4f6', borderRadius:2 }}>
-              <div style={{ width:p, height:'100%', background:'#1D9E75', borderRadius:2 }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <TapDot x="82%" y="88%" color="#1D9E75" />
-    </div>
-  )
+// ── Guide shell (copy per module) + copy from i18n keys guide_m* ──────────────
+const GUIDE_SHELL = [
+  { icon: '✦', color: '#1D9E75', bg: '#E1F5EE', link: '/' },
+  { icon: '💳', color: '#185FA5', bg: '#E6F1FB', link: '/budget' },
+  { icon: '📈', color: '#3B6D11', bg: '#EAF3DE', link: '/investments' },
+  { icon: '🏦', color: '#A32D2D', bg: '#FCEBEB', link: '/loans' },
+  { icon: '⭐', color: '#BA7517', bg: '#FAEEDA', link: '/challenge' },
+  { icon: '🏠', color: '#8B5E3C', bg: '#F5EAE0', link: '/realestate' },
+  { icon: '👥', color: '#185FA5', bg: '#E6F1FB', link: '/community' },
+  { icon: '✦', color: '#0F6E56', bg: '#E1F5EE', link: '/faith' },
+]
+
+function buildGuideModules(tr) {
+  return GUIDE_SHELL.map((shell, mi) => ({
+    ...shell,
+    module: tr[`guide_m${mi}_name`],
+    steps: [0, 1, 2].map(si => ({
+      title: tr[`guide_m${mi}_s${si}_title`],
+      desc: tr[`guide_m${mi}_s${si}_desc`],
+      tip: tr[`guide_m${mi}_s${si}_tip`],
+    })),
+  }))
 }
-
-// Map module index → mockup component
-const MOCKUP_COMPONENTS = [
-  (step) => <MockDashboard />,
-  (step) => <MockBudget step={step} />,
-  (step) => <MockInvest />,
-  (step) => <MockLoans />,
-  (step) => <MockChallenge step={step} />,
-  (step) => <MockRealEstate />,
-  (step) => <MockCommunity />,
-  (step) => <MockFaith />,
-]
-
-// ── Guide data (English only — translation kept lightweight) ─────────────────
-const MODULES = [
-  { module:'Getting Started', icon:'✦', color:'#1D9E75', bg:'#E1F5EE', link:'/', steps:[
-    { title:'Welcome to Stewardship Hub', desc:'This app helps you manage finances with faith-based principles. Track budget, investments, loans, and grow with a community.', tip:'Available in 15 languages — tap the flag button at the top!' },
-    { title:'Navigate with bottom tabs', desc:'The bottom bar has 6 tabs: Home, Budget, Invest, Loans, Community, and Explore. Tap any tab to switch features.', tip:'The Home tab shows your full financial summary at a glance.' },
-    { title:'Settings & profile', desc:'Tap the ⚙️ gear icon at the top right to access Settings — set your currency, language, and manage your account.', tip:'Set your currency first! It affects all amounts across the app.' },
-  ]},
-  { module:'Budget Tracker', icon:'💳', color:'#185FA5', bg:'#E6F1FB', link:'/budget', steps:[
-    { title:'Open the Budget tab', desc:'Tap "Budget" in the bottom nav. You\'ll see Income, Expenses, and Net Surplus cards for the current month.', tip:'Use the ‹ › arrows to navigate between past and future months.' },
-    { title:'Add income & expenses', desc:'Tap "+ Add row" under Income or Expenses. Enter description and amount, choose a category, then tap Save.', tip:'Categories: Needs = rent/food. Wants = entertainment. Giving = tithe.' },
-    { title:'Your surplus is auto-calculated', desc:'The app shows your NET SURPLUS automatically. Green means you\'re ahead. Red means you\'re overspending.', tip:'Aim to save at least 20% of your income every month.' },
-  ]},
-  { module:'Investment Tracker', icon:'📈', color:'#3B6D11', bg:'#EAF3DE', link:'/investments', steps:[
-    { title:'Track your portfolio', desc:'Tap "Invest" in the bottom nav. See total portfolio value, invested amount, and overall ROI updated live.', tip:'ROI = Return on Investment. It shows how much your money has grown.' },
-    { title:'Add investments with live prices', desc:'Tap "+ Add row". Enter name (e.g. "Bitcoin" or "S&P 500") — the type is auto-detected and live price appears instantly.', tip:'Type is auto-detected: "Bitcoin" → Crypto, "S&P 500" → Index funds.' },
-    { title:'View live market prices', desc:'Tap "🌐 View Live Market Prices" to see real-time prices for stocks, ETFs, and 16+ cryptocurrencies.', tip:'Tap 🔄 Refresh to get the latest prices anytime.' },
-  ]},
-  { module:'Loan Tracker', icon:'🏦', color:'#A32D2D', bg:'#FCEBEB', link:'/loans', steps:[
-    { title:'Track all your debt', desc:'Tap "Loans" in the bottom nav. See total debt, monthly payment, and a list of all loans.', tip:'Goal: get ALL loans to zero. Debt freedom = financial freedom.' },
-    { title:'Add a loan', desc:'Tap +. Enter loan type, lender, principal amount, interest rate (%), and term in months. Monthly payment auto-calculates.', tip:'Example: Car loan, Chase Bank, $20,000, 6.5%, 60 months.' },
-    { title:'View amortization table', desc:'Tap any loan to expand it. See the full month-by-month breakdown of principal vs interest payments.', tip:'Debt snowball strategy: pay off the smallest loan first, then roll payments to the next.' },
-  ]},
-  { module:'$100 Challenge', icon:'⭐', color:'#BA7517', bg:'#FAEEDA', link:'/challenge', steps:[
-    { title:'30-day financial challenge', desc:'The $100 Challenge has 30 daily tasks. Each one builds a new financial habit. Tap "Challenge" to start.', tip:'30 days, 30 tasks, $100 saved. The habit matters more than the amount.' },
-    { title:'Complete a day', desc:'Tap the current day card. Read the task, enter the amount you saved, write a reflection, then tap "Mark complete".', tip:'Even saving $1 counts. Start small and build momentum.' },
-    { title:'Track your 30-day grid', desc:'The dot grid shows your progress: Green ✓ = done, green outline = today, gray = upcoming.', tip:'After the challenge, invest your $100 in an index fund!' },
-  ]},
-  { module:'Real Estate Guide', icon:'🏠', color:'#8B5E3C', bg:'#F5EAE0', link:'/realestate', steps:[
-    { title:'Home buying checklist', desc:'The Real Estate Guide walks you through 5 phases: Financial Prep, Mortgage Ready, House Search, Offer & Closing, and After Purchase.', tip:'Don\'t skip phases! Each one prepares you for the next.' },
-    { title:'Track each step', desc:'Tap a checklist item to cycle its status: Not Started → In Progress → Done. The progress bar fills as you complete steps.', tip:'Tap the status badge on the right to change status quickly.' },
-    { title:'Compare home types', desc:'Tap the "Home Types" tab to compare Brick, Wood Frame, Condo, Duplex, and Modular homes side by side.', tip:'Duplexes are great — rent one unit to help pay the mortgage!' },
-  ]},
-  { module:'Community', icon:'👥', color:'#185FA5', bg:'#E6F1FB', link:'/community', steps:[
-    { title:'Share & grow together', desc:'The Community tab shows posts from all Stewardship Hub members — testimonies, questions, prayers, and milestones.', tip:'A faith-based encouraging space. Build each other up.' },
-    { title:'Post an update', desc:'Tap + to share. Choose your post type: Update, Testimony, Question, Prayer, or Milestone. Then write and tap Post.', tip:'Sharing wins like "I paid off my credit card!" inspires others!' },
-    { title:'Like and comment', desc:'Tap ♥ to like any post. Tap 💬 to leave a comment. Your encouragement can change someone\'s financial journey.', tip:'Accountability increases goal achievement by 95%.' },
-  ]},
-  { module:'Faith & Stewardship', icon:'✦', color:'#0F6E56', bg:'#E1F5EE', link:'/faith', steps:[
-    { title:'Faith-based finance', desc:'The Faith tab has 7 devotionals connecting scripture to money management. Each takes 3–5 minutes to read.', tip:'Managing money well IS an act of worship.' },
-    { title:'Read & reflect', desc:'Tap any devotional card. Read the scripture and teaching, then write your personal reflection and tap "Mark as read".', tip:'Journaling your reflections helps you grow faster than just reading.' },
-    { title:'The 6 Principles', desc:'Tap the "Principles" tab to study the 6 pillars: Earn, Budget, Save, Invest, Give, and Be Free. Your financial foundation.', tip:'The Stewardship Commitment at the bottom is worth memorizing.' },
-  ]},
-]
 
 const PROGRESS_KEY = 'sh_guide_progress'
 
 export default function HowToUse() {
+  const tr = useT()
+  const mockupComponents = useMemo(() => buildMockupComponents(tr), [tr])
+  const MODULES = buildGuideModules(tr)
   const [activeModule, setActiveModule] = useState(0)
   const [activeStep, setActiveStep] = useState(0)
   const [completedModules, setCompletedModules] = useState(() => {
@@ -459,7 +436,7 @@ export default function HowToUse() {
   const isFirst = activeModule === 0 && activeStep === 0
   const isLast = activeModule === MODULES.length - 1 && activeStep === mod.steps.length - 1
 
-  const MockComponent = MOCKUP_COMPONENTS[activeModule] || (() => <div style={{ fontSize:48, textAlign:'center', marginTop:60 }}>{mod.icon}</div>)
+  const MockComponent = mockupComponents[activeModule] || (() => <div style={{ fontSize:48, textAlign:'center', marginTop:60 }}>{mod.icon}</div>)
 
   return (
     <div style={{ paddingBottom:100 }}>
@@ -487,16 +464,16 @@ export default function HowToUse() {
 
       {/* Header */}
       <div style={{ background:`linear-gradient(135deg, ${mod.color}, ${mod.color}bb)`, borderRadius:'16px 16px 0 0', padding:'18px 16px 28px', marginBottom:'-14px', color:'white' }}>
-        <div style={{ fontSize:10, fontWeight:600, opacity:0.8, letterSpacing:'0.08em', marginBottom:4 }}>APP GUIDE</div>
-        <h2 style={{ color:'white', margin:'0 0 4px', fontSize:20, fontWeight:800 }}>How to Use the App</h2>
-        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:12 }}>Tap Next — each step shows you exactly what to do</p>
+        <div style={{ fontSize:10, fontWeight:600, opacity:0.8, letterSpacing:'0.08em', marginBottom:4 }}>{tr.howto_app_guide_badge}</div>
+        <h2 style={{ color:'white', margin:'0 0 4px', fontSize:20, fontWeight:800 }}>{tr.howto_title}</h2>
+        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:12 }}>{tr.howto_subtitle}</p>
       </div>
 
       {/* Intro video */}
       <div style={{ marginTop:20 }}>
         <VideoCard
-          title="How Stewardship Hub Works"
-          subtitle="A complete walkthrough of every feature in 3 minutes"
+          title={tr.howto_video_title}
+          subtitle={tr.howto_video_subtitle}
         />
       </div>
 
@@ -522,8 +499,8 @@ export default function HowToUse() {
       {/* Overall progress bar */}
       <div style={{ marginBottom:12 }}>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>
-          <span>Overall progress</span>
-          <span style={{ fontWeight:600, color:mod.color }}>{overallStep} / {overallTotal} steps</span>
+          <span>{tr.howto_overall_progress}</span>
+          <span style={{ fontWeight:600, color:mod.color }}>{overallStep} / {overallTotal} {tr.howto_steps_word}</span>
         </div>
         <div style={{ height:5, background:'#e5e7eb', borderRadius:3, overflow:'hidden' }}>
           <div style={{ height:'100%', width:`${(overallStep/overallTotal)*100}%`, background:mod.color, borderRadius:3, transition:'width 0.4s ease' }} />
@@ -575,7 +552,7 @@ export default function HowToUse() {
           <Link to={mod.link} style={{ textDecoration:'none', display:'block', marginBottom:10 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'10px', background:`linear-gradient(135deg, ${mod.color}, ${mod.color}bb)`, borderRadius:10, color:'white', fontSize:13, fontWeight:700 }}>
               <span>{mod.icon}</span>
-              <span>Try it now → {mod.module}</span>
+              <span>{interpolate(tr.howto_try_it, { module: mod.module })}</span>
             </div>
           </Link>
 
@@ -583,11 +560,11 @@ export default function HowToUse() {
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={prev} disabled={isFirst}
               style={{ flex:1, padding:'12px', background:'#f3f4f6', border:'none', borderRadius:10, fontSize:14, fontWeight:600, cursor: isFirst ? 'not-allowed' : 'pointer', color: isFirst ? '#d1d5db' : '#374151' }}>
-              ← Back
+              {tr.howto_back}
             </button>
-            <button onClick={next}
+            <button type="button" onClick={next}
               style={{ flex:2, padding:'12px', background:`linear-gradient(135deg, ${mod.color}, ${mod.color}cc)`, border:'none', borderRadius:10, fontSize:15, fontWeight:700, cursor:'pointer', color:'white' }}>
-              {isLast ? '🎉 Start Over' : activeStep === mod.steps.length - 1 ? `Next module →` : 'Next →'}
+              {isLast ? tr.howto_start_over : activeStep === mod.steps.length - 1 ? tr.howto_next_module : tr.howto_next}
             </button>
           </div>
         </div>
@@ -595,11 +572,11 @@ export default function HowToUse() {
 
       {/* Swipe hint */}
       <div style={{ textAlign:'center', fontSize:11, color:'#9ca3af', marginBottom:16 }}>
-        ← Swipe left or right to navigate →
+        {tr.howto_swipe_hint}
       </div>
 
       {/* All modules list */}
-      <div style={{ fontSize:13, fontWeight:700, color:'#374151', marginBottom:10 }}>All Modules</div>
+      <div style={{ fontSize:13, fontWeight:700, color:'#374151', marginBottom:10 }}>{tr.howto_all_modules}</div>
       {MODULES.map((m, mi) => {
         const done = completedModules.includes(mi)
         const active = activeModule === mi
@@ -612,13 +589,13 @@ export default function HowToUse() {
             <div style={{ width:42, height:42, borderRadius:12, background:m.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>{m.icon}</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:700, fontSize:13 }}>{m.module}</div>
-              <div style={{ fontSize:11, color:'#9ca3af', marginBottom:4 }}>{m.steps.length} steps</div>
+              <div style={{ fontSize:11, color:'#9ca3af', marginBottom:4 }}>{interpolate(tr.howto_steps_count, { n: m.steps.length })}</div>
               <div style={{ height:4, background:'#f3f4f6', borderRadius:2, overflow:'hidden' }}>
                 <div style={{ width:`${progress*100}%`, height:'100%', background:m.color, borderRadius:2, transition:'width 0.4s' }} />
               </div>
             </div>
             <div style={{ fontSize:12, fontWeight:700, color: done ? '#1D9E75' : active ? m.color : '#9ca3af', flexShrink:0 }}>
-              {done ? '✓ Done' : active ? `${activeStep+1}/${m.steps.length}` : 'Start →'}
+              {done ? tr.howto_done : active ? `${activeStep + 1}/${m.steps.length}` : tr.howto_start_arrow}
             </div>
           </div>
         )

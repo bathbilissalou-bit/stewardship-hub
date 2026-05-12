@@ -62,3 +62,27 @@ export function useNavT() {
   const lang = getLang()
   return NAV[lang] || NAV.en
 }
+
+// ── Boot loading line only — keeps App.jsx off the full i18n bundle ──────────
+const LOADING_UI = {
+  en: { loadingAppName: 'Stewardship Hub' },
+  es: { loadingAppName: 'Centro de Mayordomía' },
+  fr: { loadingAppName: 'Hub de Gestion' },
+  pt: { loadingAppName: 'Hub de Mordomia' },
+  sw: { loadingAppName: 'Stewardship Hub' },
+  yo: { loadingAppName: 'Stewardship Hub' },
+  ig: { loadingAppName: 'Stewardship Hub' },
+  ha: { loadingAppName: 'Stewardship Hub' },
+  zh: { loadingAppName: '管家中心' },
+  hi: { loadingAppName: 'Stewardship Hub' },
+  ar: { loadingAppName: 'مركز الوصاية' },
+  ru: { loadingAppName: 'Центр управления' },
+  de: { loadingAppName: 'Stewardship Hub' },
+  it: { loadingAppName: 'Hub della Gestione' },
+  ko: { loadingAppName: '스튜어드십 허브' },
+}
+
+/** Minimal strings for the initial auth bootstrap screen (no ./i18n import). */
+export function getLoadingUi(lang) {
+  return LOADING_UI[lang] || LOADING_UI.en
+}
