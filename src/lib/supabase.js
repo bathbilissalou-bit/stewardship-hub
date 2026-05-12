@@ -1,6 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseBuildConfig } from './supabase-config'
 
-const SUPABASE_URL = 'https://mukccbbpayuyynmlkcia.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
+const { url, anonKey } = getSupabaseBuildConfig()
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+/**
+ * Uses only the anon public key. Never instantiate the service_role key in the browser.
+ */
+export const supabase = createClient(url, anonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  },
+})

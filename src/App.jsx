@@ -1,7 +1,8 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { getLang, RTL_LANGS } from './lib/i18n-core'
+import { hardLocalLogout } from './lib/logout'
 import Layout from './components/Layout'
 
 // ── Eagerly loaded (needed immediately for auth flow) ─────────────────────────
@@ -11,6 +12,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import Welcome      from './pages/Welcome'
 import Privacy      from './pages/Privacy'
 import Onboarding   from './pages/Onboarding'
+import SupabaseDiagnostic from './pages/SupabaseDiagnostic'
 
 // ── Lazy loaded (only fetched when user navigates to that page) ───────────────
 const Dashboard       = lazy(() => import('./pages/Dashboard'))
@@ -40,7 +42,7 @@ const NetWorth        = lazy(() => import('./pages/NetWorth'))
 const DebtPlanner     = lazy(() => import('./pages/DebtPlanner'))
 const Search          = lazy(() => import('./pages/Search'))
 
-// ── Page-change loading indicator (tiny spinner between lazy page loads) ──────
+// ── Page-change loading indicator ─────────────────────────────────────────────
 function PageLoader() {
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh', flexDirection:'column', gap:12 }}>
@@ -54,7 +56,8 @@ function safeReturnPath(stateFrom) {
   return stateFrom
 }
 
-/** Redirect unauthenticated visitors to login but remember the URL they wanted (e.g. /budget). */
+
+/** Redirect unauthenticated visitors to login but remember the URL they wanted. */
 function RequireAuth({ session, onboardingDone, lang, setLang }) {
   const location = useLocation()
   if (!session) {
@@ -78,14 +81,17 @@ function SignupPage({ session }) {
 }
 
 function App() {
-  const [session, setSession] = useState(null)
-  const [isPremium, setIsPremium] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession]           = useState(null)
+  const [isPremium, setIsPremium]       = useState(false)
+  const [loading, setLoading]           = useState(true)
   const [onboardingDone, setOnboardingDone] = useState(
     () => localStorage.getItem('sh_onboarding_done') === 'true'
   )
-  const [lang, setLangState] = useState(getLang())
+  const [lang, setLangState]   = useState(getLang())
   const [theme, setThemeState] = useState(() => localStorage.getItem('sh_theme') || 'light')
+
+  // Track whether we've already resolved loading (prevents double-fire)
+  const resolvedRef = useRef(false)
 
   useEffect(() => {
     document.documentElement.dir = RTL_LANGS.has(lang) ? 'rtl' : 'ltr'
@@ -101,56 +107,84 @@ function App() {
     setThemeState(t)
   }
 
+  // ── Resolve loading exactly once ─────────────────────────────────────────────
+  function resolveLoading(sess) {
+    if (resolvedRef.current) return
+    resolvedRef.current = true
+    console.log('[App] resolveLoading — session:', sess?.user?.id ?? 'none')
+    setSession(sess ?? null)
+    setLoading(false)
+  }
+
   useEffect(() => {
-    const safetyTimeout = setTimeout(() => setLoading(false), 8000)
+    console.log('[App] mounted — starting auth bootstrap')
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      try {
-        setSession(session)
-        if (session?.user?.id) {
-          const { data } = await supabase
+    // HARD TIMEOUT: app MUST render within 4 s no matter what Supabase does.
+    // If this fires, we show the login page (safe fallback).
+    const hardTimeout = setTimeout(() => {
+      console.warn('[App] HARD TIMEOUT — forcing render without session')
+      resolveLoading(null)
+    }, 4000)
+
+    // ── Subscribe to auth state FIRST ────────────────────────────────────────
+    // CRITICAL RULES:
+    //  1. Never call supabase.auth.getSession() / refreshSession() from inside this handler
+    //     — it re-enters the SDK while it is initialising and can deadlock.
+    //  2. Never await DB calls (e.g. users table) inside this handler — fire-and-forget only.
+    //  3. The `session` argument already contains the refreshed token (SDK handles it).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
+      console.log('[App] onAuthStateChange:', event, sess?.user?.id ?? 'no-user')
+
+      if (event === 'SIGNED_OUT') {
+        clearTimeout(hardTimeout)
+        setSession(null)
+        setOnboardingDone(false)
+        // resolveLoading not needed here (already resolved after INITIAL_SESSION)
+        return
+      }
+
+      if (event === 'INITIAL_SESSION') {
+        clearTimeout(hardTimeout)
+        // Use the session the SDK already resolved — do NOT call getSession() again.
+        resolveLoading(sess ?? null)
+
+        // Load onboarding from localStorage immediately (synchronous, no hang).
+        const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
+        setOnboardingDone(localDone)
+
+        // Background DB check — fire-and-forget, does not block rendering.
+        if (sess?.user?.id) {
+          supabase
             .from('users')
             .select('onboarding_done')
-            .eq('id', session.user.id)
+            .eq('id', sess.user.id)
             .single()
-          const dbDone = data?.onboarding_done === true
-          const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
-          setOnboardingDone(dbDone || localDone)
-          if (dbDone) localStorage.setItem('sh_onboarding_done', 'true')
+            .then(({ data }) => {
+              const dbDone = data?.onboarding_done === true
+              if (dbDone) {
+                localStorage.setItem('sh_onboarding_done', 'true')
+                setOnboardingDone(true)
+              }
+            })
+            .catch(() => { /* offline / network error — local value already applied */ })
         }
-      } catch(_) {}
-      clearTimeout(safetyTimeout)
-      setLoading(false)
-    }).catch(() => {
-      clearTimeout(safetyTimeout)
-      setLoading(false)
+        return
+      }
+
+      // TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY, etc.
+      // Just sync the session; SDK already refreshed the token.
+      setSession(sess ?? null)
+      if (!sess) setOnboardingDone(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      try {
-        setSession(session)
-        if (session?.user?.id) {
-          const local = localStorage.getItem('sh_onboarding_done') === 'true'
-          const { data } = await supabase
-            .from('users')
-            .select('onboarding_done')
-            .eq('id', session.user.id)
-            .single()
-          const dbDone = data?.onboarding_done === true
-          setOnboardingDone(dbDone || local)
-          if (dbDone) localStorage.setItem('sh_onboarding_done', 'true')
-        } else {
-          setOnboardingDone(false)
-        }
-      } catch(_) {}
-    })
-
+    // Language sync across tabs
     function handleStorage(e) {
       if (e.key === 'sh_lang') setLangState(e.newValue || 'en')
     }
     window.addEventListener('storage', handleStorage)
 
     return () => {
+      clearTimeout(hardTimeout)
       subscription.unsubscribe()
       window.removeEventListener('storage', handleStorage)
     }
@@ -169,12 +203,13 @@ function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/welcome"        element={<Welcome />} />
-          <Route path="/privacy"        element={<Privacy />} />
-          <Route path="/login"          element={<LoginPage session={session} />} />
-          <Route path="/signup"         element={<SignupPage session={session} />} />
+          <Route path="/welcome"         element={<Welcome />} />
+          <Route path="/privacy"         element={<Privacy />} />
+          <Route path="/diagnostics"     element={<SupabaseDiagnostic />} />
+          <Route path="/login"           element={<LoginPage session={session} />} />
+          <Route path="/signup"          element={<SignupPage session={session} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/onboarding"     element={
+          <Route path="/onboarding"      element={
             session
               ? <Onboarding session={session} onComplete={() => setOnboardingDone(true)} />
               : <Navigate to="/login" />

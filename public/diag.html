@@ -21,10 +21,35 @@
 <body>
   <h1>🔬 Supabase Diagnostic</h1>
   <p style="color:#6c7086;font-size:12px;margin:0 0 14px">No service worker. No React. Raw browser fetch only.</p>
+
+  <!-- FORCE RESET: clears all auth state + reloads to /login -->
+  <button onclick="forceReset()" style="background:#f38ba8;margin-bottom:8px">🔴 Force Reset App (clears all auth + reloads)</button>
   <button onclick="runDiag()">▶ Run Full Diagnostic</button>
   <div id="out"></div>
 
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) { regs.forEach(function (r) { r.unregister() }) })
+    }
+
+    // ── Force Reset: clears all auth/session state and redirects to /login ────
+    async function forceReset() {
+      const confirmed = window.confirm('This will clear all auth state (localStorage + sessionStorage) and redirect to /login. Continue?')
+      if (!confirmed) return
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        for (const r of regs) await r.unregister()
+      }
+      // Clear all Supabase auth keys
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        .forEach(k => localStorage.removeItem(k))
+      localStorage.removeItem('sh_onboarding_done')
+      sessionStorage.clear()
+      window.location.href = '/login'
+    }
+
     // ── Hardcoded credentials (same as src/lib/supabase-config.js fallbacks) ──
     const SUPABASE_URL  = 'https://mukccbbpayuyynmlkcia.supabase.co'
     const ANON_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11a2NjYmJwYXl1eXlubWxrY2lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NTM1ODQsImV4cCI6MjA5MjEyOTU4NH0.vdv_7r0bZ-QjeHgFnR0QXhtl4OpSek17l0E9MzGrQOc'
@@ -78,6 +103,7 @@
       // ── 3. Raw GET /rest/v1/ ───────────────────────────────────────────────
       card('c3', '3 · Raw GET /rest/v1/ (anon key only)')
       w('c3','info','→ fetch ' + SUPABASE_URL + '/rest/v1/')
+      w('c3','info','401 + "service_role only" here is NORMAL (root endpoint); it still proves TLS + routing work.')
       try {
         const r = await ft(`${SUPABASE_URL}/rest/v1/`, {
           method: 'GET',
@@ -86,7 +112,7 @@
         const body = await r.text()
         w('c3', r.ok ? 'ok' : 'warn', `REST STATUS: ${r.status} ${r.statusText}`)
         w('c3','info',`REST BODY:   ${body.slice(0,200)}`)
-        if (r.status === 200) w('c3','ok','✅ Supabase REST API is reachable from this browser!')
+        if (r.status === 200 || r.status === 401) w('c3','ok','✅ Supabase REST host responded — browser/network path is alive')
       } catch(e) {
         w('c3','err',`❌ GET FAILED: ${e.name}: ${e.message}`)
         if (e.name === 'AbortError') w('c3','err','→ Request timed out after 9s — likely a network/VPN/firewall block')
@@ -133,8 +159,10 @@
           const rb = await r.text()
           w('c5', r.ok ? 'ok' : 'err', `HTTP ${r.status} ${r.statusText}`)
           w('c5','info', rb || '(empty body = success)')
-          if (r.ok) w('c5','ok','✅ INSERT WORKED — budget save is fully fixed!')
-          else w('c5','err','❌ INSERT REJECTED — check RLS policies in Supabase')
+          if (r.ok) w('c5','ok','✅ INSERT WORKED — budget save path is OK')
+          else if (/JWT expired|PGRST303/i.test(rb)) w('c5','err','❌ Session JWT expired — sign out & sign in again (not necessarily RLS)')
+          else if (/row-level security|RLS/i.test(rb)) w('c5','err','❌ May be RLS — check policies in Supabase')
+          else w('c5','err','❌ INSERT REJECTED — read body JSON (JWT vs RLS vs validation)')
         } catch(e) {
           w('c5','err',`❌ FAILED: ${e.name}: ${e.message}`)
           if (e.name === 'AbortError') w('c5','err','→ Timed out — network/VPN/firewall blocking Supabase POST')
@@ -144,8 +172,9 @@
       // ── 6. Summary ────────────────────────────────────────────────────────
       card('c6', '6 · Next steps')
       w('c6','info','If step 3 fails:  problem is network/VPN/firewall — try different WiFi or mobile data')
-      w('c6','info','If step 3 passes but step 5 fails:  problem is RLS policies — run BUDGET_FIX_SQL.sql')
-      w('c6','info','If step 5 passes: budget is fixed — re-enable SW in index.html and redeploy')
+      w('c6','info','If step 4/5 shows JWT expired: re-login — app now refreshes session on load & tab focus')
+      w('c6','info','If step 5 rejects with RLS wording: adjust policies — not an SW/network issue')
+      w('c6','info','Production app intentionally has no service worker (see index.html)')
     }
   </script>
 </body>

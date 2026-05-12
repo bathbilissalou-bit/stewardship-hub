@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { hardLocalLogout } from '../lib/logout'
 import { useT, getLang, LANGUAGES } from '../lib/i18n'
 
 const CURRENCIES = [
@@ -59,16 +60,18 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
     }
   }
 
-  async function handleSignOut() { await supabase.auth.signOut() }
+  async function handleSignOut() { await hardLocalLogout(supabase) }
 
   async function handleDeleteAccount() {
     if (!window.confirm('Delete your account? This will permanently erase all your budget, loans, investments, and progress.')) return
     if (!window.confirm('Last warning — this cannot be undone. Click OK to permanently delete your account.')) return
-    await supabase.from('budget_entries').delete().eq('user_id', userId)
-    await supabase.from('loans').delete().eq('user_id', userId)
-    await supabase.from('investments').delete().eq('user_id', userId)
-    await supabase.from('challenge_progress').delete().eq('user_id', userId)
-    await supabase.auth.signOut()
+    try {
+      await supabase.from('budget_entries').delete().eq('user_id', userId)
+      await supabase.from('loans').delete().eq('user_id', userId)
+      await supabase.from('investments').delete().eq('user_id', userId)
+      await supabase.from('challenge_progress').delete().eq('user_id', userId)
+    } catch (_) {}
+    await hardLocalLogout(supabase)
   }
 
   const sections = [

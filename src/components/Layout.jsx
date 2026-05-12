@@ -1,14 +1,16 @@
 import { Outlet, NavLink, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useNavT } from '../lib/i18n-core'
+import { hardLocalLogout } from '../lib/logout'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationCenter from './NotificationCenter'
 
 export default function Layout({ session, lang, setLang }) {
   const tr = useNavT()
 
+  // local-only sign-out: never blocks on network, always redirects to /login
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    await hardLocalLogout(supabase)
   }
 
   return (
