@@ -20,29 +20,34 @@ function saveRecent(to) {
   } catch {}
 }
 
-// ── Feature registry — single source of truth ────────────────────────────────
+// ── Feature registry — unified 5-family palette ──────────────────────────────
+// Forest Green  #1D8C6A — financial core (budget, savings, faith, nutrition)
+// Warm Teal     #1A6878 — insight & tools (coach, travel, search, currency)
+// Warm Gold     #C28A35 — achievement (challenge, subscriptions, bills, premium)
+// Terra Cotta   #8C4040 — debt & alerts (loans, debt planner)
+// Dusty Rose    #8B4A5A — community & giving (family, giving, community, birthdays)
 const F = {
-  '/budget':        { icon:'💳', label:'Budget',              shortLabel:'Budget',      desc:'Monthly budget tracker',           color:'#1D9E75', bg:'rgba(29,158,117,0.1)'  },
-  '/savings':       { icon:'💰', label:'Savings Goals',       shortLabel:'Savings',     desc:'Set & track your goals',           color:'#1D9E75', bg:'rgba(29,158,117,0.1)'  },
-  '/bills':         { icon:'🔔', label:'Bill Reminders',      shortLabel:'Bills',       desc:'Never miss a payment',             color:'#D97706', bg:'rgba(217,119,6,0.1)'   },
-  '/family':        { icon:'🏠', label:'Family Budget',       shortLabel:'Family',      desc:'Budget as a household',            color:'#0F6E56', bg:'rgba(15,110,86,0.1)'   },
-  '/giving':        { icon:'🎁', label:'Giving & Tithe',      shortLabel:'Giving',      desc:'Track generosity & offerings',     color:'#BE185D', bg:'rgba(190,24,93,0.1)'   },
-  '/nutrition':     { icon:'🥗', label:'Food & Nutrition',    shortLabel:'Nutrition',   desc:'Recipes, weight & wellness',       color:'#059669', bg:'rgba(5,150,105,0.1)'   },
-  '/challenge':     { icon:'⭐', label:'$100 Challenge',      shortLabel:'Challenge',   desc:'30-day financial reset',           color:'#92400E', bg:'rgba(146,64,14,0.1)'   },
-  '/networth':      { icon:'📊', label:'Net Worth',           shortLabel:'Net Worth',   desc:'Assets minus liabilities',         color:'#1D4ED8', bg:'rgba(29,78,216,0.1)'   },
-  '/debtplanner':   { icon:'📉', label:'Debt Planner',        shortLabel:'Debt',        desc:'Snowball & Avalanche methods',     color:'#991B1B', bg:'rgba(153,27,27,0.1)'   },
-  '/subscriptions': { icon:'🔄', label:'Subscriptions',       shortLabel:'Subs',        desc:'Track recurring charges',          color:'#6D28D9', bg:'rgba(109,40,217,0.1)'  },
-  '/travel':        { icon:'🧳', label:'Travel Planner',      shortLabel:'Travel',      desc:'Trips & document expiry',          color:'#0369A1', bg:'rgba(3,105,161,0.1)'   },
-  '/faith':         { icon:'✦',  label:'Faith & Stewardship', shortLabel:'Faith',       desc:'Biblical wisdom for your finances', color:'#064E3B', bg:'rgba(6,78,59,0.1)'    },
-  '/community':     { icon:'👥', label:'Community',           shortLabel:'Community',   desc:'Grow together',                    color:'#4338CA', bg:'rgba(67,56,202,0.1)'   },
-  '/birthdays':     { icon:'🎂', label:'Birthdays',           shortLabel:'Birthdays',   desc:'Never miss a celebration',         color:'#9D174D', bg:'rgba(157,23,77,0.1)'   },
-  '/currency':      { icon:'💱', label:'Currency',            shortLabel:'Currency',    desc:'Live exchange rates',              color:'#1E40AF', bg:'rgba(30,64,175,0.1)'   },
-  '/receipts':      { icon:'📸', label:'Receipts',            shortLabel:'Receipts',    desc:'Scan & organise',                  color:'#5B21B6', bg:'rgba(91,33,182,0.1)'   },
-  '/report':        { icon:'📄', label:'Budget Report',       shortLabel:'Report',      desc:'Download PDF report',              color:'#166534', bg:'rgba(22,101,52,0.1)'   },
-  '/search':        { icon:'🔍', label:'Search',              shortLabel:'Search',      desc:'Find anything instantly',          color:'#0284C7', bg:'rgba(2,132,199,0.1)'   },
-  '/howtouse':      { icon:'📖', label:'App Guide',           shortLabel:'Guide',       desc:'Learn every feature',              color:'#374151', bg:'rgba(55,65,81,0.1)'    },
-  '/premium':       { icon:'👑', label:'Go Premium',          shortLabel:'Premium',     desc:'Unlock all features',              color:'#B45309', bg:'rgba(180,83,9,0.1)'    },
-  '/coach':         { icon:'🤖', label:'AI Coach',            shortLabel:'Coach',       desc:'Personalised financial advice',    color:'#1E40AF', bg:'rgba(30,64,175,0.1)'   },
+  '/budget':        { icon:'💳', label:'Budget',              shortLabel:'Budget',      desc:'Monthly budget tracker',            color:'#1D8C6A', bg:'rgba(29,140,106,0.1)'  },
+  '/savings':       { icon:'💰', label:'Savings Goals',       shortLabel:'Savings',     desc:'Set & track your goals',            color:'#1D8C6A', bg:'rgba(29,140,106,0.1)'  },
+  '/bills':         { icon:'🔔', label:'Bill Reminders',      shortLabel:'Bills',       desc:'Never miss a payment',              color:'#C28A35', bg:'rgba(194,138,53,0.1)'  },
+  '/family':        { icon:'🏠', label:'Family Budget',       shortLabel:'Family',      desc:'Budget as a household',             color:'#8B4A5A', bg:'rgba(139,74,90,0.1)'   },
+  '/giving':        { icon:'🎁', label:'Giving & Tithe',      shortLabel:'Giving',      desc:'Track generosity & offerings',      color:'#8B4A5A', bg:'rgba(139,74,90,0.1)'   },
+  '/nutrition':     { icon:'🥗', label:'Food & Nutrition',    shortLabel:'Nutrition',   desc:'Recipes, weight & wellness',        color:'#1D8C6A', bg:'rgba(29,140,106,0.1)'  },
+  '/challenge':     { icon:'⭐', label:'$100 Challenge',      shortLabel:'Challenge',   desc:'30-day financial reset',            color:'#C28A35', bg:'rgba(194,138,53,0.1)'  },
+  '/networth':      { icon:'📊', label:'Net Worth',           shortLabel:'Net Worth',   desc:'Assets minus liabilities',          color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
+  '/debtplanner':   { icon:'📉', label:'Debt Planner',        shortLabel:'Debt',        desc:'Snowball & Avalanche methods',      color:'#8C4040', bg:'rgba(140,64,64,0.1)'   },
+  '/subscriptions': { icon:'🔄', label:'Subscriptions',       shortLabel:'Subs',        desc:'Track recurring charges',           color:'#C28A35', bg:'rgba(194,138,53,0.1)'  },
+  '/travel':        { icon:'🧳', label:'Travel Planner',      shortLabel:'Travel',      desc:'Trips & document expiry',           color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
+  '/faith':         { icon:'✦',  label:'Faith & Stewardship', shortLabel:'Faith',       desc:'Biblical wisdom for your finances', color:'#1D8C6A', bg:'rgba(29,140,106,0.1)'  },
+  '/community':     { icon:'👥', label:'Community',           shortLabel:'Community',   desc:'Grow together',                    color:'#8B4A5A', bg:'rgba(139,74,90,0.1)'   },
+  '/birthdays':     { icon:'🎂', label:'Birthdays',           shortLabel:'Birthdays',   desc:'Never miss a celebration',         color:'#8B4A5A', bg:'rgba(139,74,90,0.1)'   },
+  '/currency':      { icon:'💱', label:'Currency',            shortLabel:'Currency',    desc:'Live exchange rates',               color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
+  '/receipts':      { icon:'📸', label:'Receipts',            shortLabel:'Receipts',    desc:'Scan & organise',                  color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
+  '/report':        { icon:'📄', label:'Budget Report',       shortLabel:'Report',      desc:'Download PDF report',              color:'#1D8C6A', bg:'rgba(29,140,106,0.1)'  },
+  '/search':        { icon:'🔍', label:'Search',              shortLabel:'Search',      desc:'Find anything instantly',          color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
+  '/howtouse':      { icon:'📖', label:'App Guide',           shortLabel:'Guide',       desc:'Learn every feature',              color:'#706B65', bg:'rgba(112,107,101,0.1)' },
+  '/premium':       { icon:'👑', label:'Go Premium',          shortLabel:'Premium',     desc:'Unlock all features',              color:'#C28A35', bg:'rgba(194,138,53,0.1)'  },
+  '/coach':         { icon:'🤖', label:'AI Coach',            shortLabel:'Coach',       desc:'Personalised financial advice',    color:'#1A6878', bg:'rgba(26,104,120,0.1)'  },
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -232,7 +237,7 @@ export default function Explore() {
         <div style={{ marginBottom:28 }}>
           <Link to="/coach" onClick={() => saveRecent('/coach')} style={{ textDecoration:'none', display:'block' }}>
             <div style={{
-              background:'linear-gradient(135deg, #1a3a6c 0%, #0d3f70 50%, #0a2d52 100%)',
+              background:'linear-gradient(135deg, #0e3530 0%, #0a2820 50%, #071a14 100%)',
               borderRadius:R.lg + 2, padding:'20px 20px',
               display:'flex', alignItems:'center', gap:16,
               boxShadow:'0 4px 20px rgba(13,63,112,0.3)',
@@ -307,7 +312,7 @@ export default function Explore() {
 
         {/* ── Faith & Community — warm section ─────────────────────────── */}
         <div style={{
-          background:'linear-gradient(160deg, rgba(6,78,59,0.05) 0%, rgba(67,56,202,0.03) 100%)',
+          background:'linear-gradient(160deg, rgba(29,140,106,0.07) 0%, rgba(139,74,90,0.04) 100%)',
           borderRadius:R.lg, padding:'20px 16px', margin:'0 -16px',
           borderTop:'1px solid rgba(6,78,59,0.1)', borderBottom:'1px solid rgba(6,78,59,0.08)',
         }}>
@@ -322,19 +327,19 @@ export default function Explore() {
           {/* Faith — featured card */}
           <Link to="/faith" onClick={() => saveRecent('/faith')} style={{ textDecoration:'none', display:'block', marginBottom:10 }}>
             <div style={{
-              background:'linear-gradient(135deg, rgba(6,78,59,0.08) 0%, rgba(6,78,59,0.04) 100%)',
+              background:'linear-gradient(135deg, rgba(29,140,106,0.09) 0%, rgba(29,140,106,0.04) 100%)',
               borderRadius:R.lg, padding:'18px 18px',
-              border:'1px solid rgba(6,78,59,0.15)',
+              border:'1px solid rgba(29,140,106,0.15)',
               display:'flex', alignItems:'center', gap:16,
             }}>
               <div style={{
-                width:52, height:52, borderRadius:16, background:'rgba(6,78,59,0.12)',
+                width:52, height:52, borderRadius:16, background:'rgba(29,140,106,0.12)',
                 display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0,
               }}>
                 ✦
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:14, fontWeight:800, color:'#064E3B', marginBottom:4 }}>Faith & Stewardship</div>
+                <div style={{ fontSize:14, fontWeight:800, color:'#0F5E42', marginBottom:4 }}>Faith & Stewardship</div>
                 <div style={{ fontSize:12, color:'#374151', lineHeight:1.55, opacity:0.8 }}>
                   Biblical wisdom and principles for managing your finances with purpose
                 </div>
