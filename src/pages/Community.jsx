@@ -92,14 +92,14 @@ export default function Community({ session }) {
         <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>{tr.communitySubtitle||"Grow together in financial freedom"}</p>
       </div>
       <div className="metric-grid" style={{ gridTemplateColumns:'1fr 1fr', marginBottom:16 }}>
-        <div className="metric-card"><div className="metric-label">{tr.totalPosts||'Total posts'}</div><div className="metric-value" style={{fontSize:20}}>{posts.length}</div></div>
-        <div className="metric-card"><div className="metric-label">{tr.yourPosts||'Your posts'}</div><div className="metric-value green" style={{fontSize:20}}>{myPosts}</div></div>
+        <div className="metric-card"><div className="metric-label">{tr.totalPosts2||'Total posts'}</div><div className="metric-value" style={{fontSize:20}}>{posts.length}</div></div>
+        <div className="metric-card"><div className="metric-label">{tr.yourPosts2||'Your posts'}</div><div className="metric-value green" style={{fontSize:20}}>{myPosts}</div></div>
       </div>
       <div style={{ background:'var(--green-dark)', borderRadius:12, padding:16, color:'white', marginBottom:16 }}>
-        <div style={{ fontSize:11, opacity:0.8, marginBottom:4 }}>✦ {tr.weeklyCheckin||'Weekly check-in'}</div>
-        <div style={{ fontSize:14, fontWeight:600, marginBottom:10 }}>{tr.howDidYouDo||'How did you do with money this week?'}</div>
+        <div style={{ fontSize:11, opacity:0.8, marginBottom:4 }}>✦ {tr.weeklyCheckin2||'Weekly check-in'}</div>
+        <div style={{ fontSize:14, fontWeight:600, marginBottom:10 }}>{tr.howDidYouDo2||'How did you do with money this week?'}</div>
         <button onClick={()=>{setForm({content: tr.comm_preset_week, post_type:'update'});setShowModal(true)}} style={{ padding:'8px 16px', background:'white', color:'var(--green-dark)', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
-          {tr.shareUpdate||'Share your update →'}
+          {tr.shareUpdate2||'Share your update →'}
         </button>
       </div>
       <div style={{ display:'flex', gap:6, overflowX:'auto', marginBottom:16, paddingBottom:4 }}>
