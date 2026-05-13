@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../lib/i18n'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from 'recharts'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: 'goals',   label: 'My Goals',    icon: '🎯' },
-  { id: 'recipes', label: 'Recipes',     icon: '📖' },
-  { id: 'weight',  label: 'Weight',      icon: '⚖️' },
-  { id: 'food',    label: 'Food Access', icon: '🏪' },
-]
 
 const DIET_OPTIONS = [
   { value: 'none',         label: 'No Restriction' },
@@ -507,7 +501,7 @@ function openMaps(query) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function MapSearch({ query, color, label }) {
+function MapSearch({ query, color, label, tr = {} }) {
   const [zip, setZip] = useState('')
   const [locating, setLocating] = useState(false)
 
@@ -543,7 +537,7 @@ function MapSearch({ query, color, label }) {
       {/* GPS button */}
       <button onClick={searchByGPS} disabled={locating}
         style={{ width:'100%', padding:'13px', background:color, color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:10, opacity:locating?0.8:1 }}>
-        {locating ? '📡 Getting location...' : `📍 ${label} (GPS)`}
+        {locating ? (tr.nutr_gps_locating || '📡 Getting location...') : `📍 ${label} (GPS)`}
       </button>
 
       {/* Zip code search */}
@@ -588,7 +582,7 @@ function MacroBar({ label, value, max, color }) {
   )
 }
 
-function RecipeModal({ recipe, onClose }) {
+function RecipeModal({ recipe, onClose, tr = {} }) {
   if (!recipe) return null
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:1000, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={onClose}>
@@ -597,7 +591,7 @@ function RecipeModal({ recipe, onClose }) {
           <div>
             <div style={{ fontSize:40, marginBottom:4 }}>{recipe.emoji}</div>
             <h3 style={{ margin:0, fontSize:20, fontWeight:800 }}>{recipe.name}</h3>
-            <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>⏱ {recipe.time} · 🍽 {recipe.servings} serving{recipe.servings > 1 ? 's' : ''}</div>
+            <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>⏱ {recipe.time} · 🍽 {recipe.servings} {recipe.servings > 1 ? (tr.nutr_servings || 'servings') : (tr.nutr_serving || 'serving')}</div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:24, cursor:'pointer', color:'#9ca3af', padding:4 }}>✕</button>
         </div>
@@ -619,7 +613,7 @@ function RecipeModal({ recipe, onClose }) {
 
         {/* Ingredients */}
         <div style={{ marginBottom:18 }}>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>🛒 Ingredients</div>
+          <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>{tr.nutr_ingredients || '🛒 Ingredients'}</div>
           {recipe.ingredients.map((ing, i) => (
             <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'1px solid #f3f4f6' }}>
               <span style={{ color:'#1D9E75', fontSize:14 }}>✓</span>
@@ -630,7 +624,7 @@ function RecipeModal({ recipe, onClose }) {
 
         {/* Steps */}
         <div style={{ marginBottom:8 }}>
-          <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>👨‍🍳 Instructions</div>
+          <div style={{ fontWeight:700, fontSize:15, marginBottom:10 }}>{tr.nutr_instructions || '👨‍🍳 Instructions'}</div>
           {recipe.steps.map((step, i) => (
             <div key={i} style={{ display:'flex', gap:12, marginBottom:12, alignItems:'flex-start' }}>
               <div style={{ width:24, height:24, borderRadius:12, background:'#1D9E75', color:'white', fontSize:12, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{i+1}</div>
@@ -646,6 +640,13 @@ function RecipeModal({ recipe, onClose }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Nutrition({ session }) {
+  const tr = useT()
+  const TABS = [
+    { id: 'goals',   label: tr.nutr_tab_goals   || 'My Goals',    icon: '🎯' },
+    { id: 'recipes', label: tr.nutr_tab_recipes  || 'Recipes',     icon: '📖' },
+    { id: 'weight',  label: tr.nutr_tab_weight   || 'Weight',      icon: '⚖️' },
+    { id: 'food',    label: tr.nutr_tab_food     || 'Food Access', icon: '🏪' },
+  ]
   const [tab, setTab] = useState('goals')
 
   // ── Goals tab state
@@ -808,8 +809,8 @@ export default function Nutrition({ session }) {
       {/* Header */}
       <div style={{ background:'linear-gradient(135deg, #1D9E75, #0F6E56)', borderRadius:'16px 16px 0 0', padding:'20px 16px 16px', color:'white' }}>
         <div style={{ fontSize:28, marginBottom:4 }}>🥗</div>
-        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Food & Healthy Living</h2>
-        <p style={{ color:'rgba(255,255,255,0.85)', margin:0, fontSize:13 }}>Nutrition, recipes, weight tracking & food access</p>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>{tr.nutr_title || 'Food & Healthy Living'}</h2>
+        <p style={{ color:'rgba(255,255,255,0.85)', margin:0, fontSize:13 }}>{tr.nutr_subtitle || 'Nutrition, recipes, weight tracking & food access'}</p>
       </div>
 
       {/* Tab bar */}
@@ -831,20 +832,20 @@ export default function Nutrition({ session }) {
       {tab === 'goals' && (
         <div style={{ paddingTop:12 }}>
           {profileLoading ? (
-            <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Loading...</div>
+            <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>{tr.nutr_loading || 'Loading...'}</div>
           ) : editing ? (
             /* Setup / Edit Form */
             <div style={{ background:'var(--white)', borderRadius:16, padding:20, border:'1px solid var(--border)' }}>
               <h3 style={{ margin:'0 0 16px', fontSize:17, fontWeight:800 }}>
-                {profile ? 'Edit Your Profile' : '👋 Set Up Your Nutrition Profile'}
+                {profile ? (tr.nutr_edit_profile || 'Edit Your Profile') : (tr.nutr_setup_profile || '👋 Set Up Your Nutrition Profile')}
               </h3>
 
               {[
-                { label:'Gender', key:'gender', type:'select', opts:[{v:'male',l:'Male'},{v:'female',l:'Female'}] },
-                { label:'Age', key:'age', type:'number', placeholder:'e.g. 28', unit:'years' },
-                { label:'Current Weight', key:'weight_kg', type:'number', placeholder:'e.g. 70', unit:'kg' },
-                { label:'Height', key:'height_cm', type:'number', placeholder:'e.g. 170', unit:'cm' },
-                { label:'Target Weight', key:'target_weight', type:'number', placeholder:'e.g. 65', unit:'kg' },
+                { label: tr.nutr_gender || 'Gender', key:'gender', type:'select', opts:[{v:'male',l:'Male'},{v:'female',l:'Female'}] },
+                { label: tr.nutr_age || 'Age', key:'age', type:'number', placeholder:'e.g. 28', unit:'years' },
+                { label: tr.nutr_weight || 'Current Weight', key:'weight_kg', type:'number', placeholder:'e.g. 70', unit:'kg' },
+                { label: tr.nutr_height || 'Height', key:'height_cm', type:'number', placeholder:'e.g. 170', unit:'cm' },
+                { label: tr.nutr_target || 'Target Weight', key:'target_weight', type:'number', placeholder:'e.g. 65', unit:'kg' },
               ].map(f => (
                 <div key={f.key} style={{ marginBottom:14 }}>
                   <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>{f.label}</div>
@@ -865,9 +866,9 @@ export default function Nutrition({ session }) {
               ))}
 
               <div style={{ marginBottom:14 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>Goal</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>{tr.nutr_goal || 'Goal'}</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
-                  {[{v:'loss',l:'🔽 Lose'},{v:'maintenance',l:'⚖️ Maintain'},{v:'gain',l:'🔼 Gain'}].map(g => (
+                  {[{v:'loss',l: tr.nutr_goal_loss || '🔽 Lose'},{v:'maintenance',l: tr.nutr_goal_maint || '⚖️ Maintain'},{v:'gain',l: tr.nutr_goal_gain || '🔼 Gain'}].map(g => (
                     <button key={g.v} onClick={() => setForm(p => ({...p, goal:g.v}))}
                       style={{ padding:'10px 4px', borderRadius:10, border:`2px solid ${form.goal===g.v?'#1D9E75':'#e5e7eb'}`, background:form.goal===g.v?'#E1F5EE':'white', cursor:'pointer', fontSize:13, fontWeight:600, color:form.goal===g.v?'#0F6E56':'#374151' }}>
                       {g.l}
@@ -877,7 +878,7 @@ export default function Nutrition({ session }) {
               </div>
 
               <div style={{ marginBottom:14 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>Activity Level</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>{tr.nutr_activity || 'Activity Level'}</div>
                 <select value={form.activity} onChange={e => setForm(p => ({...p, activity:e.target.value}))}
                   style={{ width:'100%', padding:'10px 12px', borderRadius:10, border:'1.5px solid #e5e7eb', fontSize:13, background:'white' }}>
                   {ACTIVITY_OPTIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
@@ -885,7 +886,7 @@ export default function Nutrition({ session }) {
               </div>
 
               <div style={{ marginBottom:14 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>Dietary Preference</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>{tr.nutr_diet || 'Dietary Preference'}</div>
                 <select value={form.diet} onChange={e => setForm(p => ({...p, diet:e.target.value}))}
                   style={{ width:'100%', padding:'10px 12px', borderRadius:10, border:'1.5px solid #e5e7eb', fontSize:13, background:'white' }}>
                   {DIET_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
@@ -893,7 +894,7 @@ export default function Nutrition({ session }) {
               </div>
 
               <div style={{ marginBottom:20 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>Country</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:5 }}>{tr.nutr_country || 'Country'}</div>
                 <div style={{ display:'flex', gap:8 }}>
                   {[{v:'US',l:'🇺🇸 United States'},{v:'CA',l:'🇨🇦 Canada'}].map(c => (
                     <button key={c.v} onClick={() => setCountry(c.v)}
@@ -908,12 +909,12 @@ export default function Nutrition({ session }) {
                 {profile && (
                   <button onClick={() => setEditing(false)}
                     style={{ flex:1, padding:'13px', background:'#f3f4f6', color:'#374151', border:'none', borderRadius:12, fontSize:14, fontWeight:600, cursor:'pointer' }}>
-                    Cancel
+                    {tr.nutr_cancel || 'Cancel'}
                   </button>
                 )}
                 <button onClick={saveProfile} disabled={savingProfile}
                   style={{ flex:2, padding:'13px', background:'#1D9E75', color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer' }}>
-                  {savingProfile ? 'Saving...' : '✓ Save Profile'}
+                  {savingProfile ? (tr.nutr_saving || 'Saving...') : (tr.nutr_save || '✓ Save Profile')}
                 </button>
               </div>
             </div>
@@ -922,38 +923,38 @@ export default function Nutrition({ session }) {
             <>
               {/* Daily Calorie Target */}
               <div style={{ background:'linear-gradient(135deg, #1D9E75, #0F6E56)', borderRadius:16, padding:'20px', marginBottom:14, color:'white' }}>
-                <div style={{ fontSize:11, opacity:0.8, letterSpacing:'0.05em', marginBottom:4 }}>DAILY CALORIE TARGET</div>
+                <div style={{ fontSize:11, opacity:0.8, letterSpacing:'0.05em', marginBottom:4 }}>{tr.nutr_daily_cal || 'DAILY CALORIE TARGET'}</div>
                 <div style={{ fontSize:42, fontWeight:800, letterSpacing:'-1px', marginBottom:4 }}>{calories.toLocaleString()}</div>
-                <div style={{ fontSize:12, opacity:0.8 }}>kcal/day · {goalLabel[profile.goal]} · {dietLabel}</div>
+                <div style={{ fontSize:12, opacity:0.8 }}>{tr.nutr_kcal_day || 'kcal/day'} · {goalLabel[profile.goal]} · {dietLabel}</div>
               </div>
 
               {/* Macros */}
               <div style={{ background:'var(--white)', borderRadius:16, padding:18, marginBottom:14, border:'1px solid var(--border)' }}>
-                <div style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>Daily Macro Targets</div>
+                <div style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>{tr.nutr_macro_title || 'Daily Macro Targets'}</div>
                 <MacroBar label={`Protein — ${macros.protein}g`} value={macros.protein} max={200} color='#185FA5' />
                 <MacroBar label={`Carbs — ${macros.carbs}g`}    value={macros.carbs}   max={400} color='#BA7517' />
                 <MacroBar label={`Fat — ${macros.fat}g`}        value={macros.fat}     max={150} color='#A32D2D' />
                 <div style={{ marginTop:12, fontSize:12, color:'#9ca3af', textAlign:'center' }}>
-                  {profile.diet === 'keto' ? '⚠️ Keto ratios: 70% fat / 25% protein / 5% carbs' : 'Balanced macros for your goal'}
+                  {profile.diet === 'keto' ? (tr.nutr_keto_ratio || '⚠️ Keto ratios: 70% fat / 25% protein / 5% carbs') : (tr.nutr_balanced || 'Balanced macros for your goal')}
                 </div>
               </div>
 
               {/* Smart suggestion */}
               <div style={{ background:'#EBF4FB', borderRadius:14, padding:'14px 16px', marginBottom:14, border:'1px solid #BFDBFE' }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'#185FA5', marginBottom:4 }}>💡 Smart Suggestion</div>
+                <div style={{ fontSize:12, fontWeight:700, color:'#185FA5', marginBottom:4 }}>{tr.nutr_smart || '💡 Smart Suggestion'}</div>
                 <div style={{ fontSize:13, color:'#1e3a5f', lineHeight:1.6 }}>
                   {profile.goal === 'loss'
-                    ? `Eating ${calories} kcal/day puts you in a 500 kcal deficit — aim to lose ~0.5kg per week. Try 3 meals + 1 snack.`
+                    ? (tr.nutr_suggest_loss || 'Eating {cal} kcal/day puts you in a 500 kcal deficit — aim to lose ~0.5kg per week. Try 3 meals + 1 snack.').replace('{cal}', calories).replace('{prot}', macros.protein)
                     : profile.goal === 'gain'
-                    ? `Eating ${calories} kcal/day adds a 300 kcal surplus. Prioritize protein (${macros.protein}g/day) and strength training.`
-                    : `At ${calories} kcal/day you'll maintain your current weight. Focus on food quality and consistency.`}
+                    ? (tr.nutr_suggest_gain || 'Eating {cal} kcal/day adds a 300 kcal surplus. Prioritize protein ({prot}g/day) and strength training.').replace('{cal}', calories).replace('{prot}', macros.protein)
+                    : (tr.nutr_suggest_maint || "At {cal} kcal/day you'll maintain your current weight. Focus on food quality and consistency.").replace('{cal}', calories)}
                 </div>
               </div>
 
               {/* Profile summary + edit */}
               <div style={{ background:'var(--white)', borderRadius:14, padding:'14px 16px', border:'1px solid var(--border)', marginBottom:4 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                  <div style={{ fontWeight:700, fontSize:14 }}>Your Profile</div>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{tr.nutr_profile_title || 'Your Profile'}</div>
                   <button onClick={() => setEditing(true)}
                     style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:8, padding:'5px 12px', fontSize:12, fontWeight:600, cursor:'pointer', color:'#374151' }}>
                     ✏️ Edit
@@ -982,11 +983,11 @@ export default function Nutrition({ session }) {
         <div style={{ paddingTop:12 }}>
           {/* Filters */}
           <div style={{ background:'var(--white)', borderRadius:14, padding:'14px', marginBottom:14, border:'1px solid var(--border)' }}>
-            <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>🔍 Filter Recipes</div>
+            <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>{tr.nutr_filter || '🔍 Filter Recipes'}</div>
 
             {/* Cuisine */}
             <div style={{ marginBottom:10 }}>
-              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Cuisine</div>
+              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>{tr.nutr_cuisine || 'Cuisine'}</div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                 {[
                   {v:'all',       l:'🌐 All'},
@@ -1007,7 +1008,7 @@ export default function Nutrition({ session }) {
 
             {/* Diet */}
             <div style={{ marginBottom:10 }}>
-              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Diet Type</div>
+              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>{tr.nutr_diet_type || 'Diet Type'}</div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                 {[{v:'all',l:'All'},{v:'vegan',l:'🌱 Vegan'},{v:'vegetarian',l:'🥚 Veggie'},{v:'keto',l:'🥑 Keto'},{v:'halal',l:'☪️ Halal'}].map(d => (
                   <button key={d.v} onClick={() => setRecipeFilter(p=>({...p, diet:d.v}))}
@@ -1022,7 +1023,7 @@ export default function Nutrition({ session }) {
 
             {/* Budget */}
             <div style={{ marginBottom:10 }}>
-              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>Budget</div>
+              <div style={{ fontSize:11, color:'#6b7280', marginBottom:5 }}>{tr.nutr_budget_filter || 'Budget'}</div>
               <div style={{ display:'flex', gap:6 }}>
                 {[{v:'all',l:'All'},{v:'cheap',l:'💚 Budget'},{v:'moderate',l:'💛 Mid'},{v:'premium',l:'💎 Premium'}].map(b => (
                   <button key={b.v} onClick={() => setRecipeFilter(p=>({...p, budget:b.v}))}
@@ -1038,9 +1039,9 @@ export default function Nutrition({ session }) {
             {/* Calorie limit */}
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:5 }}>
-                <span>Max Calories</span>
+                <span>{tr.nutr_max_cal || 'Max Calories'}</span>
                 <span style={{ fontWeight:700, color: recipeFilter.maxCal===9999?'#1D9E75':'#A32D2D' }}>
-                  {recipeFilter.maxCal === 9999 ? 'No limit' : `≤ ${recipeFilter.maxCal} kcal`}
+                  {recipeFilter.maxCal === 9999 ? (tr.nutr_no_limit || 'No limit') : `≤ ${recipeFilter.maxCal} kcal`}
                 </span>
               </div>
               <input type="range" min={200} max={600} step={50}
@@ -1056,13 +1057,13 @@ export default function Nutrition({ session }) {
           {/* African Healthy Ingredients & Tips — show when African filter active */}
           {recipeFilter.cuisine === 'african' && (
             <div style={{ background:'linear-gradient(135deg, #E1F5EE, #D4EDDA)', borderRadius:14, padding:14, marginBottom:12, border:'1px solid #b2dfdb' }}>
-              <div style={{ fontSize:13, fontWeight:800, color:'#0F6E56', marginBottom:8 }}>🌿 Healthy African Ingredients</div>
+              <div style={{ fontSize:13, fontWeight:800, color:'#0F6E56', marginBottom:8 }}>{tr.nutr_healthy_ing || '🌿 Healthy African Ingredients'}</div>
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
                 {['🍌 Plantains','🥔 Cassava','🌾 Millet','🌾 Sorghum','🍠 Sweet Potatoes','🫘 Beans & Lentils','🌿 Okra','🥬 Leafy Greens','🐟 Grilled Fish','🥑 Avocados','🥜 Peanuts'].map(i => (
                   <span key={i} style={{ fontSize:11, background:'rgba(255,255,255,0.7)', borderRadius:10, padding:'4px 8px', color:'#0F6E56', fontWeight:600 }}>{i}</span>
                 ))}
               </div>
-              <div style={{ fontSize:12, fontWeight:700, color:'#0F6E56', marginBottom:5 }}>💡 Healthier Cooking Tips</div>
+              <div style={{ fontSize:12, fontWeight:700, color:'#0F6E56', marginBottom:5 }}>{tr.nutr_cooking_tips || '💡 Healthier Cooking Tips'}</div>
               <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                 {[
                   '🔥 Grill or steam instead of deep frying',
@@ -1081,13 +1082,17 @@ export default function Nutrition({ session }) {
           )}
 
           {/* Recipe count */}
-          <div style={{ fontSize:12, color:'#9ca3af', marginBottom:10 }}>{filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} found</div>
+          <div style={{ fontSize:12, color:'#9ca3af', marginBottom:10 }}>
+            {filteredRecipes.length === 1
+              ? (tr.nutr_recipes_found || '{n} recipe found').replace('{n}', 1)
+              : (tr.nutr_recipes_found_p || '{n} recipes found').replace('{n}', filteredRecipes.length)}
+          </div>
 
           {/* Recipe grid */}
           {filteredRecipes.length === 0 ? (
             <div style={{ textAlign:'center', padding:32, color:'#9ca3af' }}>
               <div style={{ fontSize:40, marginBottom:8 }}>🍽</div>
-              <div>No recipes match your filters. Try adjusting them.</div>
+              <div>{tr.nutr_no_recipes || 'No recipes match your filters. Try adjusting them.'}</div>
             </div>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -1116,7 +1121,7 @@ export default function Nutrition({ session }) {
             </div>
           )}
 
-          <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />
+          <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} tr={tr} />
         </div>
       )}
 
@@ -1124,14 +1129,14 @@ export default function Nutrition({ session }) {
       {tab === 'weight' && (
         <div style={{ paddingTop:12 }}>
           {weightLoading ? (
-            <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>Loading...</div>
+            <div style={{ textAlign:'center', padding:40, color:'#9ca3af' }}>{tr.nutr_loading || 'Loading...'}</div>
           ) : (
             <>
               {/* Current stats */}
               {latestWeight && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
                   <div style={{ background:'linear-gradient(135deg, #1D9E75, #0F6E56)', borderRadius:14, padding:'16px', color:'white' }}>
-                    <div style={{ fontSize:11, opacity:0.8, marginBottom:4 }}>CURRENT WEIGHT</div>
+                    <div style={{ fontSize:11, opacity:0.8, marginBottom:4 }}>{tr.nutr_curr_weight || 'CURRENT WEIGHT'}</div>
                     <div style={{ fontSize:28, fontWeight:800 }}>
                       {weightUnit === 'lbs' ? (latestWeight * 2.205).toFixed(1) : latestWeight}
                     </div>
@@ -1162,8 +1167,8 @@ export default function Nutrition({ session }) {
               {/* Chart */}
               {chartData.length > 1 ? (
                 <div style={{ background:'var(--white)', borderRadius:16, padding:'16px', marginBottom:14, border:'1px solid var(--border)' }}>
-                  <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>📈 Weight Progress</div>
-                  <div style={{ fontSize:11, color:'#9ca3af', marginBottom:12 }}>Last {chartData.length} entries</div>
+                  <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{tr.nutr_weight_prog || '📈 Weight Progress'}</div>
+                  <div style={{ fontSize:11, color:'#9ca3af', marginBottom:12 }}>{(tr.nutr_last_entries || 'Last {n} entries').replace('{n}', chartData.length)}</div>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -1191,14 +1196,14 @@ export default function Nutrition({ session }) {
               ) : chartData.length === 0 ? (
                 <div style={{ textAlign:'center', padding:'30px 0', color:'#9ca3af' }}>
                   <div style={{ fontSize:40, marginBottom:8 }}>⚖️</div>
-                  <div style={{ fontWeight:600 }}>No weight entries yet</div>
-                  <div style={{ fontSize:13, marginTop:4 }}>Log your first weight below to start tracking</div>
+                  <div style={{ fontWeight:600 }}>{tr.nutr_no_weight || 'No weight entries yet'}</div>
+                  <div style={{ fontSize:13, marginTop:4 }}>{tr.nutr_start_tracking || 'Log your first weight below to start tracking'}</div>
                 </div>
               ) : null}
 
               {/* Log weight form */}
               <div style={{ background:'var(--white)', borderRadius:16, padding:18, marginBottom:14, border:'1px solid var(--border)' }}>
-                <div style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>Log Today's Weight</div>
+                <div style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>{tr.nutr_log_today || "Log Today's Weight"}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', border:'2px solid #1D9E75', borderRadius:12, marginBottom:10 }}>
                   <input type="number" step="0.1" value={weightInput} onChange={e => setWeightInput(e.target.value)}
                     placeholder={`Weight in ${weightUnit}`}
@@ -1210,14 +1215,14 @@ export default function Nutrition({ session }) {
                   style={{ width:'100%', padding:'10px 12px', borderRadius:10, border:'1.5px solid #e5e7eb', fontSize:13, outline:'none', boxSizing:'border-box', marginBottom:12 }}/>
                 <button onClick={logWeight} disabled={!weightInput || addingWeight}
                   style={{ width:'100%', padding:'13px', background:'#1D9E75', color:'white', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', opacity:!weightInput?0.6:1 }}>
-                  {addingWeight ? 'Saving...' : '+ Log Weight'}
+                  {addingWeight ? (tr.nutr_log_saving || 'Saving...') : (tr.nutr_log_btn || '+ Log Weight')}
                 </button>
               </div>
 
               {/* Recent logs */}
               {weightLogs.length > 0 && (
                 <div style={{ background:'var(--white)', borderRadius:16, padding:'14px 16px', border:'1px solid var(--border)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>Recent Entries</div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>{tr.nutr_recent || 'Recent Entries'}</div>
                   {[...weightLogs].reverse().slice(0,8).map(w => (
                     <div key={w.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f9fafb' }}>
                       <div>
@@ -1259,10 +1264,9 @@ export default function Nutrition({ session }) {
             <>
               {/* SNAP/EBT info banner */}
               <div style={{ background:'linear-gradient(135deg, #185FA5, #0d3f70)', borderRadius:14, padding:'16px', marginBottom:14, color:'white' }}>
-                <div style={{ fontSize:16, fontWeight:800, marginBottom:4 }}>🏛 SNAP / EBT Benefits</div>
+                <div style={{ fontSize:16, fontWeight:800, marginBottom:4 }}>{tr.nutr_snap_title || '🏛 SNAP / EBT Benefits'}</div>
                 <div style={{ fontSize:13, opacity:0.9, lineHeight:1.6 }}>
-                  All stores below accept SNAP Electronic Benefits Transfer (EBT) cards for eligible food purchases.
-                  To apply for SNAP, visit <span style={{ textDecoration:'underline' }}>benefits.gov</span>.
+                  {tr.nutr_snap_desc || 'All stores below accept SNAP Electronic Benefits Transfer (EBT) cards for eligible food purchases. To apply for SNAP, visit benefits.gov.'}
                 </div>
               </div>
 
@@ -1270,7 +1274,8 @@ export default function Nutrition({ session }) {
               <MapSearch
                 query="SNAP EBT grocery store"
                 color="#1D9E75"
-                label="Find EBT Stores Near Me"
+                label={tr.nutr_find_ebt || 'Find EBT Stores Near Me'}
+                tr={tr}
               />
 
               {/* Store list */}
@@ -1299,7 +1304,7 @@ export default function Nutrition({ session }) {
 
               {/* Farmers Market tip */}
               <div style={{ background:'#FAEEDA', borderRadius:14, padding:'14px 16px', marginBottom:8, border:'1px solid #FCD88A' }}>
-                <div style={{ fontSize:13, fontWeight:700, color:'#7A4D0F', marginBottom:4 }}>💡 Farmers Market Tip</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'#7A4D0F', marginBottom:4 }}>{tr.nutr_fm_tip_title || '💡 Farmers Market Tip'}</div>
                 <div style={{ fontSize:13, color:'#92400e', lineHeight:1.6 }}>
                   Many farmers markets <strong>double your EBT dollars</strong> through programs like Double Up Food Bucks — spend $10 EBT, get $20 in fresh produce!
                 </div>
@@ -1309,9 +1314,9 @@ export default function Nutrition({ session }) {
             <>
               {/* Canada info */}
               <div style={{ background:'linear-gradient(135deg, #A32D2D, #7a1f1f)', borderRadius:14, padding:'16px', marginBottom:14, color:'white' }}>
-                <div style={{ fontSize:16, fontWeight:800, marginBottom:4 }}>🇨🇦 Food Access in Canada</div>
+                <div style={{ fontSize:16, fontWeight:800, marginBottom:4 }}>{tr.nutr_canada_title || '🇨🇦 Food Access in Canada'}</div>
                 <div style={{ fontSize:13, opacity:0.9, lineHeight:1.6 }}>
-                  Canada does not have a SNAP/EBT system. Food assistance is provided through food banks, community programs, and discount grocery stores.
+                  {tr.nutr_canada_desc || 'Canada does not have a SNAP/EBT system. Food assistance is provided through food banks, community programs, and discount grocery stores.'}
                 </div>
               </div>
 
@@ -1319,7 +1324,8 @@ export default function Nutrition({ session }) {
               <MapSearch
                 query="food bank"
                 color="#A32D2D"
-                label="Find Food Banks Near Me"
+                label={tr.nutr_find_food_bank || 'Find Food Banks Near Me'}
+                tr={tr}
               />
 
               {['Food Bank','Food Rescue','Emergency Aid','Community Hub','Discount Grocery','Supermarket','Savings Program'].map(cat => {

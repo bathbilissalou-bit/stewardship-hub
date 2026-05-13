@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useT } from '../lib/i18n'
 
 // ── Persistence ────────────────────────────────────────────────────────────────
 const KEY = uid => `sh_travel_v2_${uid}`
@@ -26,16 +27,6 @@ function expiryBadge(days) {
 function fmt(n) { return n ? `$${parseFloat(n).toLocaleString()}` : '—' }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const TABS = [
-  { id:'details',   short:'Trip Details' },
-  { id:'documents', short:'Documents'   },
-  { id:'budget',    short:'Budget'      },
-  { id:'itinerary', short:'Itinerary'   },
-  { id:'packing',   short:'Packing'     },
-  { id:'emergency', short:'Emergency'   },
-  { id:'notes',     short:'Notes'       },
-]
-
 const DOC_TYPES = [
   { id:'passport',  label:'Passport',              icon:'📗', hasExpiry:true  },
   { id:'visa',      label:'Visa',                  icon:'🔖', hasExpiry:true  },
@@ -132,6 +123,16 @@ function SectionCard({ title, icon, children, style={} }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function Travel({ session }) {
+  const tr = useT()
+  const TABS = [
+    { id:'details',   short: tr.travel_tab_details   || 'Trip Details' },
+    { id:'documents', short: tr.travel_tab_documents  || 'Documents'   },
+    { id:'budget',    short: tr.travel_tab_budget     || 'Budget'      },
+    { id:'itinerary', short: tr.travel_tab_itinerary  || 'Itinerary'   },
+    { id:'packing',   short: tr.travel_tab_packing    || 'Packing'     },
+    { id:'emergency', short: tr.travel_tab_emergency  || 'Emergency'   },
+    { id:'notes',     short: tr.travel_tab_notes      || 'Notes'       },
+  ]
   const userId = session?.user?.id || 'guest'
 
   const [tab, setTab] = useState('details')
@@ -237,12 +238,12 @@ export default function Travel({ session }) {
       <div style={{ background:'linear-gradient(135deg,#534AB7,#185FA5)', borderRadius:'16px 16px 0 0',
         padding:'18px 16px 32px', marginBottom:'-16px', color:'white' }}>
         <div style={{ fontSize:28, marginBottom:4 }}>✈️</div>
-        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Travel Planner</h2>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>{tr.travel_title || 'Travel Planner'}</h2>
         {trip.destination
           ? <p style={{ color:'rgba(255,255,255,0.9)', margin:0, fontSize:13, fontWeight:600 }}>
-              📍 {trip.destination}{tripDays ? ` · ${tripDays} days` : ''}
+              📍 {trip.destination}{tripDays ? ` · ${tripDays > 1 ? (tr.travel_days_trip_p || '{n} days trip').replace('{n}', tripDays) : (tr.travel_days_trip_s || '{n} day trip').replace('{n}', tripDays)}` : ''}
             </p>
-          : <p style={{ color:'rgba(255,255,255,0.7)', margin:0, fontSize:13 }}>Plan every detail of your trip</p>
+          : <p style={{ color:'rgba(255,255,255,0.7)', margin:0, fontSize:13 }}>{tr.travel_subtitle || 'Plan every detail of your trip'}</p>
         }
       </div>
 
@@ -293,9 +294,9 @@ export default function Travel({ session }) {
           {/* Progress summary */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:14 }}>
             {[
-              { label:'Documents', value:`${docsReady}/${trip.docs.length}`, icon:'📄', color:'#185FA5' },
-              { label:'Packing',   value:`${packDone}/${packItems.length}`, icon:'🎒', color:'#1D9E75' },
-              { label:'Budget',    value:trip.total_budget ? fmt(trip.total_budget) : '—', icon:'💰', color:'#BA7517' },
+              { label: tr.travel_stat_docs    || 'Documents', value:`${docsReady}/${trip.docs.length}`, icon:'📄', color:'#185FA5' },
+              { label: tr.travel_stat_packing || 'Packing',   value:`${packDone}/${packItems.length}`, icon:'🎒', color:'#1D9E75' },
+              { label: tr.travel_stat_budget  || 'Budget',    value:trip.total_budget ? fmt(trip.total_budget) : '—', icon:'💰', color:'#BA7517' },
             ].map(s => (
               <div key={s.label} style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12,
                 padding:'12px 8px', textAlign:'center' }}>
@@ -306,16 +307,16 @@ export default function Travel({ session }) {
             ))}
           </div>
 
-          <SectionCard title="Destination" icon="📍">
-            <Field label="Where are you going?">
-              <Input value={trip.destination} placeholder="e.g. Paris, France · Lagos, Nigeria · New York, USA"
+          <SectionCard title={tr.travel_sect_dest || 'Destination'} icon="📍">
+            <Field label={tr.travel_where || 'Where are you going?'}>
+              <Input value={trip.destination} placeholder={tr.travel_where_ph || 'e.g. Paris, France · Lagos, Nigeria · New York, USA'}
                 onChange={e => update({ destination:e.target.value })} />
             </Field>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <Field label="Departure date">
+              <Field label={tr.travel_depart || 'Departure date'}>
                 <input type="date" value={trip.date_from} onChange={e=>update({date_from:e.target.value})} style={inputStyle}/>
               </Field>
-              <Field label="Return date">
+              <Field label={tr.travel_return_date || 'Return date'}>
                 <input type="date" value={trip.date_to} onChange={e=>update({date_to:e.target.value})} style={inputStyle}/>
               </Field>
             </div>
@@ -324,14 +325,14 @@ export default function Travel({ session }) {
                 🗓 {tripDays} day{tripDays!==1?'s':''} trip · {fmtDate(trip.date_from)} → {fmtDate(trip.date_to)}
               </div>
             )}
-            <Field label="Purpose of trip">
+            <Field label={tr.travel_purpose || 'Purpose of trip'}>
               <select value={trip.purpose} onChange={e=>update({purpose:e.target.value})} style={inputStyle}>
-                <option value="">— Select purpose —</option>
+                <option value="">{tr.travel_select_purpose || '— Select purpose —'}</option>
                 {PURPOSES.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
             </Field>
-            <Field label="Number of travelers">
-              <Input value={trip.travelers} type="number" placeholder="e.g. 2"
+            <Field label={tr.travel_num_travelers || 'Number of travelers'}>
+              <Input value={trip.travelers} type="number" placeholder={tr.travel_num_ph || 'e.g. 2'}
                 onChange={e=>update({travelers:e.target.value})} />
             </Field>
           </SectionCard>
@@ -340,11 +341,11 @@ export default function Travel({ session }) {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
             {[
               { tab:'documents', icon:'📄', label:'Documents',  color:'#185FA5', bg:'#EBF4FB', sub:`${docsReady}/${trip.docs.length} ready` },
-              { tab:'budget',    icon:'💰', label:'Budget',     color:'#BA7517', bg:'#FEF3CD', sub:trip.total_budget?fmt(trip.total_budget):'Set budget' },
+              { tab:'budget',    icon:'💰', label:'Budget',     color:'#BA7517', bg:'#FEF3CD', sub:trip.total_budget?fmt(trip.total_budget):(tr.travel_quick_setbudget||'Set budget') },
               { tab:'itinerary', icon:'📅', label:'Itinerary',  color:'#534AB7', bg:'#EEEDFE', sub:`${trip.itinerary.length} entr${trip.itinerary.length===1?'y':'ies'}` },
               { tab:'packing',   icon:'🎒', label:'Packing',    color:'#1D9E75', bg:'#E1F5EE', sub:`${packDone}/${packItems.length} packed` },
               { tab:'emergency', icon:'🆘', label:'Emergency',  color:'#A32D2D', bg:'#FCEBEB', sub:`${trip.emerg_contacts.length} contact${trip.emerg_contacts.length===1?'':'s'}` },
-              { tab:'notes',     icon:'📝', label:'Notes',      color:'#374151', bg:'#f3f4f6', sub:'Addresses & reminders' },
+              { tab:'notes',     icon:'📝', label:'Notes',      color:'#374151', bg:'#f3f4f6', sub:(tr.travel_quick_addr||'Addresses & reminders') },
             ].map(item => (
               <button key={item.tab} onClick={()=>setTab(item.tab)}
                 style={{ background:'var(--white)', border:`1px solid ${item.color}33`, borderRadius:12, padding:'12px',
@@ -368,7 +369,7 @@ export default function Travel({ session }) {
       {tab === 'documents' && (
         <div>
           <div style={{ fontSize:12, color:'#9ca3af', marginBottom:12 }}>
-            {docsReady}/{trip.docs.length} documents ready · Tap a document to expand details
+            {(tr.travel_doc_header || '{ready}/{total} documents ready · Tap to expand').replace('{ready}', docsReady).replace('{total}', trip.docs.length)}
           </div>
           {DOC_TYPES.map(type => {
             const doc = trip.docs.find(d=>d.id===type.id)
@@ -389,7 +390,7 @@ export default function Travel({ session }) {
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:700, fontSize:14, color:'var(--text)' }}>{type.label}</div>
                     <div style={{ fontSize:11, color:'#9ca3af' }}>
-                      {doc?.number ? `No. ${doc.number}` : 'Tap to add details'}
+                      {doc?.number ? `No. ${doc.number}` : (tr.travel_tap_details || 'Tap to add details')}
                       {badge && <span style={{ marginLeft:8, color:badge.color }}>{badge.icon} {badge.label}</span>}
                     </div>
                   </div>
@@ -399,7 +400,7 @@ export default function Travel({ session }) {
                       style={{ padding:'5px 12px', borderRadius:20, border:`1.5px solid ${doc?.ready?'#1D9E75':'var(--border)'}`,
                         background:doc?.ready?'#E1F5EE':'var(--bg)', color:doc?.ready?'#1D9E75':'#9ca3af',
                         fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                      {doc?.ready ? '✓ Ready' : 'Mark Ready'}
+                      {doc?.ready ? (tr.travel_marked_ready || '✓ Ready') : (tr.travel_mark_ready || 'Mark Ready')}
                     </button>
                     <span style={{ color:'#9ca3af', fontSize:14 }}>{expanded ? '▲' : '▼'}</span>
                   </div>
@@ -411,7 +412,7 @@ export default function Travel({ session }) {
                     <div style={{ paddingTop:12, display:'flex', flexDirection:'column', gap:10 }}>
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>
-                          {type.id==='ticket' ? 'Booking Reference' : type.id==='hotel' ? 'Confirmation Number' : 'Document Number'}
+                          {type.id==='ticket' ? (tr.travel_booking_ref || 'Booking Reference') : type.id==='hotel' ? (tr.travel_confirm_num || 'Confirmation Number') : (tr.travel_doc_number || 'Document Number')}
                         </div>
                         <input value={doc?.number||''} onChange={e=>updateDoc(type.id,{number:e.target.value})}
                           placeholder={type.id==='ticket'?'e.g. ABC123':type.id==='hotel'?'e.g. HBC99012':'e.g. A12345678'}
@@ -420,18 +421,18 @@ export default function Travel({ session }) {
                       {type.hasExpiry && (
                         <div>
                           <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>
-                            {type.id==='ticket' ? 'Travel Date' : 'Expiry Date'}
+                            {type.id==='ticket' ? (tr.travel_travel_date || 'Travel Date') : (tr.travel_expiry_date || 'Expiry Date')}
                           </div>
                           <input type="date" value={doc?.expiry||''} onChange={e=>updateDoc(type.id,{expiry:e.target.value})} style={inputStyle}/>
                           {doc?.expiry && badge && (
                             <div style={{ marginTop:6, padding:'6px 10px', background:badge.bg, borderRadius:8, fontSize:11, color:badge.color, fontWeight:600 }}>
-                              {badge.icon} {days < 0 ? 'Already expired!' : `${days} days until expiry · ${fmtDate(doc.expiry)}`}
+                              {badge.icon} {days < 0 ? (tr.travel_expired || 'Expired!') : (tr.travel_days_expiry || '{n} days until expiry · {date}').replace('{n}', days).replace('{date}', fmtDate(doc.expiry))}
                             </div>
                           )}
                         </div>
                       )}
                       <div>
-                        <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Notes (optional)</div>
+                        <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.travel_notes_opt || 'Notes (optional)'}</div>
                         <input value={doc?.notes||''} onChange={e=>updateDoc(type.id,{notes:e.target.value})}
                           placeholder="e.g. Renewal in progress, kept in folder…" style={inputStyle}/>
                       </div>
@@ -449,8 +450,8 @@ export default function Travel({ session }) {
       ════════════════════════════════════════════════════════════════════ */}
       {tab === 'budget' && (
         <div>
-          <SectionCard title="Total Trip Budget" icon="💰">
-            <Field label="Total budget amount">
+          <SectionCard title={tr.travel_budget_sect || 'Total Trip Budget'} icon="💰">
+            <Field label={tr.travel_budget_amount || 'Total budget amount'}>
               <div style={{ display:'flex', alignItems:'center', gap:8, border:'2px solid #1D9E75', borderRadius:12, padding:'0 12px', background:'var(--white)' }}>
                 <span style={{ fontSize:18, color:'#1D9E75', fontWeight:700 }}>$</span>
                 <input type="number" value={trip.total_budget} placeholder="e.g. 3000"
@@ -463,9 +464,9 @@ export default function Travel({ session }) {
             {trip.total_budget && (
               <div>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:4 }}>
-                  <span style={{ color:'#374151', fontWeight:600 }}>Allocated: {fmt(spent)}</span>
+                  <span style={{ color:'#374151', fontWeight:600 }}>{(tr.travel_allocated || 'Allocated: {n}').replace('{n}', fmt(spent))}</span>
                   <span style={{ color: budgetLeft>=0 ? '#1D9E75' : '#A32D2D', fontWeight:700 }}>
-                    {budgetLeft>=0 ? `${fmt(budgetLeft)} remaining` : `${fmt(Math.abs(budgetLeft))} over budget`}
+                    {budgetLeft>=0 ? (tr.travel_remaining || '{n} remaining').replace('{n}', fmt(budgetLeft)) : (tr.travel_over_budget || '{n} over budget').replace('{n}', fmt(Math.abs(budgetLeft)))}
                   </span>
                 </div>
                 <div style={{ height:8, background:'#f3f4f6', borderRadius:4, overflow:'hidden' }}>
@@ -473,12 +474,12 @@ export default function Travel({ session }) {
                     background: budgetPct>90 ? '#A32D2D' : budgetPct>70 ? '#BA7517' : '#1D9E75',
                     transition:'width 0.4s' }}/>
                 </div>
-                <div style={{ fontSize:10, color:'#9ca3af', textAlign:'right', marginTop:2 }}>{Math.round(budgetPct)}% allocated</div>
+                <div style={{ fontSize:10, color:'#9ca3af', textAlign:'right', marginTop:2 }}>{(tr.travel_pct_allocated || '{n}% allocated').replace('{n}', Math.round(budgetPct))}</div>
               </div>
             )}
           </SectionCard>
 
-          <SectionCard title="Budget Breakdown" icon="📊">
+          <SectionCard title={tr.travel_breakdown || 'Budget Breakdown'} icon="📊">
             {[
               { key:'transportation', label:'✈️ Transportation', placeholder:'Flights, trains, bus, taxi…' },
               { key:'lodging',        label:'🏨 Lodging',        placeholder:'Hotel, Airbnb, hostel…' },
@@ -528,8 +529,8 @@ export default function Travel({ session }) {
               <div style={{ width:46, height:46, borderRadius:13, background:'rgba(255,255,255,0.15)',
                 display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>💱</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:14, fontWeight:800, color:'white', marginBottom:2 }}>Currency Converter</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.8)' }}>Check live exchange rates for your destination</div>
+                <div style={{ fontSize:14, fontWeight:800, color:'white', marginBottom:2 }}>{tr.travel_currency_btn || 'Currency Converter'}</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.8)' }}>{tr.travel_currency_sub || 'Check live exchange rates for your destination'}</div>
               </div>
               <div style={{ fontSize:20, color:'rgba(255,255,255,0.7)' }}>›</div>
             </div>
@@ -545,8 +546,8 @@ export default function Travel({ session }) {
           {trip.itinerary.length === 0 && !showItinForm && (
             <div style={{ textAlign:'center', padding:'32px 0', color:'#9ca3af' }}>
               <div style={{ fontSize:48, marginBottom:8 }}>📅</div>
-              <div style={{ fontWeight:700, marginBottom:4 }}>No itinerary yet</div>
-              <div style={{ fontSize:13 }}>Add your flight, hotel, activities & appointments</div>
+              <div style={{ fontWeight:700, marginBottom:4 }}>{tr.travel_no_itinerary || 'No itinerary yet'}</div>
+              <div style={{ fontSize:13 }}>{tr.travel_add_itin_hint || 'Add your flight, hotel, activities & appointments'}</div>
             </div>
           )}
 
@@ -581,7 +582,7 @@ export default function Travel({ session }) {
           {/* Add entry form */}
           {showItinForm ? (
             <div style={{ background:'var(--white)', border:'1.5px solid #534AB7', borderRadius:14, padding:16, marginBottom:12 }}>
-              <div style={{ fontSize:13, fontWeight:800, color:'#534AB7', marginBottom:12 }}>➕ Add Itinerary Entry</div>
+              <div style={{ fontSize:13, fontWeight:800, color:'#534AB7', marginBottom:12 }}>{tr.travel_add_itin_form || '➕ Add Itinerary Entry'}</div>
 
               {/* Type selector */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
@@ -597,24 +598,24 @@ export default function Travel({ session }) {
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Date</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.travel_date || 'Date'}</div>
                   <input type="date" value={itinForm.date} onChange={e=>setItinForm(f=>({...f,date:e.target.value}))} style={inputStyle}/>
                 </div>
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Time (optional)</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.travel_time_opt || 'Time (optional)'}</div>
                   <input type="time" value={itinForm.time} onChange={e=>setItinForm(f=>({...f,time:e.target.value}))} style={inputStyle}/>
                 </div>
               </div>
 
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Title *</div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.travel_itin_title || 'Title *'}</div>
                 <input value={itinForm.title} onChange={e=>setItinForm(f=>({...f,title:e.target.value}))}
                   placeholder={itinForm.type==='flight'?'e.g. Air France AF123 YYZ → CDG':itinForm.type==='hotel'?'e.g. Check-in — Marriott Paris':'e.g. Eiffel Tower visit'}
                   style={inputStyle}/>
               </div>
 
               <div style={{ marginBottom:12 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>Details (optional)</div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#374151', marginBottom:4 }}>{tr.travel_details_opt || 'Details (optional)'}</div>
                 <textarea value={itinForm.desc} onChange={e=>setItinForm(f=>({...f,desc:e.target.value}))}
                   placeholder="Terminal, confirmation #, address, notes…" rows={2}
                   style={{...inputStyle, resize:'vertical', fontFamily:'inherit'}}/>
@@ -623,12 +624,12 @@ export default function Travel({ session }) {
               <div style={{ display:'flex', gap:8 }}>
                 <button onClick={()=>setShowItinForm(false)}
                   style={{ flex:1, padding:'12px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontSize:14, fontWeight:600, cursor:'pointer' }}>
-                  Cancel
+                  {tr.travel_cancel || 'Cancel'}
                 </button>
                 <button onClick={addItin} disabled={!itinForm.title.trim()}
                   style={{ flex:2, padding:'12px', background:itinForm.title.trim()?'#534AB7':'#e5e7eb', color:itinForm.title.trim()?'white':'#9ca3af',
                     border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:itinForm.title.trim()?'pointer':'default' }}>
-                  ➕ Add Entry
+                  {tr.travel_add_entry || '➕ Add Entry'}
                 </button>
               </div>
             </div>
@@ -636,7 +637,7 @@ export default function Travel({ session }) {
             <button onClick={()=>setShowItinForm(true)}
               style={{ width:'100%', padding:'14px', background:'#EEEDFE', color:'#534AB7', border:'1.5px dashed #534AB7',
                 borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:4 }}>
-              + Add Flight / Hotel / Activity / Appointment
+              {tr.travel_add_itin_btn || '+ Add Flight / Hotel / Activity / Appointment'}
             </button>
           )}
         </div>
@@ -650,7 +651,7 @@ export default function Travel({ session }) {
           {/* Progress */}
           <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12, padding:'12px 16px', marginBottom:14 }}>
             <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:6 }}>
-              <span style={{ fontWeight:700 }}>🎒 Packing Progress</span>
+              <span style={{ fontWeight:700 }}>{tr.travel_pack_progress || '🎒 Packing Progress'}</span>
               <span style={{ fontWeight:800, color:'#1D9E75' }}>{packDone}/{packItems.length}</span>
             </div>
             <div style={{ height:8, background:'#f3f4f6', borderRadius:4 }}>
@@ -708,10 +709,10 @@ export default function Travel({ session }) {
             <button onClick={addPackItem} disabled={!newItem.trim()}
               style={{ padding:'11px 18px', background:newItem.trim()?'#1D9E75':'#e5e7eb', color:newItem.trim()?'white':'#9ca3af',
                 border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:newItem.trim()?'pointer':'default' }}>
-              Add
+              {tr.travel_add_btn || 'Add'}
             </button>
           </div>
-          <div style={{ fontSize:11, color:'#9ca3af', textAlign:'center', marginTop:6 }}>Press Enter or tap Add · Items auto-save</div>
+          <div style={{ fontSize:11, color:'#9ca3af', textAlign:'center', marginTop:6 }}>{tr.travel_pack_hint || 'Press Enter or tap Add · Items auto-save'}</div>
         </div>
       )}
 
@@ -721,10 +722,10 @@ export default function Travel({ session }) {
       {tab === 'emergency' && (
         <div>
           {/* Emergency contacts */}
-          <SectionCard title="Emergency Contacts" icon="📞">
+          <SectionCard title={tr.travel_emerg_contacts || 'Emergency Contacts'} icon="📞">
             {trip.emerg_contacts.length === 0 && (
               <div style={{ textAlign:'center', padding:'12px 0', color:'#9ca3af', fontSize:13 }}>
-                No emergency contacts added yet
+                {tr.travel_no_emerg || 'No emergency contacts added yet'}
               </div>
             )}
             {trip.emerg_contacts.map(c => (
@@ -744,19 +745,19 @@ export default function Travel({ session }) {
               <div style={{ marginTop:12, padding:'12px', background:'#f9fafb', borderRadius:10 }}>
                 <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:10 }}>
                   <input value={emergForm.name} onChange={e=>setEmergForm(f=>({...f,name:e.target.value}))}
-                    placeholder="Full name *" style={inputStyle}/>
+                    placeholder={tr.travel_full_name || 'Full name *'} style={inputStyle}/>
                   <input value={emergForm.phone} onChange={e=>setEmergForm(f=>({...f,phone:e.target.value}))}
-                    type="tel" placeholder="Phone number" style={inputStyle}/>
+                    type="tel" placeholder={tr.travel_phone || 'Phone number'} style={inputStyle}/>
                   <input value={emergForm.relation} onChange={e=>setEmergForm(f=>({...f,relation:e.target.value}))}
-                    placeholder="Relationship (e.g. Spouse, Parent, Friend)" style={inputStyle}/>
+                    placeholder={tr.travel_relation || 'Relationship (e.g. Spouse, Parent, Friend)'} style={inputStyle}/>
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
                   <button onClick={()=>setShowEmergForm(false)}
-                    style={{ flex:1, padding:'10px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                    style={{ flex:1, padding:'10px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontSize:13, fontWeight:600, cursor:'pointer' }}>{tr.travel_cancel || 'Cancel'}</button>
                   <button onClick={addContact} disabled={!emergForm.name.trim()}
                     style={{ flex:2, padding:'10px', background:emergForm.name.trim()?'#A32D2D':'#e5e7eb', color:emergForm.name.trim()?'white':'#9ca3af',
                       border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:emergForm.name.trim()?'pointer':'default' }}>
-                    ➕ Save Contact
+                    {tr.travel_save_contact || '➕ Save Contact'}
                   </button>
                 </div>
               </div>
@@ -764,27 +765,27 @@ export default function Travel({ session }) {
               <button onClick={()=>setShowEmergForm(true)}
                 style={{ width:'100%', marginTop:10, padding:'10px', background:'#FCEBEB', color:'#A32D2D',
                   border:'1.5px dashed #A32D2D', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                + Add Emergency Contact
+                {tr.travel_add_contact_btn || '+ Add Emergency Contact'}
               </button>
             )}
           </SectionCard>
 
-          <SectionCard title="Embassy / Consulate" icon="🏛️">
-            <Field label="Embassy or consulate address / phone">
+          <SectionCard title={tr.travel_embassy_sect || 'Embassy / Consulate'} icon="🏛️">
+            <Field label={tr.travel_embassy_label || 'Embassy or consulate address / phone'}>
               <Textarea value={trip.emerg_embassy} onChange={e=>update({emerg_embassy:e.target.value})}
                 placeholder={`e.g. Nigerian Embassy in France\n12 Avenue Foch, Paris\n+33 1 42 12 34 56`} rows={3}/>
             </Field>
           </SectionCard>
 
-          <SectionCard title="Hospital / Pharmacy" icon="🏥">
-            <Field label="Nearest hospital or pharmacy at destination">
+          <SectionCard title={tr.travel_hospital_sect || 'Hospital / Pharmacy'} icon="🏥">
+            <Field label={tr.travel_hospital_label || 'Nearest hospital or pharmacy at destination'}>
               <Textarea value={trip.emerg_hospital} onChange={e=>update({emerg_hospital:e.target.value})}
                 placeholder={`e.g. Hôpital Lariboisière, Paris\n2 Rue Ambroise Paré\n+33 1 49 95 65 65`} rows={3}/>
             </Field>
           </SectionCard>
 
-          <SectionCard title="Local Emergency Number" icon="🆘">
-            <Field label="Emergency number at your destination" hint="e.g. 911 (USA), 999 (UK), 15/17/18 (France), 999 (Nigeria)">
+          <SectionCard title={tr.travel_local_sect || 'Local Emergency Number'} icon="🆘">
+            <Field label={tr.travel_local_label || 'Emergency number at your destination'} hint="e.g. 911 (USA), 999 (UK), 15/17/18 (France), 999 (Nigeria)">
               <Input value={trip.emerg_local} placeholder="e.g. 112 (international) · 911 (USA) · 999 (Nigeria)"
                 onChange={e=>update({emerg_local:e.target.value})}/>
             </Field>
@@ -792,7 +793,7 @@ export default function Travel({ session }) {
               <a href={`tel:${trip.emerg_local.split(' ')[0]}`}
                 style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px',
                   background:'#A32D2D', color:'white', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:700, marginTop:-4 }}>
-                📞 Call {trip.emerg_local}
+                {(tr.travel_call || '📞 Call {n}').replace('{n}', trip.emerg_local)}
               </a>
             )}
           </SectionCard>
@@ -804,24 +805,24 @@ export default function Travel({ session }) {
       ════════════════════════════════════════════════════════════════════ */}
       {tab === 'notes' && (
         <div>
-          <SectionCard title="Addresses" icon="📍">
-            <Field label="Important addresses at your destination"
+          <SectionCard title={tr.travel_notes_addr_sect || 'Addresses'} icon="📍">
+            <Field label={tr.travel_notes_addr_label || 'Important addresses at your destination'}
               hint="Hotel address, venue, family home, airport pickup point…">
               <Textarea value={trip.addr} onChange={e=>update({addr:e.target.value})}
                 placeholder={`Hotel: 12 Rue de Rivoli, Paris 75001\nAirport: CDG Terminal 2E\nFamily: 5 Baker Street, London`} rows={5}/>
             </Field>
           </SectionCard>
 
-          <SectionCard title="Reminders" icon="⏰">
-            <Field label="Things to remember before and during your trip"
+          <SectionCard title={tr.travel_notes_rem_sect || 'Reminders'} icon="⏰">
+            <Field label={tr.travel_notes_rem_label || 'Things to remember before and during your trip'}
               hint="Pre-departure tasks, deadlines, important to-dos…">
               <Textarea value={trip.reminders} onChange={e=>update({reminders:e.target.value})}
                 placeholder={`- Print boarding pass\n- Notify bank of travel dates\n- Download offline maps\n- Pack phone charger & adapter`} rows={5}/>
             </Field>
           </SectionCard>
 
-          <SectionCard title="Personal Travel Notes" icon="✍️">
-            <Field label="Free space for anything else"
+          <SectionCard title={tr.travel_notes_pers_sect || 'Personal Travel Notes'} icon="✍️">
+            <Field label={tr.travel_notes_pers_label || 'Free space for anything else'}
               hint="Visa tips, cultural notes, recommendations from friends…">
               <Textarea value={trip.personal_notes} onChange={e=>update({personal_notes:e.target.value})}
                 placeholder="Write anything you want to remember about this trip…" rows={7}/>
@@ -829,7 +830,7 @@ export default function Travel({ session }) {
           </SectionCard>
 
           <div style={{ textAlign:'center', fontSize:11, color:'#9ca3af', padding:'8px 0' }}>
-            ✅ All notes auto-save as you type
+            {tr.travel_autosave || '✅ All notes auto-save as you type'}
           </div>
         </div>
       )}

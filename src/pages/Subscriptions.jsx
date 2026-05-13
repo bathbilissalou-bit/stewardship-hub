@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../lib/i18n'
 
 const SYMBOLS = { USD:'$',EUR:'€',GBP:'£',CAD:'C$',AUD:'A$',NGN:'₦',KES:'KSh',GHS:'₵',ZAR:'R',XOF:'CFA',XAF:'FCFA',INR:'₹',BRL:'R$',MXN:'MX$',CNY:'¥',JPY:'¥',KRW:'₩',RUB:'₽' }
 
@@ -58,6 +59,7 @@ function daysUntil(dateStr) {
 }
 
 export default function Subscriptions({ session }) {
+  const tr = useT()
   const userId = session.user.id
   const [subs, setSubs]         = useState([])
   const [loading, setLoading]   = useState(true)
@@ -154,22 +156,22 @@ export default function Subscriptions({ session }) {
       {/* Header */}
       <div style={{ background:'linear-gradient(135deg,#534AB7,#3730a3)', borderRadius:'16px 16px 0 0', padding:'20px 16px 32px', marginBottom:'-16px', color:'white' }}>
         <div style={{ fontSize:28, marginBottom:4 }}>🔄</div>
-        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>Subscriptions</h2>
-        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>Track & cancel what you don't use</p>
+        <h2 style={{ color:'white', margin:'0 0 2px', fontSize:22, fontWeight:800 }}>{tr.sub_title || 'Subscriptions'}</h2>
+        <p style={{ color:'rgba(255,255,255,0.8)', margin:0, fontSize:13 }}>{tr.sub_subtitle || "Track & cancel what you don't use"}</p>
       </div>
 
       {/* Summary card */}
       <div style={{ background:'white', borderRadius:16, padding:'20px 16px', margin:'24px 0 16px', border:'1px solid #e5e7eb', boxShadow:'0 2px 8px rgba(0,0,0,0.06)' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom: byCat.length ? 16 : 0 }}>
           <div>
-            <div style={{ fontSize:11, color:'#9ca3af', fontWeight:600, marginBottom:4 }}>MONTHLY TOTAL</div>
+            <div style={{ fontSize:11, color:'#9ca3af', fontWeight:600, marginBottom:4 }}>{tr.sub_monthly_total || 'MONTHLY TOTAL'}</div>
             <div style={{ fontSize:28, fontWeight:800, color:'#534AB7' }}>{fmt(totalMonthly, symbol)}</div>
             <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{subs.length} subscription{subs.length !== 1 ? 's' : ''}</div>
           </div>
           <div>
-            <div style={{ fontSize:11, color:'#9ca3af', fontWeight:600, marginBottom:4 }}>YEARLY TOTAL</div>
+            <div style={{ fontSize:11, color:'#9ca3af', fontWeight:600, marginBottom:4 }}>{tr.sub_yearly_total || 'YEARLY TOTAL'}</div>
             <div style={{ fontSize:28, fontWeight:800, color:'#374151' }}>{fmt(totalYearly, symbol)}</div>
-            <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>per year</div>
+            <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{tr.sub_per_year || 'per year'}</div>
           </div>
         </div>
 
@@ -198,7 +200,7 @@ export default function Subscriptions({ session }) {
       {/* Upcoming billing alert */}
       {upcoming.length > 0 && (
         <div style={{ background:'#FFF3CD', border:'1px solid #BA7517', borderRadius:12, padding:'12px 14px', marginBottom:16 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#7A4D0F', marginBottom:8 }}>⏰ Billing soon</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'#7A4D0F', marginBottom:8 }}>{tr.sub_billing_soon || '⏰ Billing soon'}</div>
           {upcoming.map(s => (
             <div key={s.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
               <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -208,7 +210,7 @@ export default function Subscriptions({ session }) {
               <div style={{ textAlign:'right' }}>
                 <span style={{ fontSize:12, fontWeight:700, color:'#BA7517' }}>{fmt(s.amount, symbol)}</span>
                 <span style={{ fontSize:10, color:'#9ca3af', marginLeft:6 }}>
-                  {s.days === 0 ? 'today' : `in ${s.days}d`}
+                  {s.days === 0 ? (tr.sub_due_today || '🔔 due today') : `in ${s.days}d`}
                 </span>
               </div>
             </div>
@@ -220,11 +222,11 @@ export default function Subscriptions({ session }) {
       <div style={{ display:'flex', gap:8, marginBottom:16 }}>
         <button onClick={() => { setShowQuick(true); setShowAdd(false) }}
           style={{ flex:1, padding:'12px', background:'#534AB7', color:'white', border:'none', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-          ⚡ Quick Add
+          {tr.sub_quick_add || '⚡ Quick Add'}
         </button>
         <button onClick={() => { setShowAdd(true); setShowQuick(false) }}
           style={{ flex:1, padding:'12px', background:'white', color:'#534AB7', border:'2px solid #534AB7', borderRadius:12, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-          + Custom
+          {tr.sub_custom || '+ Custom'}
         </button>
       </div>
 
@@ -238,7 +240,7 @@ export default function Subscriptions({ session }) {
                 background: filterCat===cat ? '#534AB7' : 'white',
                 color: filterCat===cat ? 'white' : '#6b7280',
               }}>
-              {cat}
+              {cat === 'All' ? (tr.sub_cat_all || 'All') : cat}
             </button>
           ))}
         </div>
@@ -248,8 +250,8 @@ export default function Subscriptions({ session }) {
       {filtered.length === 0 && (
         <div style={{ textAlign:'center', padding:'40px 20px' }}>
           <div style={{ fontSize:48, marginBottom:12 }}>🔄</div>
-          <div style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:6 }}>{loading ? '⏳ Loading…' : 'No subscriptions yet'}</div>
-          {!loading && <div style={{ fontSize:13, color:'#9ca3af', marginBottom:20 }}>Add your recurring bills to see your true monthly cost</div>}
+          <div style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:6 }}>{loading ? '⏳ Loading…' : (tr.sub_none || 'No subscriptions yet')}</div>
+          {!loading && <div style={{ fontSize:13, color:'#9ca3af', marginBottom:20 }}>{tr.sub_none_hint || 'Add your recurring bills to see your true monthly cost'}</div>}
         </div>
       )}
 
@@ -270,7 +272,7 @@ export default function Subscriptions({ session }) {
                 <span style={{ fontSize:10, padding:'2px 7px', borderRadius:10, background:cat.color+'18', color:cat.color, fontWeight:600 }}>{cat.icon} {sub.category}</span>
                 {days !== null && (
                   <span style={{ fontSize:10, color: days <= 3 ? '#A32D2D' : '#9ca3af' }}>
-                    {days === 0 ? '🔔 due today' : days < 0 ? `${Math.abs(days)}d ago` : `in ${days}d`}
+                    {days === 0 ? (tr.sub_due_today || '🔔 due today') : days < 0 ? `${Math.abs(days)}d ago` : `in ${days}d`}
                   </span>
                 )}
               </div>
@@ -296,7 +298,7 @@ export default function Subscriptions({ session }) {
       {showQuick && (
         <div className="modal-overlay" onClick={() => setShowQuick(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">⚡ Quick Add</div>
+            <div className="modal-title">{tr.sub_quick_add || '⚡ Quick Add'}</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:16 }}>
               {POPULAR.map((p, i) => (
                 <button key={i} onClick={() => addSub({ ...p, next_billing_date: nextBillingDate(p.billing_cycle) })}
@@ -311,7 +313,7 @@ export default function Subscriptions({ session }) {
             </div>
             <button onClick={() => setShowQuick(false)}
               style={{ width:'100%', padding:'13px', background:'#f3f4f6', border:'none', borderRadius:10, fontWeight:600, color:'#666', cursor:'pointer' }}>
-              Cancel
+              {tr.sub_cancel || 'Cancel'}
             </button>
           </div>
         </div>
@@ -321,7 +323,7 @@ export default function Subscriptions({ session }) {
       {showAdd && (
         <div className="modal-overlay" onClick={() => { setShowAdd(false); resetForm() }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">+ Add Subscription</div>
+            <div className="modal-title">{tr.sub_add_title || '+ Add Subscription'}</div>
 
             {/* Icon picker row */}
             <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:6, marginBottom:12, scrollbarWidth:'none' }}>
@@ -334,19 +336,19 @@ export default function Subscriptions({ session }) {
             </div>
 
             <div className="form-group" style={{ marginBottom:12 }}>
-              <label>Name</label>
+              <label>{tr.sub_name || 'Name'}</label>
               <input type="text" placeholder="e.g. Netflix, Gym, iCloud…" autoFocus
                 value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
               <div className="form-group">
-                <label>Amount</label>
+                <label>{tr.sub_amount || 'Amount'}</label>
                 <input type="number" placeholder="0.00" min="0" step="0.01"
                   value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label>Billing</label>
+                <label>{tr.sub_billing || 'Billing'}</label>
                 <select value={form.billing_cycle} onChange={e => handleCycleChange(e.target.value)}
                   style={{ width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:10, fontSize:14, background:'white' }}>
                   {CYCLES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
@@ -355,7 +357,7 @@ export default function Subscriptions({ session }) {
             </div>
 
             <div className="form-group" style={{ marginBottom:12 }}>
-              <label>Category</label>
+              <label>{tr.sub_category || 'Category'}</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
                 {CATEGORIES.map(cat => (
                   <button key={cat.label} onClick={() => setForm(f => ({ ...f, category: cat.label }))}
@@ -371,7 +373,7 @@ export default function Subscriptions({ session }) {
             </div>
 
             <div className="form-group" style={{ marginBottom:16 }}>
-              <label>Next billing date</label>
+              <label>{tr.sub_next_billing || 'Next billing date'}</label>
               <input type="date" value={form.next_billing_date}
                 onChange={e => setForm(f => ({ ...f, next_billing_date: e.target.value }))} />
             </div>
@@ -379,11 +381,11 @@ export default function Subscriptions({ session }) {
             <div className="modal-actions">
               <button onClick={() => { setShowAdd(false); resetForm() }}
                 style={{ padding:'13px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontWeight:600, cursor:'pointer' }}>
-                Cancel
+                {tr.sub_cancel || 'Cancel'}
               </button>
               <button onClick={() => addSub(form)} disabled={saving || !form.name || !form.amount}
                 style={{ flex:2, padding:'13px', background:'linear-gradient(135deg,#534AB7,#3730a3)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:15, cursor:'pointer', opacity: form.name && form.amount ? 1 : 0.5 }}>
-                {saving ? 'Saving…' : '💾 Save'}
+                {saving ? 'Saving…' : (tr.sub_save || '💾 Save')}
               </button>
             </div>
           </div>
@@ -394,7 +396,7 @@ export default function Subscriptions({ session }) {
       {editSub && (
         <div className="modal-overlay" onClick={() => { setEditSub(null); resetForm() }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">✏️ Edit Subscription</div>
+            <div className="modal-title">{tr.sub_edit_title || '✏️ Edit Subscription'}</div>
             <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:6, marginBottom:12, scrollbarWidth:'none' }}>
               {['📦','🎬','🎵','💻','💪','🍔','⚡','💳','☁️','▶️','✨','🤖','📱','🎮','📰','🏃','🌐','🔒'].map(ic => (
                 <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
@@ -402,16 +404,16 @@ export default function Subscriptions({ session }) {
               ))}
             </div>
             <div className="form-group" style={{ marginBottom:12 }}>
-              <label>Name</label>
+              <label>{tr.sub_name || 'Name'}</label>
               <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
               <div className="form-group">
-                <label>Amount</label>
+                <label>{tr.sub_amount || 'Amount'}</label>
                 <input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
               </div>
               <div className="form-group">
-                <label>Billing</label>
+                <label>{tr.sub_billing || 'Billing'}</label>
                 <select value={form.billing_cycle} onChange={e => handleCycleChange(e.target.value)}
                   style={{ width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:10, fontSize:14, background:'white' }}>
                   {CYCLES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
@@ -419,7 +421,7 @@ export default function Subscriptions({ session }) {
               </div>
             </div>
             <div className="form-group" style={{ marginBottom:12 }}>
-              <label>Category</label>
+              <label>{tr.sub_category || 'Category'}</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
                 {CATEGORIES.map(cat => (
                   <button key={cat.label} onClick={() => setForm(f => ({ ...f, category: cat.label }))}
@@ -433,15 +435,15 @@ export default function Subscriptions({ session }) {
               </div>
             </div>
             <div className="form-group" style={{ marginBottom:16 }}>
-              <label>Next billing date</label>
+              <label>{tr.sub_next_billing || 'Next billing date'}</label>
               <input type="date" value={form.next_billing_date} onChange={e => setForm(f => ({ ...f, next_billing_date: e.target.value }))} />
             </div>
             <div className="modal-actions">
               <button onClick={() => { setEditSub(null); resetForm() }}
-                style={{ padding:'13px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                style={{ padding:'13px', background:'#f3f4f6', color:'#666', border:'none', borderRadius:10, fontWeight:600, cursor:'pointer' }}>{tr.sub_cancel || 'Cancel'}</button>
               <button onClick={updateSub} disabled={saving || !form.name || !form.amount}
                 style={{ flex:2, padding:'13px', background:'linear-gradient(135deg,#534AB7,#3730a3)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:15, cursor:'pointer', opacity: form.name && form.amount ? 1 : 0.5 }}>
-                {saving ? 'Saving…' : '💾 Save Changes'}
+                {saving ? 'Saving…' : (tr.sub_save_changes || '💾 Save Changes')}
               </button>
             </div>
           </div>
