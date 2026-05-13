@@ -61,6 +61,7 @@ const F = {
   '/howtouse':      { icon:'📖', label:'App Guide',           short:'Guide',      desc:'Learn every feature',               c:'#706B65', bg:'rgba(112,107,101,0.10)'},
   '/premium':       { icon:'👑', label:'Go Premium',          short:'Premium',    desc:'Unlock all features',               c:'#C28A35', bg:'rgba(194,138,53,0.10)' },
   '/coach':         { icon:'🤖', label:'AI Coach',            short:'Coach',      desc:'Personalised financial advice',     c:'#1A6878', bg:'rgba(26,104,120,0.10)' },
+  '/settings':      { icon:'⚙️', label:'Settings',            short:'Settings',   desc:'Manage your preferences',           c:'#706B65', bg:'rgba(112,107,101,0.10)'},
 }
 
 // Maps route → tr key for translated feature descriptions
@@ -88,6 +89,7 @@ const FEAT_TR_KEY = {
   '/howtouse':      'featGuideDesc',
   '/premium':       'featPremiumDesc',
   '/coach':         'featCoachDesc',
+  '/settings':      'featSettingsDesc',
 }
 
 const ROUTE_TO_TITLE_KEY = {
@@ -114,6 +116,7 @@ const ROUTE_TO_TITLE_KEY = {
   '/howtouse':      'appGuideCardTitle',
   '/premium':       'goPremiumCardTitle',
   '/coach':         'aiCoachHeroTitle',
+  '/settings':      'settings',
 }
 
 const ROUTE_TO_SHORT_KEY = {
@@ -140,6 +143,7 @@ const ROUTE_TO_SHORT_KEY = {
   '/howtouse':      'exploreShortGuide',
   '/premium':       'exploreShortPremium',
   '/coach':         'exploreShortCoach',
+  '/settings':      'settings',
 }
 
 function featTitle(to, tr) {
@@ -605,7 +609,7 @@ export default function Explore({ lang: langProp }) {
               {tr.continueWhere}
             </div>
             <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
-              {recent.map(to => <RecentChip key={to} to={to} />)}
+              {recent.filter(to => F[to]).map(to => <RecentChip key={to} to={to} />)}
             </div>
           </div>
         )}
