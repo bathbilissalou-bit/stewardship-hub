@@ -224,26 +224,26 @@ function App() {
             <Route path="investments"     element={<Investments     session={session} lang={lang} />} />
             <Route path="loans"           element={<Loans           session={session} lang={lang} />} />
             <Route path="challenge"       element={<Challenge       session={session} lang={lang} />} />
-            <Route path="nutrition"       element={<Nutrition       session={session} />} />
+            <Route path="nutrition"       element={<Nutrition       session={session} lang={lang} />} />
             <Route path="faith"           element={<Faith           session={session} lang={lang} />} />
             <Route path="community"       element={<Community       session={session} lang={lang} />} />
-            <Route path="birthdays"       element={<Birthdays       session={session} />} />
+            <Route path="birthdays"       element={<Birthdays       session={session} lang={lang} />} />
             <Route path="howtouse"        element={<HowToUse        lang={lang} />} />
             <Route path="report"          element={<BudgetReport    session={session} lang={lang} />} />
-            <Route path="settings"        element={<Settings        session={session} isPremium={isPremium} theme={theme} setTheme={setTheme} />} />
-            <Route path="savings"         element={<SavingsGoals    session={session} />} />
-            <Route path="giving"          element={<Giving          session={session} />} />
-            <Route path="bills"           element={<Bills           session={session} />} />
-            <Route path="coach"           element={<AICoach         session={session} />} />
-            <Route path="premium"         element={<Premium         session={session} isPremium={isPremium} />} />
-            <Route path="currency"        element={<CurrencyConverter />} />
-            <Route path="receipts"        element={<Receipts        session={session} />} />
-            <Route path="travel"          element={<Travel          session={session} />} />
-            <Route path="family"          element={<FamilyBudget    session={session} />} />
-            <Route path="subscriptions"   element={<Subscriptions   session={session} />} />
-            <Route path="networth"        element={<NetWorth        session={session} />} />
-            <Route path="debtplanner"     element={<DebtPlanner     session={session} />} />
-            <Route path="search"          element={<Search          session={session} />} />
+            <Route path="settings"        element={<Settings        session={session} isPremium={isPremium} theme={theme} setTheme={setTheme} lang={lang} />} />
+            <Route path="savings"         element={<SavingsGoals    session={session} lang={lang} />} />
+            <Route path="giving"          element={<Giving          session={session} lang={lang} />} />
+            <Route path="bills"           element={<Bills           session={session} lang={lang} />} />
+            <Route path="coach"           element={<AICoach         session={session} lang={lang} />} />
+            <Route path="premium"         element={<Premium         session={session} isPremium={isPremium} lang={lang} />} />
+            <Route path="currency"        element={<CurrencyConverter lang={lang} />} />
+            <Route path="receipts"        element={<Receipts        session={session} lang={lang} />} />
+            <Route path="travel"          element={<Travel          session={session} lang={lang} />} />
+            <Route path="family"          element={<FamilyBudget    session={session} lang={lang} />} />
+            <Route path="subscriptions"   element={<Subscriptions   session={session} lang={lang} />} />
+            <Route path="networth"        element={<NetWorth        session={session} lang={lang} />} />
+            <Route path="debtplanner"     element={<DebtPlanner     session={session} lang={lang} />} />
+            <Route path="search"          element={<Search          session={session} lang={lang} />} />
             <Route path="explore"         element={<Explore lang={lang} />} />
           </Route>
         </Routes>
