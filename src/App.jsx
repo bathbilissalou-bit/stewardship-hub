@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import { getLang, RTL_LANGS, getLoadingUi } from './lib/i18n-core'
 import { hardLocalLogout } from './lib/logout'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // ── Eagerly loaded (needed immediately for auth flow) ─────────────────────────
 import Login        from './pages/Login'
@@ -202,6 +203,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/welcome"         element={<Welcome />} />
@@ -248,6 +250,7 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
