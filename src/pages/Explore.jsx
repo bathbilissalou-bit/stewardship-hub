@@ -39,6 +39,8 @@ function getSuggestionRoute(h) {
 // ─────────────────────────────────────────────────────────────────────────────
 const F = {
   '/budget':        { icon:'💳', label:'Budget',              short:'Budget',     desc:'Monthly budget tracker',            c:'#1D8C6A', bg:'rgba(29,140,106,0.10)' },
+  '/investments':   { icon:'📈', label:'Investments',         short:'Invest',     desc:'Track your portfolio & returns',    c:'#1A6878', bg:'rgba(26,104,120,0.10)' },
+  '/loans':         { icon:'🏦', label:'Loans',               short:'Loans',      desc:'Manage and repay your loans',       c:'#8C4040', bg:'rgba(140,64,64,0.10)'  },
   '/savings':       { icon:'💰', label:'Savings Goals',       short:'Savings',    desc:'Set & track your goals',            c:'#1D8C6A', bg:'rgba(29,140,106,0.10)' },
   '/bills':         { icon:'🔔', label:'Bill Reminders',      short:'Bills',      desc:'Never miss a payment',              c:'#C28A35', bg:'rgba(194,138,53,0.10)' },
   '/family':        { icon:'🏠', label:'Family Budget',       short:'Family',     desc:'Budget as a household',             c:'#8B4A5A', bg:'rgba(139,74,90,0.10)'  },
@@ -64,6 +66,8 @@ const F = {
 // Maps route → tr key for translated feature descriptions
 const FEAT_TR_KEY = {
   '/budget':        'featBudgetDesc',
+  '/investments':   'featInvestmentsDesc',
+  '/loans':         'featLoansDesc',
   '/savings':       'featSavingsDesc',
   '/bills':         'featBillsDesc',
   '/family':        'featFamilyDesc',
@@ -88,6 +92,8 @@ const FEAT_TR_KEY = {
 
 const ROUTE_TO_TITLE_KEY = {
   '/budget':        'budget',
+  '/investments':   'invest',
+  '/loans':         'loans',
   '/savings':       'savingsGoalsTitle',
   '/bills':         'billReminders',
   '/family':        'familyBudgetCardTitle',
@@ -112,6 +118,8 @@ const ROUTE_TO_TITLE_KEY = {
 
 const ROUTE_TO_SHORT_KEY = {
   '/budget':        'budget',
+  '/investments':   'invest',
+  '/loans':         'loans',
   '/savings':       'exploreShortSavings',
   '/bills':         'exploreShortBills',
   '/family':        'exploreShortFamily',
