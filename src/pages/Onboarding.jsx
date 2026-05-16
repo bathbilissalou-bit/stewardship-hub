@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useT } from '../lib/i18n'
 
@@ -27,19 +27,18 @@ const GOAL_OPTIONS = [
   { icon: '✈️', storeName: 'Save for a goal',      titleKey: 'onboard_goal_save_title',      descKey: 'onboard_goal_save_desc'      },
 ]
 
-// Shared style to prevent Safari text selection on tappable elements
 const noSelect = {
-  WebkitUserSelect:      'none',
-  userSelect:            'none',
-  WebkitTouchCallout:    'none',
-  touchAction:           'manipulation',
+  WebkitUserSelect:        'none',
+  userSelect:              'none',
+  WebkitTouchCallout:      'none',
+  touchAction:             'manipulation',
   WebkitTapHighlightColor: 'transparent',
-  cursor:                'pointer',
+  cursor:                  'pointer',
 }
 
 export default function Onboarding({ session, onComplete }) {
   const tr       = useT()
-  const navigate = useNavigate()
+  const location = useLocation()
 
   const STEPS = [
     { icon: '👋', title: tr.onboard_step0_title, desc: tr.onboard_step0_desc, tip: tr.onboard_step0_tip },
@@ -55,15 +54,19 @@ export default function Onboarding({ session, onComplete }) {
   const [error, setError]   = useState('')
 
   function selectGoal(storeName) {
+    console.log('Goal selected:', storeName)
     setGoal(storeName)
     setError('')
   }
 
   function completeOnboarding() {
+    console.log('completeOnboarding — goal:', goal, '| onComplete exists:', typeof onComplete === 'function')
+
     try {
-      localStorage.setItem('financialGoal',   goal)
-      localStorage.setItem('onboardingDone',  'true')
       localStorage.setItem('sh_onboarding_done', 'true')
+      localStorage.setItem('onboardingDone', 'true')
+      if (goal) localStorage.setItem('financialGoal', goal)
+      console.log('Saved onboardingDone to localStorage')
     } catch (e) {
       console.warn('Could not save onboarding state:', e)
     }
@@ -94,19 +97,29 @@ export default function Onboarding({ session, onComplete }) {
       }
     }
 
-    if (typeof onComplete === 'function') onComplete()
-    navigate('/', { replace: true })
+    console.log('Calling onComplete')
+    // Navigation is handled by App.jsx's onComplete — do NOT call navigate() here.
+    if (typeof onComplete === 'function') {
+      onComplete()
+    } else {
+      console.error('onComplete is not a function! Type:', typeof onComplete)
+      // Last-resort fallback if onComplete is missing
+      window.location.href = '/'
+    }
   }
 
   const handleStart = () => {
+    console.log('Start clicked — selectedGoal:', goal)
     if (!goal) {
       setError('Please choose one goal first.')
       return
     }
+    setError('')
     completeOnboarding()
   }
 
   const handleSkip = () => {
+    console.log('Skip clicked')
     setError('')
     completeOnboarding()
   }
@@ -122,8 +135,17 @@ export default function Onboarding({ session, onComplete }) {
     { icon: '🌍', text: tr.onboard_bullet5 },
   ]
 
+  // Debug info visible on screen (remove after confirming fixed)
+  let lsDone = '?'
+  try { lsDone = localStorage.getItem('onboardingDone') || localStorage.getItem('sh_onboarding_done') || 'not set' } catch {}
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F6E56 0%, #1D9E75 40%, #f8fdf9 100%)', padding: '0 0 40px', ...noSelect }}>
+
+      {/* ── DEBUG PANEL (remove after confirming fixed) ───────────────────── */}
+      <div style={{ background: 'rgba(0,0,0,0.7)', color: '#0f0', fontFamily: 'monospace', fontSize: 10, padding: '6px 10px', lineHeight: 1.6 }}>
+        goal: "{goal}" | lsDone: {lsDone} | onComplete: {typeof onComplete} | path: {location.pathname}
+      </div>
 
       {/* Progress bar */}
       <div style={{ height: 4, background: 'rgba(255,255,255,0.3)' }}>
@@ -185,19 +207,10 @@ export default function Onboarding({ session, onComplete }) {
           <div style={{ background: 'white', borderRadius: 20, padding: 16, marginBottom: 16, maxHeight: 340, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {CURRENCIES.map(c => (
-                <button
-                  key={c.code}
-                  type="button"
+                <button key={c.code} type="button"
                   onClick={() => setCurrency(c.code)}
                   onTouchEnd={e => { e.preventDefault(); setCurrency(c.code) }}
-                  style={{
-                    padding: '12px', borderRadius: 12,
-                    border: `2px solid ${currency === c.code ? '#1D9E75' : '#f3f4f6'}`,
-                    background: currency === c.code ? '#E1F5EE' : 'white',
-                    textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
-                    ...noSelect,
-                  }}
-                >
+                  style={{ padding: '12px', borderRadius: 12, border: `2px solid ${currency === c.code ? '#1D9E75' : '#f3f4f6'}`, background: currency === c.code ? '#E1F5EE' : 'white', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, ...noSelect }}>
                   <span style={{ fontSize: 20, pointerEvents: 'none' }}>{c.flag}</span>
                   <div style={{ pointerEvents: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: currency === c.code ? '#0F6E56' : '#333' }}>{c.symbol} {c.code}</div>
@@ -216,31 +229,13 @@ export default function Onboarding({ session, onComplete }) {
             {GOAL_OPTIONS.map((g, i) => {
               const selected = goal === g.storeName
               return (
-                <button
-                  key={i}
-                  type="button"
+                <button key={i} type="button"
                   onClick={() => selectGoal(g.storeName)}
                   onTouchEnd={e => { e.preventDefault(); selectGoal(g.storeName) }}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '14px',
-                    borderRadius: 12,
-                    border: `2px solid ${selected ? '#1D9E75' : '#f3f4f6'}`,
-                    background: selected ? '#E1F5EE' : 'white',
-                    marginBottom: 8,
-                    textAlign: 'left',
-                    minHeight: 64,
-                    ...noSelect,
-                  }}
-                >
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px', borderRadius: 12, border: `2px solid ${selected ? '#1D9E75' : '#f3f4f6'}`, background: selected ? '#E1F5EE' : 'white', marginBottom: 8, textAlign: 'left', minHeight: 64, ...noSelect }}>
                   <span style={{ fontSize: 28, flexShrink: 0, pointerEvents: 'none' }}>{g.icon}</span>
                   <div style={{ flex: 1, pointerEvents: 'none' }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: selected ? '#0F6E56' : '#333', marginBottom: 2 }}>
-                      {tr[g.titleKey] || g.storeName}
-                    </div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: selected ? '#0F6E56' : '#333', marginBottom: 2 }}>{tr[g.titleKey] || g.storeName}</div>
                     <div style={{ fontSize: 12, color: '#999' }}>{tr[g.descKey]}</div>
                   </div>
                   <div style={{ width: 24, flexShrink: 0, textAlign: 'center', pointerEvents: 'none' }}>
@@ -261,39 +256,18 @@ export default function Onboarding({ session, onComplete }) {
         {/* Nav buttons */}
         <div style={{ display: 'flex', gap: 10 }}>
           {step > 0 && (
-            <button
-              type="button"
+            <button type="button"
               onClick={() => { setStep(s => s - 1); setError('') }}
               onTouchEnd={e => { e.preventDefault(); setStep(s => s - 1); setError('') }}
-              style={{
-                flex: 1, padding: '16px',
-                background: 'rgba(255,255,255,0.2)', color: 'white',
-                border: '1px solid rgba(255,255,255,0.4)', borderRadius: 12,
-                fontSize: 15, fontWeight: 600, minHeight: 54,
-                ...noSelect,
-              }}
-            >
+              style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 12, fontSize: 15, fontWeight: 600, minHeight: 54, ...noSelect }}>
               <span style={{ pointerEvents: 'none' }}>{tr.onboard_back || '← Back'}</span>
             </button>
           )}
 
-          {/* "Start using the app!" — always a real button, never disabled */}
-          <button
-            type="button"
+          <button type="button"
             onClick={isLastStep ? handleStart : () => setStep(s => s + 1)}
-            onTouchEnd={e => {
-              e.preventDefault()
-              if (isLastStep) handleStart()
-              else setStep(s => s + 1)
-            }}
-            style={{
-              flex: 2, padding: '16px',
-              background: 'white', color: '#0F6E56',
-              border: 'none', borderRadius: 12,
-              fontSize: 16, fontWeight: 800, minHeight: 54,
-              ...noSelect,
-            }}
-          >
+            onTouchEnd={e => { e.preventDefault(); if (isLastStep) handleStart(); else setStep(s => s + 1) }}
+            style={{ flex: 2, padding: '16px', background: 'white', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, minHeight: 54, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>
               {isLastStep ? (tr.onboard_start_app || '🚀 Start using the app!') : (tr.onboard_continue || 'Continue →')}
             </span>
@@ -302,35 +276,40 @@ export default function Onboarding({ session, onComplete }) {
 
         {/* Skip links */}
         {step === 1 && (
-          <button
-            type="button"
+          <button type="button"
             onClick={() => setStep(s => s + 1)}
             onTouchEnd={e => { e.preventDefault(); setStep(s => s + 1) }}
-            style={{
-              width: '100%', marginTop: 12, padding: '14px',
-              background: 'transparent', color: 'rgba(255,255,255,0.75)',
-              border: 'none', fontSize: 14, minHeight: 44,
-              ...noSelect,
-            }}
-          >
+            style={{ width: '100%', marginTop: 12, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', fontSize: 14, minHeight: 44, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>{tr.onboard_skip_now || 'Skip for now →'}</span>
           </button>
         )}
         {step === 3 && (
-          <button
-            type="button"
+          <button type="button"
             onClick={handleSkip}
             onTouchEnd={e => { e.preventDefault(); handleSkip() }}
-            style={{
-              width: '100%', marginTop: 12, padding: '14px',
-              background: 'transparent', color: 'rgba(255,255,255,0.75)',
-              border: 'none', fontSize: 14, minHeight: 44,
-              ...noSelect,
-            }}
-          >
+            style={{ width: '100%', marginTop: 12, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', fontSize: 14, minHeight: 44, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>{tr.onboard_skip_now || 'Skip for now →'}</span>
           </button>
         )}
+
+        {/* ── Emergency bypass (remove after confirming fixed) ──────────────── */}
+        <button type="button"
+          onClick={() => {
+            console.log('Emergency bypass clicked')
+            try { localStorage.setItem('onboardingDone', 'true'); localStorage.setItem('sh_onboarding_done', 'true') } catch {}
+            if (typeof onComplete === 'function') onComplete()
+            else window.location.href = '/'
+          }}
+          onTouchEnd={e => {
+            e.preventDefault()
+            console.log('Emergency bypass touchEnd')
+            try { localStorage.setItem('onboardingDone', 'true'); localStorage.setItem('sh_onboarding_done', 'true') } catch {}
+            if (typeof onComplete === 'function') onComplete()
+            else window.location.href = '/'
+          }}
+          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.6)', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: 10, fontSize: 12, minHeight: 40, ...noSelect }}>
+          <span style={{ pointerEvents: 'none' }}>Enter app anyway (debug)</span>
+        </button>
       </div>
     </div>
   )
