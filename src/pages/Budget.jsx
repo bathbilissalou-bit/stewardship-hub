@@ -253,13 +253,17 @@ export default function Budget({ session }) {
     }
   }
   function downloadCSV() {
-    const headers = [tr.budget_csv_col_type, tr.budget_csv_col_description, tr.budget_csv_col_category, tr.budget_csv_col_amount]
-    const rows    = entries.map(e => [e.type, `"${(e.label||'').replace(/"/g,'""')}"`, e.category||'', Number(e.amount).toFixed(2)])
-    const csv     = [headers, ...rows].map(r => r.join(',')).join('\n')
-    const blob    = new Blob([csv], { type:'text/csv' })
-    const url     = URL.createObjectURL(blob)
-    const a       = Object.assign(document.createElement('a'), { href:url, download:`budget-${monthYear}.csv` })
-    a.click(); URL.revokeObjectURL(url)
+    try {
+      const headers = [tr.budget_csv_col_type, tr.budget_csv_col_description, tr.budget_csv_col_category, tr.budget_csv_col_amount]
+      const rows    = entries.map(e => [e.type, `"${(e.label||'').replace(/"/g,'""')}"`, e.category||'', Number(e.amount).toFixed(2)])
+      const csv     = [headers, ...rows].map(r => r.join(',')).join('\n')
+      const blob    = new Blob([csv], { type:'text/csv' })
+      const url     = URL.createObjectURL(blob)
+      const a       = Object.assign(document.createElement('a'), { href:url, download:`budget-${monthYear}.csv` })
+      a.click(); URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('CSV download failed:', err)
+    }
   }
 
   // ── Derived values ─────────────────────────────────────────────────────────

@@ -376,7 +376,7 @@ export default function HowToUse() {
   const cardRef = useRef(null)
 
   function saveProgress(completed) {
-    localStorage.setItem(PROGRESS_KEY, JSON.stringify(completed))
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(completed)) } catch {}
     setCompletedModules(completed)
   }
 

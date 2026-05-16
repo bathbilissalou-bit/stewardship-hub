@@ -17,7 +17,7 @@ const CACHE_KEY = uid => `sh_dash_v3_${uid}`
 function loadCache(uid) {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY(uid)) || 'null') } catch { return null }
 }
-function saveCache(uid, data) { localStorage.setItem(CACHE_KEY(uid), JSON.stringify(data)) }
+function saveCache(uid, data) { try { localStorage.setItem(CACHE_KEY(uid), JSON.stringify(data)) } catch {} }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 const fmt    = (n, symbol='$') => `${symbol}${Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0})}`

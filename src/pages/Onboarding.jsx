@@ -42,7 +42,7 @@ export default function Onboarding({ session }) {
   const [goal, setGoal] = useState('')
 
   function finish() {
-    localStorage.setItem('sh_onboarding_done', 'true')
+    try { localStorage.setItem('sh_onboarding_done', 'true') } catch {}
 
     const userId = session?.user?.id
     if (userId) {

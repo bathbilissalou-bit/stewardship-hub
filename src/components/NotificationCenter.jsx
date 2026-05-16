@@ -198,7 +198,7 @@ export default function NotificationCenter({ userId }) {
 
   // Persist dismissed list
   useEffect(() => {
-    localStorage.setItem('sh_dismissed_alerts', JSON.stringify(dismissed))
+    try { localStorage.setItem('sh_dismissed_alerts', JSON.stringify(dismissed)) } catch {}
   }, [dismissed])
 
   async function enableNotifications() {

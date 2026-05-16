@@ -34,7 +34,7 @@ export default function VideoCard({
   function saveVideo() {
     const id = parseYouTubeId(inputVal)
     if (id) {
-      localStorage.setItem(STORAGE_KEY, id)
+      try { localStorage.setItem(STORAGE_KEY, id) } catch {}
       setVideoId(id)
       setPlaying(true)
     }
@@ -43,7 +43,7 @@ export default function VideoCard({
   }
 
   function removeVideo() {
-    localStorage.removeItem(STORAGE_KEY)
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
     setVideoId('')
     setPlaying(false)
   }

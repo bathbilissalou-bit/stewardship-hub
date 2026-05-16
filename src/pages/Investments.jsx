@@ -291,7 +291,7 @@ export default function Investments({ session, lang }) {
   function saveTicker(invId, ticker) {
     const next = { ...tickerMap, [invId]: ticker.trim() }
     setTickerMap(next)
-    localStorage.setItem('sh_tickers', JSON.stringify(next))
+    try { localStorage.setItem('sh_tickers', JSON.stringify(next)) } catch {}
   }
 
   const totalInvested = investments.reduce((s,i) => s + Number(i.amount_invested||0), 0)

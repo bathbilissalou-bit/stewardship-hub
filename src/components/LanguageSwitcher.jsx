@@ -9,7 +9,7 @@ export default function LanguageSwitcher({ lang, setLang }) {
   const currentLang = LANGUAGES[current]
 
   function handleSelect(code) {
-    localStorage.setItem('sh_lang', code)
+    try { localStorage.setItem('sh_lang', code) } catch {}
     if (setLang) setLang(code)
     setOpen(false)
   }

@@ -5,7 +5,7 @@ import { useT } from '../lib/i18n'
 // ── Persistence ────────────────────────────────────────────────────────────────
 const KEY = uid => `sh_travel_v2_${uid}`
 function loadAll(uid) { try { return JSON.parse(localStorage.getItem(KEY(uid)) || 'null') } catch { return null } }
-function saveAll(uid, data) { localStorage.setItem(KEY(uid), JSON.stringify(data)) }
+function saveAll(uid, data) { try { localStorage.setItem(KEY(uid), JSON.stringify(data)) } catch {} }
 const uid4 = () => Math.random().toString(36).slice(2, 10)
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

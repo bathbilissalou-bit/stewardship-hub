@@ -86,10 +86,10 @@ function App() {
   const [isPremium, setIsPremium]       = useState(false)
   const [loading, setLoading]           = useState(true)
   const [onboardingDone, setOnboardingDone] = useState(
-    () => localStorage.getItem('sh_onboarding_done') === 'true'
+    () => { try { return localStorage.getItem('sh_onboarding_done') === 'true' } catch { return false } }
   )
   const [lang, setLangState]   = useState(getLang())
-  const [theme, setThemeState] = useState(() => localStorage.getItem('sh_theme') || 'light')
+  const [theme, setThemeState] = useState(() => { try { return localStorage.getItem('sh_theme') || 'light' } catch { return 'light' } })
 
   // Track whether we've already resolved loading (prevents double-fire)
   const resolvedRef = useRef(false)
@@ -104,7 +104,7 @@ function App() {
   }, [theme])
 
   function setTheme(t) {
-    localStorage.setItem('sh_theme', t)
+    try { localStorage.setItem('sh_theme', t) } catch {}
     setThemeState(t)
   }
 
@@ -150,7 +150,8 @@ function App() {
         resolveLoading(sess ?? null)
 
         // Load onboarding from localStorage immediately (synchronous, no hang).
-        const localDone = localStorage.getItem('sh_onboarding_done') === 'true'
+        let localDone = false
+        try { localDone = localStorage.getItem('sh_onboarding_done') === 'true' } catch {}
         setOnboardingDone(localDone)
 
         // Background DB check — fire-and-forget, does not block rendering.
@@ -163,7 +164,7 @@ function App() {
             .then(({ data }) => {
               const dbDone = data?.onboarding_done === true
               if (dbDone) {
-                localStorage.setItem('sh_onboarding_done', 'true')
+                try { localStorage.setItem('sh_onboarding_done', 'true') } catch {}
                 setOnboardingDone(true)
               }
             })

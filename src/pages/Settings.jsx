@@ -228,7 +228,7 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
             <div style={{ fontWeight:700, fontSize:15, marginBottom:16 }}>🌍 {tr.languageLabel||'Language'}</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               {Object.entries(LANGUAGES).map(([code, lang]) => (
-                <button key={code} onClick={() => { localStorage.setItem('sh_lang', code); window.location.reload() }}
+                <button key={code} onClick={() => { try { localStorage.setItem('sh_lang', code) } catch {}; window.location.reload() }}
                   style={{ padding:'10px 12px', borderRadius:10, border:'1px solid', borderColor:getLang()===code?'var(--green)':'var(--border)', background:getLang()===code?'var(--green-light)':'var(--bg)', cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize:20 }}>{lang.flag}</span>
                   <div>
