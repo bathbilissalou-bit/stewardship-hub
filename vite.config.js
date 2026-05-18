@@ -7,6 +7,7 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   build: {
+    target: ['es2020', 'safari13'],
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -53,12 +53,12 @@ export default function Login() {
         {error && <div style={{ background:'rgba(163,45,45,0.2)', border:'1px solid rgba(163,45,45,0.3)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:14, color:'#ff8a8a' }}>{error}</div>}
         <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div>
-            <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{tr.email.toUpperCase()}</label>
+            <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{(tr.email || 'Email').toUpperCase()}</label>
             <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required
               style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:16, color:'white', outline:'none', boxSizing:'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{tr.password.toUpperCase()}</label>
+            <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{(tr.password || 'Password').toUpperCase()}</label>
             <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
               style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:16, color:'white', outline:'none', boxSizing:'border-box' }} />
           </div>

@@ -59,7 +59,7 @@ export default class ErrorBoundary extends Component {
             or clear the app cache if the problem persists.
           </p>
 
-          {isDev && error && (
+          {error && (
             <pre style={{
               background: '#fee2e2', color: '#991b1b', borderRadius: 8,
               padding: '12px 16px', fontSize: 11, textAlign: 'left',
