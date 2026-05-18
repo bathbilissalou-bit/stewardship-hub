@@ -1,6 +1,7 @@
 // ── Tiny core — only the helpers that App.jsx + Layout.jsx need ──────────────
 // Keeping this file small means it's included in the main bundle without
 // dragging in the 155 KB full translations object.
+import { useState, useEffect } from 'react'
 
 export const LANGUAGES = {
   en: { name: 'English',    flag: '🇺🇸' },
@@ -35,7 +36,7 @@ export function getLang() {
 
 export function setLang(lang) {
   try { localStorage.setItem('sh_lang', lang) } catch {}
-  window.location.reload()
+  window.dispatchEvent(new CustomEvent('sh:langchange'))
 }
 
 // ── Nav labels only — the 6 words shown in the bottom tab bar ───────────────
@@ -59,8 +60,13 @@ const NAV = {
 }
 
 export function useNavT() {
-  const lang = getLang()
-  return NAV[lang] || NAV.en
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const handler = () => setTick(n => n + 1)
+    window.addEventListener('sh:langchange', handler)
+    return () => window.removeEventListener('sh:langchange', handler)
+  }, [])
+  return NAV[getLang()] || NAV.en
 }
 
 // ── Boot loading line only — keeps App.jsx off the full i18n bundle ──────────

@@ -10,6 +10,7 @@ export default function LanguageSwitcher({ lang, setLang }) {
 
   function handleSelect(code) {
     try { localStorage.setItem('sh_lang', code) } catch {}
+    window.dispatchEvent(new CustomEvent('sh:langchange'))
     if (setLang) setLang(code)
     setOpen(false)
   }

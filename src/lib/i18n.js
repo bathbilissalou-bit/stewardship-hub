@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { mergePageTranslations } from './pageTranslations.js'
 
 export const LANGUAGES = {
@@ -466,12 +467,8 @@ export function getLang() {
 }
 
 export function setLang(lang) {
-  try {
-    localStorage.setItem('sh_lang', lang)
-    window.location.reload()
-  } catch {
-    window.location.reload()
-  }
+  try { localStorage.setItem('sh_lang', lang) } catch {}
+  window.dispatchEvent(new CustomEvent('sh:langchange'))
 }
 
 /** Shallow-merge current language over English so missing keys fall back cleanly. */
@@ -510,6 +507,12 @@ export function interpolate(template, vars = {}) {
 }
 
 export function useT() {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const handler = () => setTick(n => n + 1)
+    window.addEventListener('sh:langchange', handler)
+    return () => window.removeEventListener('sh:langchange', handler)
+  }, [])
   return getActiveTranslations()
 }
 
