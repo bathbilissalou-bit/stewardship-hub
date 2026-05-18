@@ -56,11 +56,19 @@ export default function Onboarding({ session, onComplete }) {
   const [currency, setCurrency] = useState('USD')
   const [goal, setGoal]         = useState('')
   const [error, setError]       = useState('')
+  const [dbError, setDbError]   = useState(null)   // full Supabase error object
   const [loading, setLoading]   = useState(false)
 
   function selectGoal(storeName) {
     setGoal(storeName)
     setError('')
+    setDbError(null)
+  }
+
+  function handleContinueAnyway() {
+    // localStorage/sessionStorage already written at top of completeOnboarding
+    if (typeof onComplete === 'function') onComplete()
+    else window.location.href = '/'
   }
 
   async function completeOnboarding() {
@@ -73,7 +81,6 @@ export default function Onboarding({ session, onComplete }) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-      // Await the critical DB write so the onboarding flag is persisted before navigation
       const { error: upsertError } = await supabase.from('users')
         .upsert({
           id: userId,
@@ -83,8 +90,8 @@ export default function Onboarding({ session, onComplete }) {
           onboarding_done: true,
         }, { onConflict: 'id' })
       if (upsertError) {
-        console.error('[Onboarding] users upsert failed — full error:', JSON.stringify(upsertError, null, 2))
-        setError(`Could not save onboarding (${upsertError.code}: ${upsertError.message}${upsertError.details ? ' — ' + upsertError.details : ''}). Please try again or contact support.`)
+        console.error('[Onboarding] users upsert FULL ERROR:', JSON.stringify(upsertError, null, 2))
+        setDbError(upsertError)
         setLoading(false)
         return
       }
@@ -250,9 +257,28 @@ export default function Onboarding({ session, onComplete }) {
               )
             })}
 
-            {error ? (
-              <div style={{ marginTop: 4, padding: '10px 14px', background: '#FFF3CD', borderRadius: 10, fontSize: 13, color: '#856404', border: '1px solid #FFEEBA', textAlign: 'center', pointerEvents: 'none' }}>
+            {error && !dbError ? (
+              <div style={{ marginTop: 4, padding: '10px 14px', background: '#FFF3CD', borderRadius: 10, fontSize: 13, color: '#856404', border: '1px solid #FFEEBA', textAlign: 'center' }}>
                 {error}
+              </div>
+            ) : null}
+
+            {dbError ? (
+              <div style={{ marginTop: 8, padding: '14px', background: '#FFF3CD', borderRadius: 10, border: '1px solid #f59e0b' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#92400e', marginBottom: 8 }}>⚠️ Could not save to database</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#78350f', lineHeight: 1.8 }}>
+                  <div><strong>code:</strong> {dbError.code ?? '—'}</div>
+                  <div><strong>message:</strong> {dbError.message ?? '—'}</div>
+                  <div><strong>details:</strong> {dbError.details ?? '—'}</div>
+                  <div><strong>hint:</strong> {dbError.hint ?? '—'}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleContinueAnyway}
+                  onTouchEnd={e => { e.preventDefault(); handleContinueAnyway() }}
+                  style={{ marginTop: 10, width: '100%', padding: '12px', background: '#0F6E56', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  Continue anyway (onboarding saved locally)
+                </button>
               </div>
             ) : null}
           </div>
