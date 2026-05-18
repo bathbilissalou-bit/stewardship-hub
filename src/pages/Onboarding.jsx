@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT } from '../lib/i18n'
 
@@ -56,16 +56,14 @@ export default function Onboarding({ session, onComplete }) {
   const [currency, setCurrency] = useState('USD')
   const [goal, setGoal]         = useState('')
   const [error, setError]       = useState('')
-  // Prevents double-fire from onTouchEnd + onClick both triggering on iOS Safari
-  const completing = useRef(false)
+  const [loading, setLoading]   = useState(false)
 
   function selectGoal(storeName) {
     setGoal(storeName)
     setError('')
   }
 
-  function completeOnboarding() {
-    // Write to both localStorage and sessionStorage — sessionStorage works in Safari private mode
+  async function completeOnboarding() {
     safeSet('sh_onboarding_done', 'true')
     safeSet('onboardingDone', 'true')
     if (goal) safeSet('financialGoal', goal)
@@ -75,9 +73,11 @@ export default function Onboarding({ session, onComplete }) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-      supabase.from('users')
-        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
-        .catch(() => {})
+      // Await the critical DB write so the onboarding flag is persisted before navigation
+      try {
+        await supabase.from('users')
+          .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
+      } catch {}
 
       if (income && parseFloat(income) > 0) {
         supabase.from('budget_entries').insert({
@@ -104,18 +104,18 @@ export default function Onboarding({ session, onComplete }) {
   }
 
   const handleStart = () => {
-    if (completing.current) return
+    if (loading) return
     if (!goal) { setError('Please choose one goal first.'); return }
     setError('')
-    completing.current = true
-    completeOnboarding()
+    setLoading(true)
+    completeOnboarding().catch(() => setLoading(false))
   }
 
   const handleSkip = () => {
-    if (completing.current) return
+    if (loading) return
     setError('')
-    completing.current = true
-    completeOnboarding()
+    setLoading(true)
+    completeOnboarding().catch(() => setLoading(false))
   }
 
   const isLastStep = step === STEPS.length - 1
@@ -260,11 +260,12 @@ export default function Onboarding({ session, onComplete }) {
           )}
 
           <button type="button"
+            disabled={isLastStep && loading}
             onClick={isLastStep ? handleStart : () => setStep(s => s + 1)}
             onTouchEnd={e => { e.preventDefault(); if (isLastStep) handleStart(); else setStep(s => s + 1) }}
-            style={{ flex: 2, padding: '16px', background: 'white', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, minHeight: 54, ...noSelect }}>
+            style={{ flex: 2, padding: '16px', background: 'white', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, minHeight: 54, opacity: isLastStep && loading ? 0.7 : 1, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>
-              {isLastStep ? (tr.onboard_start_app || '🚀 Start using the app!') : (tr.onboard_continue || 'Continue →')}
+              {isLastStep && loading ? '⏳ Saving…' : isLastStep ? (tr.onboard_start_app || '🚀 Start using the app!') : (tr.onboard_continue || 'Continue →')}
             </span>
           </button>
         </div>
@@ -280,9 +281,10 @@ export default function Onboarding({ session, onComplete }) {
         )}
         {step === 3 && (
           <button type="button"
+            disabled={loading}
             onClick={handleSkip}
             onTouchEnd={e => { e.preventDefault(); handleSkip() }}
-            style={{ width: '100%', marginTop: 12, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', fontSize: 14, minHeight: 44, ...noSelect }}>
+            style={{ width: '100%', marginTop: 12, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', fontSize: 14, minHeight: 44, opacity: loading ? 0.5 : 1, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>{tr.onboard_skip_now || 'Skip for now →'}</span>
           </button>
         )}
