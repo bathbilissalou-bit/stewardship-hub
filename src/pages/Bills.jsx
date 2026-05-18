@@ -43,7 +43,7 @@ async function requestNotificationPermission() {
 }
 
 function sendBillNotification(bill, currencySymbol, days) {
-  if (Notification.permission !== 'granted') return
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
   new Notification(`🔔 Bill Due in ${days} Day${days !== 1 ? 's' : ''}`, {
     body: `${bill.name} — ${currencySymbol}${fmt(bill.amount)} is due on ${formatDueDate(bill.due_day, bill.due_month)}`,
     icon: '/favicon.ico',
@@ -58,7 +58,7 @@ export default function Bills({ session }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currencySymbol, setCurrencySymbol] = useState('$')
-  const [notifPerm, setNotifPerm] = useState(Notification?.permission || 'unsupported')
+  const [notifPerm, setNotifPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
   const [form, setForm] = useState({ name:'', amount:'', due_day:'1', due_month:'0', category:'Utilities', auto_pay:false })
   const userId = session.user.id
 

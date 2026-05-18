@@ -46,7 +46,7 @@ async function requestPermission() {
 }
 
 function fireBrowserNotification(title, body, tag) {
-  if (Notification.permission !== 'granted') return
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
   try {
     new Notification(title, { body, icon:'/favicon.ico', tag })
   } catch (_) {}
@@ -69,7 +69,7 @@ export default function NotificationCenter({ userId }) {
     try { return JSON.parse(localStorage.getItem('sh_dismissed_alerts') || '[]') } catch { return [] }
   })
   const [symbol,      setSymbol]      = useState('$')
-  const [permGranted, setPermGranted] = useState(Notification?.permission === 'granted')
+  const [permGranted, setPermGranted] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted')
 
   const loadAlerts = useCallback(async (force = false) => {
     if (!userId) return
@@ -215,7 +215,7 @@ export default function NotificationCenter({ userId }) {
     setAlerts(newAlerts)
 
     // Fire browser notifications for urgent items (due today or overdue)
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       newAlerts
         .filter(a => a.days !== null && a.days <= 1)
         .forEach(a => {
