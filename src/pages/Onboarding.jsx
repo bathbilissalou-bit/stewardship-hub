@@ -74,10 +74,14 @@ export default function Onboarding({ session, onComplete }) {
       const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
       // Await the critical DB write so the onboarding flag is persisted before navigation
-      try {
-        await supabase.from('users')
-          .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
-      } catch {}
+      const { error: upsertError } = await supabase.from('users')
+        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
+      if (upsertError) {
+        console.error('[Onboarding] users upsert failed:', upsertError)
+        setError(`Could not save onboarding (${upsertError.code || upsertError.message}). Please try again or contact support.`)
+        setLoading(false)
+        return
+      }
 
       if (income && parseFloat(income) > 0) {
         supabase.from('budget_entries').insert({
