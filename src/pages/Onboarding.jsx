@@ -1,6 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT } from '../lib/i18n'
+
+// Falls back to sessionStorage so Safari private mode still works
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value) } catch {}
+  try { sessionStorage.setItem(key, value) } catch {}
+}
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$',   name: 'US Dollar',           flag: '🇺🇸' },
@@ -45,29 +51,24 @@ export default function Onboarding({ session, onComplete }) {
     { icon: '🎯', title: tr.onboard_step3_title, desc: tr.onboard_step3_desc, tip: tr.onboard_step3_tip },
   ]
 
-  const [step, setStep]     = useState(0)
-  const [income, setIncome] = useState('')
+  const [step, setStep]         = useState(0)
+  const [income, setIncome]     = useState('')
   const [currency, setCurrency] = useState('USD')
-  const [goal, setGoal]     = useState('')
-  const [error, setError]   = useState('')
+  const [goal, setGoal]         = useState('')
+  const [error, setError]       = useState('')
+  // Prevents double-fire from onTouchEnd + onClick both triggering on iOS Safari
+  const completing = useRef(false)
 
   function selectGoal(storeName) {
-    console.log('Goal selected:', storeName)
     setGoal(storeName)
     setError('')
   }
 
   function completeOnboarding() {
-    console.log('completeOnboarding — goal:', goal, '| onComplete exists:', typeof onComplete === 'function')
-
-    try {
-      localStorage.setItem('sh_onboarding_done', 'true')
-      localStorage.setItem('onboardingDone', 'true')
-      if (goal) localStorage.setItem('financialGoal', goal)
-      console.log('Saved onboardingDone to localStorage')
-    } catch (e) {
-      console.warn('Could not save onboarding state:', e)
-    }
+    // Write to both localStorage and sessionStorage — sessionStorage works in Safari private mode
+    safeSet('sh_onboarding_done', 'true')
+    safeSet('onboardingDone', 'true')
+    if (goal) safeSet('financialGoal', goal)
 
     const userId = session?.user?.id
     if (userId) {
@@ -95,30 +96,25 @@ export default function Onboarding({ session, onComplete }) {
       }
     }
 
-    console.log('Calling onComplete')
-    // Navigation is handled by App.jsx's onComplete — do NOT call navigate() here.
     if (typeof onComplete === 'function') {
       onComplete()
     } else {
-      console.error('onComplete is not a function! Type:', typeof onComplete)
-      // Last-resort fallback if onComplete is missing
       window.location.href = '/'
     }
   }
 
   const handleStart = () => {
-    console.log('Start clicked — selectedGoal:', goal)
-    if (!goal) {
-      setError('Please choose one goal first.')
-      return
-    }
+    if (completing.current) return
+    if (!goal) { setError('Please choose one goal first.'); return }
     setError('')
+    completing.current = true
     completeOnboarding()
   }
 
   const handleSkip = () => {
-    console.log('Skip clicked')
+    if (completing.current) return
     setError('')
+    completing.current = true
     completeOnboarding()
   }
 

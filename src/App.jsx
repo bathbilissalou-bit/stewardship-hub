@@ -91,19 +91,12 @@ function AppRoutes({ session, onboardingDone, setOnboardingDone, isPremium, lang
   const navigate = useNavigate()
 
   function handleOnboardingComplete() {
-    console.log('[App] handleOnboardingComplete — setting onboardingDone=true and navigating to /')
-    // Write to localStorage with both keys for maximum compatibility
-    try {
-      localStorage.setItem('sh_onboarding_done', 'true')
-      localStorage.setItem('onboardingDone', 'true')
-    } catch (e) {
-      console.warn('[App] localStorage write failed:', e)
-    }
-    // Update React state FIRST, then navigate — both in the same sync call
-    // so React 18 batches them together before RequireAuth renders for the new route.
+    // Write to both localStorage AND sessionStorage — covers Safari private mode
+    safeSet('sh_onboarding_done', 'true')
+    safeSet('onboardingDone', 'true')
+    // Update state and navigate in the same tick so RequireAuth renders correctly
     setOnboardingDone(true)
     navigate('/', { replace: true })
-    console.log('[App] navigate called')
   }
 
   return (
@@ -154,6 +147,22 @@ function AppRoutes({ session, onboardingDone, setOnboardingDone, isPremium, lang
   )
 }
 
+// ── Safe storage — falls back to sessionStorage for Safari private mode ──────
+// localStorage is wiped by Safari after 7 days of inactivity or in private mode.
+// sessionStorage survives the session even when localStorage is unavailable.
+function safeGet(key) {
+  try { const v = localStorage.getItem(key); if (v !== null) return v } catch {}
+  try { return sessionStorage.getItem(key) } catch {}
+  return null
+}
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value) } catch {}
+  try { sessionStorage.setItem(key, value) } catch {}
+}
+function readOnboardingDone() {
+  return safeGet('sh_onboarding_done') === 'true' || safeGet('onboardingDone') === 'true'
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // App — owns auth state, wraps BrowserRouter.
 // Does NOT use useNavigate (can't, because it renders BrowserRouter itself).
@@ -165,17 +174,7 @@ function App() {
   const [lang, setLangState]      = useState(getLang())
   const [theme, setThemeState]    = useState(() => { try { return localStorage.getItem('sh_theme') || 'light' } catch { return 'light' } })
 
-  // Read from both keys so either old or new saves are recognised
-  const [onboardingDone, setOnboardingDone] = useState(() => {
-    try {
-      return (
-        localStorage.getItem('sh_onboarding_done') === 'true' ||
-        localStorage.getItem('onboardingDone')     === 'true'
-      )
-    } catch {
-      return false
-    }
-  })
+  const [onboardingDone, setOnboardingDone] = useState(readOnboardingDone)
 
   console.log('[App] render — onboardingDone:', onboardingDone, '| session:', !!session, '| loading:', loading)
 
@@ -223,36 +222,34 @@ function App() {
 
       if (event === 'INITIAL_SESSION') {
         clearTimeout(hardTimeout)
-        resolveLoading(sess ?? null)
 
-        // Read BOTH keys so older saved data is recognised too
-        let localDone = false
-        try {
-          localDone = (
-            localStorage.getItem('sh_onboarding_done') === 'true' ||
-            localStorage.getItem('onboardingDone')     === 'true'
-          )
-        } catch {}
-        console.log('[App] INITIAL_SESSION — localDone:', localDone)
-        setOnboardingDone(localDone)
-
-        // Background DB check — only upgrades to true, never resets to false
-        if (sess?.user?.id) {
-          supabase
-            .from('users')
-            .select('onboarding_done')
-            .eq('id', sess.user.id)
-            .single()
-            .then(({ data }) => {
-              if (data?.onboarding_done === true) {
-                console.log('[App] DB confirms onboarding done — updating state')
-                try { localStorage.setItem('sh_onboarding_done', 'true') } catch {}
-                try { localStorage.setItem('onboardingDone', 'true') } catch {}
-                setOnboardingDone(true)
-              }
-            })
-            .catch(() => {})
+        // No session — show login immediately, no DB check needed
+        if (!sess?.user?.id) {
+          resolveLoading(null)
+          return
         }
+
+        // Logged-in: if storage already has the flag, trust it and render now
+        if (readOnboardingDone()) {
+          setOnboardingDone(true)
+          resolveLoading(sess)
+          return
+        }
+
+        // Storage is empty — common after Safari purges localStorage or in private mode.
+        // Wait for the DB before rendering so we never wrongly redirect a returning
+        // user to /onboarding. Fall back after 2.5 s so the app never hangs.
+        const dbGate = setTimeout(() => resolveLoading(sess), 2500)
+        supabase
+          .from('users').select('onboarding_done').eq('id', sess.user.id).single()
+          .then(({ data }) => {
+            clearTimeout(dbGate)
+            const done = data?.onboarding_done === true
+            if (done) { safeSet('sh_onboarding_done', 'true'); safeSet('onboardingDone', 'true') }
+            setOnboardingDone(done)
+            resolveLoading(sess)
+          })
+          .catch(() => { clearTimeout(dbGate); resolveLoading(sess) })
         return
       }
 
