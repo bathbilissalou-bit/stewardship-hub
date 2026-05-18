@@ -30,9 +30,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="StewardHub" />
-    <!-- 180×180 is the canonical size iOS uses for Add to Home Screen -->
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <!--
+      Apple touch icons: iOS uses the closest match ≥ the device's required size.
+      180×180 is the canonical "Add to Home Screen" icon for modern iPhones.
+      The bare <link rel="apple-touch-icon"> is the last-resort fallback for older iOS.
+    -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
 
