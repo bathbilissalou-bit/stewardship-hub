@@ -275,7 +275,8 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-logo">✦</div>
-        <p>{lt.loadingAppName}</p>
+        <p className="loading-name">{lt.loadingAppName}</p>
+        <p className="loading-tagline">{lt.loadingTagline}</p>
       </div>
     )
   }

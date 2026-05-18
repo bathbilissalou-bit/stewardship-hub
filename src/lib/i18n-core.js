@@ -71,21 +71,21 @@ export function useNavT() {
 
 // ── Boot loading line only — keeps App.jsx off the full i18n bundle ──────────
 const LOADING_UI = {
-  en: { loadingAppName: 'Stewardship Hub' },
-  es: { loadingAppName: 'Centro de Mayordomía' },
-  fr: { loadingAppName: 'Hub de Gestion' },
-  pt: { loadingAppName: 'Hub de Mordomia' },
-  sw: { loadingAppName: 'Stewardship Hub' },
-  yo: { loadingAppName: 'Stewardship Hub' },
-  ig: { loadingAppName: 'Stewardship Hub' },
-  ha: { loadingAppName: 'Stewardship Hub' },
-  zh: { loadingAppName: '管家中心' },
-  hi: { loadingAppName: 'Stewardship Hub' },
-  ar: { loadingAppName: 'مركز الوصاية' },
-  ru: { loadingAppName: 'Центр управления' },
-  de: { loadingAppName: 'Stewardship Hub' },
-  it: { loadingAppName: 'Hub della Gestione' },
-  ko: { loadingAppName: '스튜어드십 허브' },
+  en: { loadingAppName: 'StewardHub', loadingTagline: 'Faith-based financial freedom' },
+  es: { loadingAppName: 'StewardHub', loadingTagline: 'Libertad financiera basada en la fe' },
+  fr: { loadingAppName: 'StewardHub', loadingTagline: 'Liberté financière fondée sur la foi' },
+  pt: { loadingAppName: 'StewardHub', loadingTagline: 'Liberdade financeira baseada na fé' },
+  sw: { loadingAppName: 'StewardHub', loadingTagline: 'Uhuru wa kifedha unaotegemea imani' },
+  yo: { loadingAppName: 'StewardHub', loadingTagline: 'Ominira owo ti o da lori igbagbo' },
+  ig: { loadingAppName: 'StewardHub', loadingTagline: 'Onye nwe onwe ya n\'ego' },
+  ha: { loadingAppName: 'StewardHub', loadingTagline: 'Yanci na kuɗi bisa bangaskiya' },
+  zh: { loadingAppName: 'StewardHub', loadingTagline: '基于信仰的财务自由' },
+  hi: { loadingAppName: 'StewardHub', loadingTagline: 'आस्था-आधारित वित्तीय स्वतंत्रता' },
+  ar: { loadingAppName: 'StewardHub', loadingTagline: 'الحرية المالية القائمة على الإيمان' },
+  ru: { loadingAppName: 'StewardHub', loadingTagline: 'Финансовая свобода на основе веры' },
+  de: { loadingAppName: 'StewardHub', loadingTagline: 'Glaubensbasierte finanzielle Freiheit' },
+  it: { loadingAppName: 'StewardHub', loadingTagline: 'Libertà finanziaria basata sulla fede' },
+  ko: { loadingAppName: 'StewardHub', loadingTagline: '믿음에 기반한 재정적 자유' },
 }
 
 /** Minimal strings for the initial auth bootstrap screen (no ./i18n import). */

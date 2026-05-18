@@ -134,11 +134,16 @@ body {
 
 .loading-screen {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; height: 100vh; gap: 12px; background: var(--white);
+  justify-content: center; height: 100vh; gap: 8px; background: var(--white);
 }
-.loading-logo { font-size: 40px; color: var(--green); animation: pulse 1.5s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-.loading-screen p { font-size: 18px; font-weight: 600; color: var(--green-dark); }
+.loading-logo {
+  font-size: 44px; color: var(--green);
+  animation: pulse 1.8s ease-in-out infinite;
+  margin-bottom: 4px;
+}
+@keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.5; transform:scale(0.94)} }
+.loading-name    { font-size: 20px; font-weight: 800; color: var(--green-dark); letter-spacing: -0.3px; }
+.loading-tagline { font-size: 12px; font-weight: 500; color: var(--text-faint); letter-spacing: 0.02em; }
 
 .auth-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 32px 24px; background: var(--white); }
 .auth-logo { text-align: center; margin-bottom: 32px; }
