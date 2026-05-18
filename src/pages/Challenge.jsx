@@ -59,6 +59,18 @@ export default function Challenge({ session }) {
   const totalSaved = Object.values(progress).reduce((s,p)=>s+Number(p.amount_saved||0),0)
   const pct = Math.round((completedDays/30)*100)
   const nextDay = TASKS.find(t=>!progress[t.day]?.completed)
+  const [sharing, setSharing] = useState(false)
+  const [shareMsg, setShareMsg] = useState('')
+
+  async function shareProgress() {
+    setSharing(true)
+    const nextLine = nextDay ? `Next up: Day ${nextDay.day} — ${nextDay.title}` : '🏆 Challenge complete!'
+    const content  = `⭐ ${completedDays}/30 days on the 30-Day Financial Challenge!\n${pct}% complete | $${totalSaved.toFixed(2)} saved\n${nextLine}\nAnyone else building better financial habits? Let's hold each other accountable! 💪`
+    const { error } = await supabase.from('community_posts').insert({ user_id: userId, content, post_type: 'milestone' })
+    setSharing(false)
+    setShareMsg(error ? '⚠️ Could not share' : 'Shared! 🎉')
+    setTimeout(() => setShareMsg(''), 3000)
+  }
 
   function openDay(task) { setSelected(task); setReflection(progress[task.day]?.reflection||''); setAmount(progress[task.day]?.amount_saved||'') }
 
@@ -87,6 +99,15 @@ export default function Challenge({ session }) {
         <div style={{ fontSize:14, color:'var(--text-muted)', marginBottom:12 }}>{tr.challenge} {completedDays} {tr.of||'of'} 30 {tr.dayComplete||'complete'}</div>
         <div className="progress-wrap"><div className="progress-fill" style={{ width:`${pct}%` }}/></div>
         <div style={{ marginTop:12, fontSize:18, fontWeight:700, color:'var(--green)' }}>${totalSaved.toFixed(2)} {tr.saved||'saved'}</div>
+        <div style={{ marginTop:12, display:'flex', justifyContent:'center', gap:8, alignItems:'center' }}>
+          <button
+            onClick={shareProgress} disabled={sharing || completedDays === 0}
+            style={{ padding:'8px 18px', background:'var(--green)', color:'white', border:'none', borderRadius:20, fontSize:13, fontWeight:700, cursor:'pointer', opacity:(sharing||completedDays===0)?0.5:1 }}
+          >
+            {sharing ? '…' : '📣 Share Progress'}
+          </button>
+          {shareMsg && <span style={{ fontSize:12, color:'var(--green)', fontWeight:600 }}>{shareMsg}</span>}
+        </div>
       </div>
       {nextDay&&(
         <div className="card" onClick={()=>openDay(nextDay)} style={{ background:'var(--green)', cursor:'pointer' }}>

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useT } from '../lib/i18n'
 
@@ -37,8 +36,7 @@ const noSelect = {
 }
 
 export default function Onboarding({ session, onComplete }) {
-  const tr       = useT()
-  const location = useLocation()
+  const tr = useT()
 
   const STEPS = [
     { icon: '👋', title: tr.onboard_step0_title, desc: tr.onboard_step0_desc, tip: tr.onboard_step0_tip },
@@ -135,17 +133,8 @@ export default function Onboarding({ session, onComplete }) {
     { icon: '🌍', text: tr.onboard_bullet5 },
   ]
 
-  // Debug info visible on screen (remove after confirming fixed)
-  let lsDone = '?'
-  try { lsDone = localStorage.getItem('onboardingDone') || localStorage.getItem('sh_onboarding_done') || 'not set' } catch {}
-
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F6E56 0%, #1D9E75 40%, #f8fdf9 100%)', padding: '0 0 40px', ...noSelect }}>
-
-      {/* ── DEBUG PANEL (remove after confirming fixed) ───────────────────── */}
-      <div style={{ background: 'rgba(0,0,0,0.7)', color: '#0f0', fontFamily: 'monospace', fontSize: 10, padding: '6px 10px', lineHeight: 1.6 }}>
-        goal: "{goal}" | lsDone: {lsDone} | onComplete: {typeof onComplete} | path: {location.pathname}
-      </div>
 
       {/* Progress bar */}
       <div style={{ height: 4, background: 'rgba(255,255,255,0.3)' }}>
@@ -171,17 +160,27 @@ export default function Onboarding({ session, onComplete }) {
 
       <div style={{ padding: '0 20px', maxWidth: 480, margin: '0 auto' }}>
 
-        {/* Step 0 — feature list */}
+        {/* Step 0 — motivational hook + feature list */}
         {step === 0 && (
-          <div style={{ background: 'white', borderRadius: 20, padding: 20, marginBottom: 16 }}>
-            {bullets.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < bullets.length - 1 ? '1px solid #f3f4f6' : 'none', pointerEvents: 'none' }}>
-                <span style={{ fontSize: 24 }}>{item.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: 500 }}>{item.text}</span>
-                <span style={{ marginLeft: 'auto', color: '#1D9E75' }}>✓</span>
+          <>
+            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: '14px 18px', marginBottom: 12, textAlign: 'center', pointerEvents: 'none' }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.95)', lineHeight: 1.7, fontStyle: 'italic' }}>
+                "Every great financial turnaround starts with one decision — <strong style={{ color: 'white' }}>not anymore.</strong>"
               </div>
-            ))}
-          </div>
+              <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
+                Built for families, leaders, and anyone ready to change their money story.
+              </div>
+            </div>
+            <div style={{ background: 'white', borderRadius: 20, padding: 20, marginBottom: 16 }}>
+              {bullets.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < bullets.length - 1 ? '1px solid #f3f4f6' : 'none', pointerEvents: 'none' }}>
+                  <span style={{ fontSize: 24 }}>{item.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{item.text}</span>
+                  <span style={{ marginLeft: 'auto', color: '#1D9E75' }}>✓</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Step 1 — income */}
@@ -292,24 +291,6 @@ export default function Onboarding({ session, onComplete }) {
           </button>
         )}
 
-        {/* ── Emergency bypass (remove after confirming fixed) ──────────────── */}
-        <button type="button"
-          onClick={() => {
-            console.log('Emergency bypass clicked')
-            try { localStorage.setItem('onboardingDone', 'true'); localStorage.setItem('sh_onboarding_done', 'true') } catch {}
-            if (typeof onComplete === 'function') onComplete()
-            else window.location.href = '/'
-          }}
-          onTouchEnd={e => {
-            e.preventDefault()
-            console.log('Emergency bypass touchEnd')
-            try { localStorage.setItem('onboardingDone', 'true'); localStorage.setItem('sh_onboarding_done', 'true') } catch {}
-            if (typeof onComplete === 'function') onComplete()
-            else window.location.href = '/'
-          }}
-          style={{ width: '100%', marginTop: 16, padding: '10px', background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.6)', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: 10, fontSize: 12, minHeight: 40, ...noSelect }}>
-          <span style={{ pointerEvents: 'none' }}>Enter app anyway (debug)</span>
-        </button>
       </div>
     </div>
   )

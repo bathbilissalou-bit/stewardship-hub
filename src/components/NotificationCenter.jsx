@@ -84,15 +84,16 @@ export default function NotificationCenter({ userId }) {
       return
     }
 
-    let userRow, bills, subs, goals
+    let userRow, bills, subs, goals, budgetEntries
     try {
-      const [r0, r1, r2, r3] = await Promise.all([
+      const [r0, r1, r2, r3, r4] = await Promise.all([
         supabase.from('users').select('currency').eq('id', userId).single(),
         supabase.from('bills').select('id,name,amount,due_day,due_month,status,paid_month').eq('user_id', userId),
         supabase.from('subscriptions').select('id,name,amount,icon,next_billing_date').eq('user_id', userId),
         supabase.from('savings_goals').select('id,name,icon,current_amount,target_amount').eq('user_id', userId).eq('status','active'),
+        supabase.from('budget_entries').select('type,amount').eq('user_id', userId).eq('month_year', thisMonth),
       ])
-      userRow = r0.data; bills = r1.data; subs = r2.data; goals = r3.data
+      userRow = r0.data; bills = r1.data; subs = r2.data; goals = r3.data; budgetEntries = r4.data
     } catch (_) { return }
 
     if (userRow?.currency) setSymbol(SYMBOLS[userRow.currency] || '$')
@@ -154,6 +155,48 @@ export default function NotificationCenter({ userId }) {
         })
       }
     })
+
+    // Budget threshold alerts for current month
+    const budgetIncome   = (budgetEntries||[]).filter(e=>e.type==='income').reduce((s,e)=>s+Number(e.amount),0)
+    const budgetExpenses = (budgetEntries||[]).filter(e=>e.type==='expense').reduce((s,e)=>s+Number(e.amount),0)
+    if (budgetIncome > 0 && budgetExpenses > 0) {
+      const spentPct = Math.round(budgetExpenses / budgetIncome * 100)
+      const sym = SYMBOLS[userRow?.currency] || '$'
+      if (spentPct >= 100) {
+        newAlerts.unshift({
+          id:    `budget-${thisMonth}-over`,
+          type:  'budget',
+          icon:  '⚠️',
+          title: trn.budgetAlertOverTitle || 'Over Budget!',
+          body:  interpolate(trn.budgetAlertOverBody || `You've spent {pct}% of income — {sym}${fmt(budgetExpenses - budgetIncome)} over.`, { pct: String(spentPct), sym }),
+          days:  null,
+          link:  '/budget',
+          pct:   spentPct,
+        })
+      } else if (spentPct >= 90) {
+        newAlerts.unshift({
+          id:    `budget-${thisMonth}-critical`,
+          type:  'budget',
+          icon:  '🔴',
+          title: trn.budgetAlertCriticalTitle || 'Budget Critical',
+          body:  interpolate(trn.budgetAlertCriticalBody || `{pct}% of income used — only {sym}${fmt(budgetIncome - budgetExpenses)} remaining.`, { pct: String(spentPct), sym }),
+          days:  null,
+          link:  '/budget',
+          pct:   spentPct,
+        })
+      } else if (spentPct >= 70) {
+        newAlerts.unshift({
+          id:    `budget-${thisMonth}-warning`,
+          type:  'budget',
+          icon:  '💡',
+          title: trn.budgetAlertWarnTitle || 'Spending Check',
+          body:  interpolate(trn.budgetAlertWarnBody || `You've used {pct}% of income this month. Stay on track!`, { pct: String(spentPct) }),
+          days:  null,
+          link:  '/budget',
+          pct:   spentPct,
+        })
+      }
+    }
 
     // Sort: overdue first, then by days
     newAlerts.sort((a, b) => {

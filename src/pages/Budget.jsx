@@ -114,6 +114,22 @@ function getInsight(tr, income, expenses, surplus, catTotals) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PROJECTED SPENDING NUDGE
+// Only shown for current month (offset 0) between days 5–25 when pace is high.
+// ─────────────────────────────────────────────────────────────────────────────
+function getProjectedNudge(income, expenses) {
+  if (!income || !expenses) return null
+  const today      = new Date()
+  const day        = today.getDate()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  if (day < 5 || day > 25) return null
+  const projected    = Math.round(expenses / day * daysInMonth)
+  const projectedPct = Math.round(projected / income * 100)
+  if (projectedPct < 95) return null
+  return { projectedPct, daysLeft: daysInMonth - day }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SHARED INPUT STYLES
 // ─────────────────────────────────────────────────────────────────────────────
 const inputStyle = {
@@ -144,6 +160,7 @@ export default function Budget({ session }) {
   const [toast,         setToast]         = useState(null)
   const [toastType,     setToastType]     = useState('success')
   const [showTemplates, setShowTemplates] = useState(false)
+  const [sharing,       setSharing]       = useState(false)
 
   const updateTimeout = useRef(null)
   const prevEditingId = useRef(null)
@@ -252,6 +269,21 @@ export default function Budget({ session }) {
       setSaving(false)
     }
   }
+  async function shareBudget() {
+    if (!income && !expenses) { showToast(tr.budget_err_fill || 'Add entries first', 'error'); return }
+    setSharing(true)
+    const month   = formatMonthLabel(monthYear)
+    const pctUsed = income > 0 ? Math.round(expenses / income * 100) : 0
+    const line2   = surplus >= 0
+      ? `Saved: ${sym}${fmt(surplus)} 💰`
+      : `Over by: ${sym}${fmt(Math.abs(surplus))} — working on it 💪`
+    const content = `📊 ${month} budget check-in!\nIncome: ${sym}${fmt(income)} | Spent: ${sym}${fmt(expenses)} (${pctUsed}% of income)\n${line2}\nBuilding better habits one month at a time! #Stewardship`
+    const { error } = await supabase.from('community_posts').insert({ user_id: userId, content, post_type: 'milestone' })
+    setSharing(false)
+    if (error) showToast(tr.budget_err_generic || '⚠️ Could not share', 'error')
+    else        showToast('Shared to Community! 🎉')
+  }
+
   function downloadCSV() {
     try {
       const headers = [tr.budget_csv_col_type, tr.budget_csv_col_description, tr.budget_csv_col_category, tr.budget_csv_col_amount]
@@ -415,6 +447,32 @@ export default function Budget({ session }) {
               }}>
                 <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{insight.icon}</span>
                 <span style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.65 }}>{insight.text}</span>
+              </div>
+            )}
+
+            {/* Projected spending nudge — current month only */}
+            {monthOffset === 0 && (() => {
+              const nudge = getProjectedNudge(income, expenses)
+              if (!nudge) return null
+              return (
+                <div style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'11px 13px', borderRadius:11, background:'rgba(194,138,53,0.09)', marginTop:8, border:'1px solid rgba(194,138,53,0.18)' }}>
+                  <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>⚡</span>
+                  <span style={{ fontSize:12, color:'#7a4e0a', lineHeight:1.65 }}>
+                    At this pace you're on track to spend <strong>{nudge.projectedPct}%</strong> of income by month-end. You have {nudge.daysLeft} days left — a great time to pause non-essentials.
+                  </span>
+                </div>
+              )
+            })()}
+
+            {/* Share to Community */}
+            {(income > 0 || expenses > 0) && (
+              <div style={{ marginTop:12, textAlign:'right' }}>
+                <button
+                  onClick={shareBudget} disabled={sharing}
+                  style={{ padding:'7px 14px', background:'var(--green-light)', color:'var(--green-dark)', border:'1px solid rgba(29,140,106,0.2)', borderRadius:20, fontSize:12, fontWeight:700, cursor:'pointer', opacity:sharing?0.6:1 }}
+                >
+                  {sharing ? '…' : '📣 Share to Community'}
+                </button>
               </div>
             )}
           </div>
