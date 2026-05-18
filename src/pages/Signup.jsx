@@ -91,17 +91,17 @@ export default function Signup() {
           <div>
             <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{(tr.fullName || 'Full name').toUpperCase()}</label>
             <input type="text" placeholder="Sarah Johnson" value={fullName} onChange={e => setFullName(e.target.value)} required
-              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:15, color:'white', outline:'none', boxSizing:'border-box' }} />
+              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:16, color:'white', outline:'none', boxSizing:'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{(tr.email || 'Email').toUpperCase()}</label>
             <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required
-              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:15, color:'white', outline:'none', boxSizing:'border-box' }} />
+              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:16, color:'white', outline:'none', boxSizing:'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:500, display:'block', marginBottom:6, letterSpacing:'0.05em' }}>{(tr.password || 'Password').toUpperCase()}</label>
             <input type="password" placeholder={tr.signup_ph_pw || 'At least 6 characters'} value={password} onChange={e => setPassword(e.target.value)} minLength={6} required
-              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:15, color:'white', outline:'none', boxSizing:'border-box' }} />
+              style={{ width:'100%', padding:'14px 16px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:16, color:'white', outline:'none', boxSizing:'border-box' }} />
           </div>
           <button type="submit" disabled={loading}
             style={{ width:'100%', padding:'15px', background: loading ? '#0F6E56' : 'linear-gradient(135deg, #1D9E75, #0F6E56)', color:'white', border:'none', borderRadius:10, fontSize:16, fontWeight:700, cursor: loading ? 'not-allowed':'pointer', marginTop:4 }}>

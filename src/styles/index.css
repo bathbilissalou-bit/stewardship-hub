@@ -179,11 +179,12 @@ body {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
-.app-content { flex: 1; padding: 16px 16px 100px; overflow-y: auto; }
+.app-content { flex: 1; padding: 16px 16px calc(100px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; background: var(--white);
-  border-top: 1px solid var(--border); display: flex; padding: 8px 0 20px; z-index: 100;
+  border-top: 1px solid var(--border); display: flex;
+  padding: 8px 0 calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 100;
 }
 .nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -256,7 +257,7 @@ body {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 .fab {
-  position: fixed; bottom: 90px; right: calc(50% - 240px + 20px);
+  position: fixed; bottom: calc(90px + env(safe-area-inset-bottom, 0px)); right: calc(50% - 240px + 20px);
   width: 56px; height: 56px; background: var(--green); color: white;
   border: none; border-radius: 50%; font-size: 28px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -428,7 +429,7 @@ select:focus { border-color: var(--green); background: var(--white); }
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 .btn-save {
-  position: fixed; bottom: 80px; right: 16px;
+  position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); right: 16px;
   background: linear-gradient(135deg, var(--green), var(--green-dark));
   color: white; border: none; border-radius: 50px;
   padding: 14px 28px; font-size: 15px; font-weight: 700;
@@ -438,7 +439,7 @@ select:focus { border-color: var(--green); background: var(--white); }
 .btn-save:active { transform: scale(0.96); }
 
 .btn-save-bar {
-  position: fixed; bottom: 70px; left: 0; right: 0;
+  position: fixed; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); left: 0; right: 0;
   background: var(--white); padding: 10px 16px;
   border-top: 2px solid var(--green); display: flex; gap: 10px;
   z-index: 999; box-shadow: 0 -4px 20px rgba(0,0,0,0.07);
