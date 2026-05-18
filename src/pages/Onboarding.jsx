@@ -75,10 +75,16 @@ export default function Onboarding({ session, onComplete }) {
 
       // Await the critical DB write so the onboarding flag is persisted before navigation
       const { error: upsertError } = await supabase.from('users')
-        .upsert({ id: userId, currency, onboarding_done: true }, { onConflict: 'id' })
+        .upsert({
+          id: userId,
+          email: session?.user?.email ?? '',
+          full_name: session?.user?.user_metadata?.full_name ?? session?.user?.email ?? '',
+          currency,
+          onboarding_done: true,
+        }, { onConflict: 'id' })
       if (upsertError) {
-        console.error('[Onboarding] users upsert failed:', upsertError)
-        setError(`Could not save onboarding (${upsertError.code || upsertError.message}). Please try again or contact support.`)
+        console.error('[Onboarding] users upsert failed — full error:', JSON.stringify(upsertError, null, 2))
+        setError(`Could not save onboarding (${upsertError.code}: ${upsertError.message}${upsertError.details ? ' — ' + upsertError.details : ''}). Please try again or contact support.`)
         setLoading(false)
         return
       }
