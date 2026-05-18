@@ -134,8 +134,14 @@ body {
 
 .loading-screen {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; height: 100vh; gap: 8px; background: var(--white);
+  justify-content: center;
+  height: 100vh;
+  /* account for iOS status bar in black-translucent standalone mode */
+  padding-top: env(safe-area-inset-top, 0px);
+  gap: 8px; background: var(--white);
 }
+[data-theme="dark"] .loading-screen { background: #131210; }
+
 .loading-logo {
   font-size: 44px; color: var(--green);
   animation: pulse 1.8s ease-in-out infinite;
@@ -144,6 +150,8 @@ body {
 @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.5; transform:scale(0.94)} }
 .loading-name    { font-size: 20px; font-weight: 800; color: var(--green-dark); letter-spacing: -0.3px; }
 .loading-tagline { font-size: 12px; font-weight: 500; color: var(--text-faint); letter-spacing: 0.02em; }
+[data-theme="dark"] .loading-name    { color: var(--green-mid); }
+[data-theme="dark"] .loading-tagline { color: var(--text-faint); }
 
 .auth-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 32px 24px; background: var(--white); }
 .auth-logo { text-align: center; margin-bottom: 32px; }

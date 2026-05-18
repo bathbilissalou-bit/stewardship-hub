@@ -22,38 +22,75 @@
     <meta name="twitter:description" content="Budget, invest, save, give — all in one faith-based finance app." />
     <meta name="twitter:image"       content="https://getstewardflow.com/icon-512.png" />
 
+    <!-- PWA / theme -->
     <meta name="theme-color" content="#1D9E75" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="StewardHub" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="/manifest.json" />
+    <!-- 180×180 is the canonical size iOS uses for Add to Home Screen -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
 
-    <!-- ⚡ Preconnect: browser starts TCP handshake to Supabase BEFORE JS runs -->
+    <!-- Android -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preconnect to Supabase: TCP starts before JS runs -->
     <link rel="preconnect" href="https://mukccbbpayuyynmlkcia.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://mukccbbpayuyynmlkcia.supabase.co" />
+
+    <!--
+      Inline critical CSS: prevents white flash before React mounts.
+      Matches loading-screen styles in index.css exactly.
+      background-color is overridden by data-theme="dark" script below.
+    -->
+    <style>
+      html, body, #root { margin: 0; padding: 0; height: 100%; }
+      body { background-color: #ffffff; }
+      [data-theme="dark"] body { background-color: #131210; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Apply theme before React mounts to prevent flash of wrong theme -->
+
+    <!-- Set theme BEFORE React mounts → no flash of wrong background -->
     <script>
       (function() {
-        var t = localStorage.getItem('sh_theme') || 'light';
-        document.documentElement.setAttribute('data-theme', t);
+        var t;
+        try { t = localStorage.getItem('sh_theme'); } catch(e) {}
+        document.documentElement.setAttribute('data-theme', t || 'light');
       })();
     </script>
+
     <script type="module" src="/src/main.jsx"></script>
-    <!-- Service worker: handles offline fallback for app shell only.
-         Supabase requests are bypassed (early return, no event.respondWith). -->
+
+    <!-- Service worker: offline shell only. Supabase bypassed via early return. -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
-            .then(() => console.log('[SW] registered'))
-            .catch(err => console.warn('[SW] registration failed:', err))
-        })
+            .then(function(reg) {
+              console.log('[SW] registered, scope:', reg.scope);
+              // When a new SW is waiting, reload to activate it immediately
+              reg.addEventListener('updatefound', function() {
+                var newWorker = reg.installing;
+                newWorker && newWorker.addEventListener('statechange', function() {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[SW] new version ready — reloading');
+                    window.location.reload();
+                  }
+                });
+              });
+            })
+            .catch(function(err) { console.warn('[SW] registration failed:', err); });
+        });
       }
     </script>
   </body>

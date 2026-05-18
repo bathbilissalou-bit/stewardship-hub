@@ -15,7 +15,7 @@ export default function Layout({ session, lang, setLang }) {
 
   return (
     <div className="app-layout">
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 16px 8px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'calc(10px + env(safe-area-inset-top, 0px)) 16px 8px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
         <LanguageSwitcher lang={lang} setLang={setLang} />
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <Link to="/search" style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:10, background:'var(--green-light)', fontSize:18 }}>🔍</Link>

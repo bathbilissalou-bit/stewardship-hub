@@ -5,6 +5,7 @@ import { getLang, RTL_LANGS, getLoadingUi } from './lib/i18n-core'
 import { hardLocalLogout } from './lib/logout'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
+import InstallPrompt from './components/InstallPrompt'
 
 // ── Eagerly loaded (needed immediately for auth flow) ─────────────────────────
 import Login          from './pages/Login'
@@ -282,22 +283,25 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <AppRoutes
-            session={session}
-            onboardingDone={onboardingDone}
-            setOnboardingDone={setOnboardingDone}
-            isPremium={isPremium}
-            lang={lang}
-            setLang={setLangState}
-            theme={theme}
-            setTheme={setTheme}
-          />
-        </Suspense>
-      </ErrorBoundary>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes
+              session={session}
+              onboardingDone={onboardingDone}
+              setOnboardingDone={setOnboardingDone}
+              isPremium={isPremium}
+              lang={lang}
+              setLang={setLangState}
+              theme={theme}
+              setTheme={setTheme}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      </BrowserRouter>
+      <InstallPrompt />
+    </>
   )
 }
 

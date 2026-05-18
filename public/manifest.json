@@ -6,9 +6,11 @@
   "start_url": "https://getstewardflow.com/",
   "scope": "https://getstewardflow.com/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#1D9E75",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,7 +22,13 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon.svg",
@@ -34,13 +42,21 @@
   "shortcuts": [
     {
       "name": "Budget",
+      "short_name": "Budget",
       "url": "/budget",
       "description": "Track your budget"
     },
     {
       "name": "AI Coach",
+      "short_name": "Coach",
       "url": "/coach",
       "description": "Get financial advice"
+    },
+    {
+      "name": "Savings",
+      "short_name": "Savings",
+      "url": "/savings",
+      "description": "View savings goals"
     }
   ]
 }
