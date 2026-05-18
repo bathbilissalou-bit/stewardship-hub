@@ -76,19 +76,36 @@ export default function Onboarding({ session, onComplete }) {
     safeSet('onboardingDone', 'true')
     if (goal) safeSet('financialGoal', goal)
 
-    const userId = session?.user?.id
+    // Always fetch a fresh session so we have the latest id/email
+    const { data: { session: freshSession } } = await supabase.auth.getSession()
+    const userId = freshSession?.user?.id
+    const userEmail = freshSession?.user?.email
+
+    if (!userId) {
+      setError('Session expired. Please log out and log back in.')
+      setLoading(false)
+      return
+    }
+    if (!userEmail) {
+      setError('Your email could not be read from the session. Please log out and log back in.')
+      setLoading(false)
+      return
+    }
+
     if (userId) {
       const now = new Date()
       const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-      const { error: upsertError } = await supabase.from('users')
-        .upsert({
-          id: userId,
-          email: session?.user?.email ?? '',
-          full_name: session?.user?.user_metadata?.full_name ?? session?.user?.email ?? '',
-          currency,
-          onboarding_done: true,
-        }, { onConflict: 'id' })
+      const payload = {
+        id: userId,
+        email: userEmail,
+        full_name: freshSession?.user?.user_metadata?.full_name ?? userEmail,
+        currency,
+        onboarding_done: true,
+      }
+      console.log('[Onboarding] upsert payload:', { ...payload, id: payload.id.slice(0, 8) + '…' })
+
+      const { error: upsertError } = await supabase.from('users').upsert(payload, { onConflict: 'id' })
       if (upsertError) {
         console.error('[Onboarding] users upsert FULL ERROR:', JSON.stringify(upsertError, null, 2))
         setDbError(upsertError)
