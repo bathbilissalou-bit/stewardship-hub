@@ -15,7 +15,7 @@ export default function ForgotPassword() {
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://stewardship-hub-tau.vercel.app/reset-password'
+      redirectTo: 'https://getstewardflow.com/reset-password'
     })
     if (error) setError(error.message)
     else setSent(true)
