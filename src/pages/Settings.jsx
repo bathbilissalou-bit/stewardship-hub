@@ -320,6 +320,9 @@ export default function Settings({ session, isPremium, theme, setTheme }) {
             <div style={{ fontSize:22, fontWeight:800, color:'var(--green-dark)' }}>{tr.settings_brand_name || 'Stewardship Hub'}</div>
             <div style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>{tr.settings_about_tagline || 'Faith-based financial freedom'}</div>
             <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:8 }}>{tr.settings_about_version}</div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, fontFamily:'monospace', background:'var(--bg-secondary,#f3f4f6)', borderRadius:6, padding:'2px 8px', display:'inline-block' }}>
+              Build: {typeof __BUILD_TIME__ !== 'undefined' ? new Date(__BUILD_TIME__).toLocaleString() : 'dev'}
+            </div>
           </div>
           <div className="card" style={{ marginBottom:12 }}>
             <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>{tr.featuresTitle||'✅ Features'}</div>
