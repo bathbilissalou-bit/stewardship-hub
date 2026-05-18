@@ -1,5 +1,5 @@
 // Bump version on every deploy so clients drop old caches and install fresh logic.
-const CACHE_NAME = 'stewardship-hub-v12'
+const CACHE_NAME = 'stewardship-hub-v15'
 
 self.addEventListener('install', event => {
   // Activate immediately — don't wait for old tabs to close
