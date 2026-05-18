@@ -65,51 +65,42 @@ export default function Onboarding({ session, onComplete }) {
     setDbError(null)
   }
 
-  function handleContinueAnyway() {
-    // localStorage/sessionStorage already written at top of completeOnboarding
+  // Always works — writes to storage and navigates immediately.
+  // DB save is a background concern, never a blocker.
+  function navigateToDashboard() {
+    safeSet('sh_onboarding_done', 'true')
+    safeSet('onboardingDone', 'true')
+    if (goal) safeSet('financialGoal', goal)
     if (typeof onComplete === 'function') onComplete()
     else window.location.href = '/'
   }
 
-  async function completeOnboarding() {
-    safeSet('sh_onboarding_done', 'true')
-    safeSet('onboardingDone', 'true')
-    if (goal) safeSet('financialGoal', goal)
+  // Fire-and-forget background DB sync. Errors are logged but never shown
+  // to the user as a blocker — the user is already on the dashboard by the
+  // time this resolves.
+  async function syncProfileToDb() {
+    try {
+      const { data: { session: freshSession } } = await supabase.auth.getSession()
+      const userId = freshSession?.user?.id
+      const userEmail = freshSession?.user?.email
 
-    // Always fetch a fresh session so we have the latest id/email
-    const { data: { session: freshSession } } = await supabase.auth.getSession()
-    const userId = freshSession?.user?.id
-    const userEmail = freshSession?.user?.email
-
-    if (!userId) {
-      setError('Session expired. Please log out and log back in.')
-      setLoading(false)
-      return
-    }
-    if (!userEmail) {
-      setError('Your email could not be read from the session. Please log out and log back in.')
-      setLoading(false)
-      return
-    }
-
-    if (userId) {
-      const now = new Date()
-      const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      if (!userId) { console.warn('[Onboarding] no userId in fresh session — skipping DB sync'); return }
 
       const payload = {
         id: userId,
-        email: userEmail,
-        full_name: freshSession?.user?.user_metadata?.full_name ?? userEmail,
+        email: userEmail || `noemail-${userId.slice(0, 8)}@placeholder.local`,
+        full_name: freshSession?.user?.user_metadata?.full_name || userEmail || '',
         currency,
         onboarding_done: true,
       }
-      console.log('[Onboarding] upsert payload:', { ...payload, id: payload.id.slice(0, 8) + '…' })
+      console.log('[Onboarding] background DB payload:', { ...payload, id: payload.id.slice(0, 8) + '…' })
+
+      const now = new Date()
+      const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
       const { error: upsertError } = await supabase.from('users').upsert(payload, { onConflict: 'id' })
       if (upsertError) {
-        console.error('[Onboarding] users upsert FULL ERROR:', JSON.stringify(upsertError, null, 2))
-        setDbError(upsertError)
-        setLoading(false)
+        console.error('[Onboarding] background DB sync failed:', JSON.stringify(upsertError, null, 2))
         return
       }
 
@@ -128,12 +119,8 @@ export default function Onboarding({ session, onComplete }) {
           color: '#1D9E75',
         }).catch(() => {})
       }
-    }
-
-    if (typeof onComplete === 'function') {
-      onComplete()
-    } else {
-      window.location.href = '/'
+    } catch (e) {
+      console.error('[Onboarding] background DB sync threw:', e)
     }
   }
 
@@ -141,15 +128,19 @@ export default function Onboarding({ session, onComplete }) {
     if (loading) return
     if (!goal) { setError('Please choose one goal first.'); return }
     setError('')
+    setDbError(null)
     setLoading(true)
-    completeOnboarding().catch(() => setLoading(false))
+    navigateToDashboard()       // immediate — never blocks
+    syncProfileToDb()           // background — errors logged only
   }
 
   const handleSkip = () => {
     if (loading) return
     setError('')
+    setDbError(null)
     setLoading(true)
-    completeOnboarding().catch(() => setLoading(false))
+    navigateToDashboard()
+    syncProfileToDb()
   }
 
   const isLastStep = step === STEPS.length - 1
@@ -313,15 +304,24 @@ export default function Onboarding({ session, onComplete }) {
           )}
 
           <button type="button"
-            disabled={isLastStep && loading}
             onClick={isLastStep ? handleStart : () => setStep(s => s + 1)}
             onTouchEnd={e => { e.preventDefault(); if (isLastStep) handleStart(); else setStep(s => s + 1) }}
-            style={{ flex: 2, padding: '16px', background: 'white', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, minHeight: 54, opacity: isLastStep && loading ? 0.7 : 1, ...noSelect }}>
+            style={{ flex: 2, padding: '16px', background: 'white', color: '#0F6E56', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 800, minHeight: 54, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>
-              {isLastStep && loading ? '⏳ Saving…' : isLastStep ? (tr.onboard_start_app || '🚀 Start using the app!') : (tr.onboard_continue || 'Continue →')}
+              {isLastStep ? (tr.onboard_start_app || '🚀 Start using the app!') : (tr.onboard_continue || 'Continue →')}
             </span>
           </button>
         </div>
+
+        {/* Always-visible bypass on last step — works even if DB save fails */}
+        {isLastStep && (
+          <button type="button"
+            onClick={navigateToDashboard}
+            onTouchEnd={e => { e.preventDefault(); navigateToDashboard() }}
+            style={{ width: '100%', marginTop: 10, padding: '14px', background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 12, fontSize: 14, fontWeight: 700, minHeight: 48, ...noSelect }}>
+            <span style={{ pointerEvents: 'none' }}>Continue to Dashboard →</span>
+          </button>
+        )}
 
         {/* Skip links */}
         {step === 1 && (
@@ -334,10 +334,9 @@ export default function Onboarding({ session, onComplete }) {
         )}
         {step === 3 && (
           <button type="button"
-            disabled={loading}
             onClick={handleSkip}
             onTouchEnd={e => { e.preventDefault(); handleSkip() }}
-            style={{ width: '100%', marginTop: 12, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.75)', border: 'none', fontSize: 14, minHeight: 44, opacity: loading ? 0.5 : 1, ...noSelect }}>
+            style={{ width: '100%', marginTop: 4, padding: '14px', background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 13, minHeight: 44, ...noSelect }}>
             <span style={{ pointerEvents: 'none' }}>{tr.onboard_skip_now || 'Skip for now →'}</span>
           </button>
         )}
